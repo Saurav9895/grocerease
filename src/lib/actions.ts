@@ -2,8 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { products, orders } from "./data";
-import type { Order, CartItem, Product } from "./types";
+import { db } from "./firebase";
+import { collection, addDoc, doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import type { CartItem, Product } from "./types";
 
 const checkoutSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters"),
@@ -11,43 +12,54 @@ const checkoutSchema = z.object({
   paymentMethod: z.enum(["COD", "Online"]),
 });
 
-export async function placeOrder(cartItems: CartItem[], cartTotal: number, formData: FormData) {
+export async function placeOrder(cartItems: CartItem[], cartTotal: number, userId: string, formData: FormData) {
   const rawFormData = Object.fromEntries(formData.entries());
   const validatedFields = checkoutSchema.safeParse(rawFormData);
   
   if (!validatedFields.success) {
     return {
+      success: false,
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
 
   if (cartItems.length === 0) {
     return {
+      success: false,
       errors: { _form: ["Your cart is empty."] },
     };
   }
   
-  const newOrder: Order = {
-    id: `ORD${(orders.length + 1).toString().padStart(3, '0')}`,
-    customerName: validatedFields.data.name,
-    address: validatedFields.data.address,
-    items: cartItems,
-    total: cartTotal,
-    paymentMethod: validatedFields.data.paymentMethod,
-    status: 'Pending',
-    createdAt: new Date(),
-  };
+  try {
+    const newOrder = {
+      userId,
+      customerName: validatedFields.data.name,
+      address: validatedFields.data.address,
+      items: cartItems.map(({ id, name, price, quantity, imageUrl }) => ({ id, name, price, quantity, imageUrl })),
+      total: cartTotal,
+      paymentMethod: validatedFields.data.paymentMethod,
+      status: 'Pending' as const,
+      createdAt: serverTimestamp(),
+    };
 
-  // In a real app, you would save this to Firebase
-  orders.push(newOrder);
+    const docRef = await addDoc(collection(db, "orders"), newOrder);
+    
+    console.log("New order placed with ID:", docRef.id);
 
-  console.log("New order placed:", newOrder);
+    revalidatePath("/");
+    revalidatePath("/checkout");
+    revalidatePath("/admin/orders");
+    revalidatePath("/orders");
 
-  revalidatePath("/");
-  revalidatePath("/checkout");
-  revalidatePath("/admin/orders");
+    return { success: true, orderId: docRef.id };
 
-  return { success: true, orderId: newOrder.id };
+  } catch (error) {
+    console.error("Error placing order:", error);
+    return {
+      success: false,
+      errors: { _form: ["An unexpected error occurred while placing your order."] },
+    };
+  }
 }
 
 
@@ -55,34 +67,38 @@ export async function placeOrder(cartItems: CartItem[], cartTotal: number, formD
 
 const productSchema = z.object({
   id: z.string().optional(),
-  name: z.string().min(3),
-  description: z.string().min(10),
-  price: z.coerce.number().min(0.01),
-  category: z.string().min(1),
-  stock: z.coerce.number().int().min(0),
-  imageUrl: z.string().url(),
+  name: z.string().min(3, "Name must be at least 3 characters."),
+  description: z.string().min(10, "Description must be at least 10 characters."),
+  price: z.coerce.number().min(0.01, "Price must be a positive number."),
+  category: z.string().min(1, "Please select a category."),
+  stock: z.coerce.number().int().min(0, "Stock must be a non-negative number."),
+  imageUrl: z.string().url("Please enter a valid image URL."),
 });
 
 
 export async function addProduct(formData: FormData) {
   const rawFormData = Object.fromEntries(formData.entries());
-  const validatedFields = productSchema.safeParse(rawFormData);
+  const validatedFields = productSchema.omit({ id: true }).safeParse(rawFormData);
 
   if(!validatedFields.success) {
     return {
+      success: false,
       errors: validatedFields.error.flatten().fieldErrors,
     };
   }
 
-  const newProduct: Product = {
-    ...validatedFields.data,
-    id: `PROD${(products.length + 1).toString()}`,
-  };
-
-  products.push(newProduct);
-  revalidatePath("/admin/products");
-
-  return { success: true };
+  try {
+    await addDoc(collection(db, "products"), validatedFields.data);
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding product:", error);
+    return {
+      success: false,
+      errors: { _form: ["Failed to add product to database."] },
+    };
+  }
 }
 
 export async function updateProduct(formData: FormData) {
@@ -91,30 +107,41 @@ export async function updateProduct(formData: FormData) {
 
   if(!validatedFields.success || !validatedFields.data.id) {
     return {
+      success: false,
       errors: validatedFields.error?.flatten().fieldErrors || {_form: ['Invalid product data']},
     };
   }
   
-  const { id, ...productData } = validatedFields.data;
-  const productIndex = products.findIndex(p => p.id === id);
+  try {
+    const { id, ...productData } = validatedFields.data;
+    const productRef = doc(db, "products", id);
+    await updateDoc(productRef, productData);
+    
+    revalidatePath("/admin/products");
+    revalidatePath("/");
 
-  if(productIndex === -1) {
-    return { errors: {_form: ['Product not found']} };
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating product:", error);
+    return {
+      success: false,
+      errors: { _form: ["Failed to update product in database."] },
+    };
   }
-
-  products[productIndex] = { ...products[productIndex], ...productData };
-  revalidatePath("/admin/products");
-  
-  return { success: true };
 }
 
 
 export async function deleteProduct(productId: string) {
-  const index = products.findIndex(p => p.id === productId);
-  if (index !== -1) {
-    products.splice(index, 1);
-    revalidatePath("/admin/products");
-    return { success: true };
+  if (!productId) {
+    return { success: false, message: "Product ID is missing." };
   }
-  return { success: false, message: "Product not found" };
+  try {
+    await deleteDoc(doc(db, "products", productId));
+    revalidatePath("/admin/products");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting product:", error);
+    return { success: false, message: "Failed to delete product." };
+  }
 }

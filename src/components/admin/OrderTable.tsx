@@ -23,7 +23,7 @@ export function OrderTable({ orders }: OrderTableProps) {
       case 'Pending': return 'default';
       case 'Processing': return 'secondary';
       case 'Shipped': return 'outline';
-      case 'Delivered': return 'default'; // Success variant would be good here
+      case 'Delivered': return 'default';
       case 'Cancelled': return 'destructive';
       default: return 'default';
     }
@@ -43,17 +43,25 @@ export function OrderTable({ orders }: OrderTableProps) {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order) => (
-            <TableRow key={order.id}>
-              <TableCell className="font-medium">{order.id}</TableCell>
-              <TableCell>{order.customerName}</TableCell>
-              <TableCell>{format(order.createdAt, 'PPp')}</TableCell>
-              <TableCell>
-                <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+          {orders.length > 0 ? (
+            orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell className="font-medium">{order.id.substring(0, 7)}...</TableCell>
+                <TableCell>{order.customerName}</TableCell>
+                <TableCell>{format(order.createdAt, 'PPp')}</TableCell>
+                <TableCell>
+                  <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                </TableCell>
+                <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
+              </TableRow>
+            ))
+          ) : (
+            <TableRow>
+              <TableCell colSpan={5} className="text-center h-24">
+                No orders found.
               </TableCell>
-              <TableCell className="text-right">${order.total.toFixed(2)}</TableCell>
             </TableRow>
-          ))}
+          )}
         </TableBody>
       </Table>
     </div>

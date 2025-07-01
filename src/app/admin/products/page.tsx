@@ -1,9 +1,10 @@
-import { products } from "@/lib/data";
 import { ProductTable } from "@/components/admin/ProductTable";
+import { getProducts } from "@/lib/data";
 
-export default function AdminProductsPage() {
-  // In a real app, this data would be fetched from Firebase
-  const allProducts = products;
+export const revalidate = 0; // Revalidate on every request
+
+export default async function AdminProductsPage() {
+  const allProducts = await getProducts();
 
   return (
     <div>

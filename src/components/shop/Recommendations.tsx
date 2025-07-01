@@ -6,23 +6,33 @@ import { generateRecommendations } from "@/ai/flows/generate-recommendations";
 import { Wand2 } from "lucide-react";
 import { Badge } from "../ui/badge";
 import { Skeleton } from "../ui/skeleton";
+import { useAuth } from "@/context/AuthProvider";
+import { getUserOrders } from "@/lib/data";
 
 export function Recommendations() {
   const [recommendations, setRecommendations] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchRecommendations = async () => {
       setIsLoading(true);
-      // In a real app, this would be fetched for the logged-in user
-      const purchaseHistory = "Organic Bananas, Free-Range Eggs, Sourdough Bread";
+      let purchaseHistory = "Organic Bananas, Free-Range Eggs, Sourdough Bread"; // Default history
+
+      if (user) {
+        const orders = await getUserOrders(user.uid);
+        if (orders.length > 0) {
+          // Use the most recent order for recommendations
+          const lastOrder = orders[0];
+          purchaseHistory = lastOrder.items.map(item => item.name).join(', ');
+        }
+      }
       
       try {
         const result = await generateRecommendations({ purchaseHistory });
-        setRecommendations(result.recommendations.split(',').map(r => r.trim()));
+        setRecommendations(result.recommendations.split(',').map(r => r.trim()).filter(r => r));
       } catch (error) {
         console.error("Failed to generate recommendations:", error);
-        // Set some default recommendations on error
         setRecommendations(["Fresh Avocados", "Greek Yogurt", "Cold Brew Coffee"]);
       } finally {
         setIsLoading(false);
@@ -30,7 +40,11 @@ export function Recommendations() {
     };
 
     fetchRecommendations();
-  }, []);
+  }, [user]);
+
+  if (!recommendations.length && !isLoading) {
+    return null; // Don't show the component if there's nothing to recommend
+  }
 
   return (
     <Card>
@@ -40,7 +54,7 @@ export function Recommendations() {
           <span>Just for You</span>
         </CardTitle>
         <CardDescription>
-          AI-powered recommendations based on your purchase history.
+          AI-powered recommendations based on your recent purchases.
         </CardDescription>
       </CardHeader>
       <CardContent>

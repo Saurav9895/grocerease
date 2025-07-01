@@ -19,6 +19,7 @@ export interface CartItem extends Product {
 
 export interface Order {
   id: string;
+  userId: string;
   customerName: string;
   address: string;
   items: CartItem[];

@@ -10,6 +10,8 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthProvider";
+import { useEffect, useRef } from "react";
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -24,17 +26,25 @@ export function CheckoutForm() {
   const { cartItems, cartTotal, clearCart } = useCart();
   const { toast } = useToast();
   const router = useRouter();
+  const { user } = useAuth();
+  const formRef = useRef<HTMLFormElement>(null);
 
   const handlePlaceOrder = async (formData: FormData) => {
-    const result = await placeOrder(cartItems, cartTotal, formData);
+    if (!user) {
+        toast({ variant: "destructive", title: "Authentication Error", description: "You must be logged in to place an order." });
+        return;
+    }
+    
+    const result = await placeOrder(cartItems, cartTotal, user.uid, formData);
     
     if (result.success) {
       toast({
         title: "Order Placed!",
-        description: `Your order #${result.orderId} has been successfully placed.`,
+        description: `Your order has been successfully placed.`,
       });
       clearCart();
-      router.push('/');
+      formRef.current?.reset();
+      router.push('/orders');
     } else {
       const errorMessages = Object.values(result.errors || {}).flat().join('\n');
       toast({
@@ -46,7 +56,7 @@ export function CheckoutForm() {
   };
 
   return (
-    <form action={handlePlaceOrder}>
+    <form ref={formRef} action={handlePlaceOrder}>
       <Card>
         <CardHeader>
           <CardTitle>Shipping Details</CardTitle>

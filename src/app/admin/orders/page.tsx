@@ -1,9 +1,10 @@
-import { orders } from "@/lib/data";
 import { OrderTable } from "@/components/admin/OrderTable";
+import { getOrders } from "@/lib/data";
 
-export default function AdminOrdersPage() {
-  // In a real app, this data would be fetched from Firebase
-  const allOrders = orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+export const revalidate = 0; // Revalidate on every request
+
+export default async function AdminOrdersPage() {
+  const allOrders = await getOrders();
 
   return (
     <div>

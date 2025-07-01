@@ -1,115 +1,89 @@
+import { db } from './firebase';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, QueryDocumentSnapshot, Timestamp } from 'firebase/firestore';
 import type { Product, Category, Order } from './types';
 
-export const categories: Category[] = [
-  { id: 'all', name: 'All' },
-  { id: 'fresh-produce', name: 'Fresh Produce' },
-  { id: 'dairy-eggs', name: 'Dairy & Eggs' },
-  { id: 'meat-seafood', name: 'Meat & Seafood' },
-  { id: 'pantry-staples', name: 'Pantry Staples' },
-  { id: 'bakery', name: 'Bakery' },
-  { id: 'beverages', name: 'Beverages' },
-];
+// == Helper Functions ==
+function docToProduct(doc: QueryDocumentSnapshot<DocumentData>): Product {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        name: data.name,
+        description: data.description,
+        price: data.price,
+        imageUrl: data.imageUrl,
+        category: data.category,
+        stock: data.stock,
+    };
+}
 
-export const products: Product[] = [
-  {
-    id: '1',
-    name: 'Organic Bananas',
-    description: 'A bunch of fresh, organic bananas, rich in potassium.',
-    price: 1.99,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'fresh-produce',
-    stock: 100,
-  },
-  {
-    id: '2',
-    name: 'Free-Range Eggs',
-    description: 'One dozen large, brown, free-range eggs from pasture-raised chickens.',
-    price: 4.5,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'dairy-eggs',
-    stock: 50,
-  },
-  {
-    id: '3',
-    name: 'Grass-Fed Ground Beef',
-    description: '1lb of lean, 90/10 grass-fed ground beef.',
-    price: 8.99,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'meat-seafood',
-    stock: 30,
-  },
-  {
-    id: '4',
-    name: 'Organic Quinoa',
-    description: 'A 1kg bag of high-protein, organic white quinoa.',
-    price: 6.75,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'pantry-staples',
-    stock: 75,
-  },
-  {
-    id: '5',
-    name: 'Sourdough Bread',
-    description: 'A freshly baked loaf of artisanal sourdough bread.',
-    price: 5.25,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'bakery',
-    stock: 20,
-  },
-  {
-    id: '6',
-    name: 'Cold Brew Coffee',
-    description: 'A 32oz bottle of smooth, concentrated cold brew coffee.',
-    price: 9.99,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'beverages',
-    stock: 40,
-  },
-  {
-    id: '7',
-    name: 'Fresh Avocados',
-    description: 'A bag of three ripe and ready-to-eat Haas avocados.',
-    price: 4.29,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'fresh-produce',
-    stock: 80,
-  },
-  {
-    id: '8',
-    name: 'Greek Yogurt',
-    description: 'A 32oz tub of plain, full-fat Greek yogurt.',
-    price: 5.99,
-    imageUrl: 'https://placehold.co/600x400.png',
-    category: 'dairy-eggs',
-    stock: 60,
-  },
-];
+function docToCategory(doc: QueryDocumentSnapshot<DocumentData>): Category {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        name: data.name,
+    };
+}
 
-export let orders: Order[] = [
-    {
-    id: 'ORD001',
-    customerName: 'Alice Johnson',
-    address: '123 Green St, Meadowville, 12345',
-    items: [
-      { ...products[0], quantity: 2 },
-      { ...products[1], quantity: 1 },
-    ],
-    total: (products[0].price * 2) + products[1].price,
-    paymentMethod: 'Online',
-    status: 'Delivered',
-    createdAt: new Date('2023-10-26T10:00:00Z'),
-  },
-  {
-    id: 'ORD002',
-    customerName: 'Bob Smith',
-    address: '456 Oak Ave, Rivertown, 67890',
-    items: [
-      { ...products[4], quantity: 1 },
-      { ...products[7], quantity: 2 },
-    ],
-    total: products[4].price + (products[7].price * 2),
-    paymentMethod: 'COD',
-    status: 'Shipped',
-    createdAt: new Date('2023-10-28T14:30:00Z'),
-  },
-];
+function docToOrder(doc: QueryDocumentSnapshot<DocumentData>): Order {
+    const data = doc.data();
+    return {
+        id: doc.id,
+        userId: data.userId,
+        customerName: data.customerName,
+        address: data.address,
+        items: data.items,
+        total: data.total,
+        paymentMethod: data.paymentMethod,
+        status: data.status,
+        createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+    };
+}
+
+// == Data Fetching Functions ==
+export async function getCategories(): Promise<Category[]> {
+  try {
+    const categoriesCol = collection(db, 'categories');
+    const q = query(categoriesCol, orderBy('name'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToCategory);
+  } catch (error) {
+    console.error("Error fetching categories:", error);
+    return [];
+  }
+}
+
+export async function getProducts(): Promise<Product[]> {
+  try {
+    const productsCol = collection(db, 'products');
+    const snapshot = await getDocs(productsCol);
+    return snapshot.docs.map(docToProduct);
+  } catch (error) {
+    console.error("Error fetching products:", error);
+    return [];
+  }
+}
+
+export async function getOrders(): Promise<Order[]> {
+  try {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToOrder);
+  } catch (error) {
+    console.error("Error fetching orders:", error);
+    return [];
+  }
+}
+
+export async function getUserOrders(userId: string): Promise<Order[]> {
+  if (!userId) return [];
+  try {
+    const ordersCol = collection(db, 'orders');
+    const q = query(ordersCol, where('userId', '==', userId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToOrder);
+  } catch (error) {
+    console.error("Error fetching user orders:", error);
+    return [];
+  }
+}

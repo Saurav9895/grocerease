@@ -96,46 +96,54 @@ export function ProductTable({ products }: ProductTableProps) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell>
-                  <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
-                </TableCell>
-                <TableCell className="font-medium">{product.name}</TableCell>
-                <TableCell><Badge variant="outline">{product.category}</Badge></TableCell>
-                <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
-                <TableCell className="text-right">{product.stock}</TableCell>
-                <TableCell>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" className="h-8 w-8 p-0">
-                        <span className="sr-only">Open menu</span>
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem onClick={() => handleEdit(product)}>Edit</DropdownMenuItem>
-                       <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                              <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                              <AlertDialogHeader>
-                                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                  <AlertDialogDescription>This action cannot be undone. This will permanently delete the product.</AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDelete(product.id)}>Continue</AlertDialogAction>
-                              </AlertDialogFooter>
-                          </AlertDialogContent>
-                      </AlertDialog>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+            {products.length > 0 ? (
+              products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell>
+                    <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
+                  </TableCell>
+                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell><Badge variant="outline">{product.category}</Badge></TableCell>
+                  <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">{product.stock}</TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => handleEdit(product)}>Edit</DropdownMenuItem>
+                         <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                                    <AlertDialogDescription>This action cannot be undone. This will permanently delete the product from the database.</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDelete(product.id)}>Continue</AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center h-24">
+                  No products found. Add one to get started!
                 </TableCell>
               </TableRow>
-            ))}
+            )}
           </TableBody>
         </Table>
       </div>

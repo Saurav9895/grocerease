@@ -1,6 +1,5 @@
 "use client";
 
-import { orders } from "@/lib/data";
 import type { Order } from "@/lib/types";
 import { useAuth } from "@/context/AuthProvider";
 import { AuthGuard } from "@/components/common/AuthGuard";
@@ -9,35 +8,62 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
 import Image from "next/image";
+import { useEffect, useState } from "react";
+import { getUserOrders } from "@/lib/data";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function UserOrdersPage() {
     const { user } = useAuth();
-    // In a real app, this would be fetched from Firebase based on the user's ID.
-    // For now, we'll show all orders as a demonstration.
-    const userOrders = orders.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+    const [orders, setOrders] = useState<Order[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            const fetchOrders = async () => {
+                setIsLoading(true);
+                const userOrders = await getUserOrders(user.uid);
+                setOrders(userOrders);
+                setIsLoading(false);
+            };
+            fetchOrders();
+        }
+    }, [user]);
 
     const getStatusVariant = (status: Order['status']) => {
         switch (status) {
             case 'Pending': return 'default';
             case 'Processing': return 'secondary';
             case 'Shipped': return 'outline';
-            case 'Delivered': return 'default'; // Success variant would be good here
+            case 'Delivered': return 'default';
             case 'Cancelled': return 'destructive';
             default: return 'default';
         }
     };
 
+    if (isLoading) {
+        return (
+            <div className="container py-12">
+                <h1 className="text-3xl font-bold mb-2">My Orders</h1>
+                <p className="text-muted-foreground mb-8">View your order history and status.</p>
+                <div className="space-y-6">
+                    <Skeleton className="h-48 w-full" />
+                    <Skeleton className="h-48 w-full" />
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="container py-12">
             <h1 className="text-3xl font-bold mb-2">My Orders</h1>
             <p className="text-muted-foreground mb-8">View your order history and status.</p>
-            {userOrders.length > 0 ? (
+            {orders.length > 0 ? (
                 <div className="space-y-6">
-                    {userOrders.map(order => (
+                    {orders.map(order => (
                         <Card key={order.id}>
                             <CardHeader className="flex flex-col md:flex-row justify-between md:items-start gap-4">
                                 <div>
-                                    <CardTitle>Order #{order.id}</CardTitle>
+                                    <CardTitle>Order #{order.id.substring(0, 7)}...</CardTitle>
                                     <CardDescription>Placed on {format(order.createdAt, 'PPP')}</CardDescription>
                                 </div>
                                 <Badge variant={getStatusVariant(order.status)} className="w-fit">{order.status}</Badge>

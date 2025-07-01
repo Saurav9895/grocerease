@@ -5,16 +5,27 @@ import { CheckoutForm } from "@/components/shop/CheckoutForm";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
+import { AuthGuard } from "@/components/common/AuthGuard";
+import { useAuth } from "@/context/AuthProvider";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default function CheckoutPage() {
+function CheckoutView() {
   const { cartItems, cartTotal } = useCart();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (cartItems.length === 0) {
+      router.replace("/");
+    }
+  }, [cartItems, router]);
 
   if (cartItems.length === 0) {
     return (
       <div className="container py-12 text-center">
         <h1 className="text-3xl font-bold">Your Cart is Empty</h1>
         <p className="text-muted-foreground mt-2">
-          You have no items in your shopping cart.
+          Redirecting you to the home page...
         </p>
       </div>
     );
@@ -62,4 +73,13 @@ export default function CheckoutPage() {
       </div>
     </div>
   );
+}
+
+
+export default function CheckoutPage() {
+  return (
+    <AuthGuard>
+      <CheckoutView />
+    </AuthGuard>
+  )
 }
