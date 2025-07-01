@@ -104,18 +104,20 @@ export default function Home() {
   return (
     <div className="container py-8">
       <section className="mb-12">
-        <div className="relative rounded-2xl overflow-hidden bg-gray-100 h-[400px] md:h-[350px]">
-          <Image
-            src="https://img.freepik.com/free-vector/grocery-store-sale-banner-template_23-2151089846.jpg"
-            alt="Hero background"
-            width={1200}
-            height={350}
-            className="w-full h-full object-cover"
-            data-ai-hint="grocery sale"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute top-1/2 left-1/2 w-11/12 -translate-x-1/2 -translate-y-1/2 md:left-16 md:w-auto md:translate-x-0">
+        <div className="relative rounded-2xl bg-gray-100 h-[400px] md:h-[350px]">
+          <div className="absolute inset-0 rounded-2xl overflow-hidden">
+            <Image
+              src="https://img.freepik.com/free-vector/grocery-store-sale-banner-template_23-2151089846.jpg"
+              alt="Hero background"
+              width={1200}
+              height={350}
+              className="w-full h-full object-cover"
+              data-ai-hint="grocery sale"
+              priority
+            />
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+          <div className="absolute z-10 top-1/2 left-1/2 w-11/12 -translate-x-1/2 -translate-y-1/2 md:left-16 md:w-auto md:translate-x-0">
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-lg max-w-md mx-auto md:mx-0 md:p-8">
               <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-primary font-headline">
                 Fresh Groceries, Delivered Daily
