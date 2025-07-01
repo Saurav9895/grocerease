@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings } from './types';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode } from './types';
 
 // == Helper Functions ==
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
@@ -32,19 +32,17 @@ function docToCategory(doc: DocumentSnapshot<DocumentData>): Category {
 
 function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
     const data = doc.data()!;
-    const total = data.total;
-    const deliveryFee = data.deliveryFee || 0;
-    const subtotal = data.subtotal === undefined ? total - deliveryFee : data.subtotal;
-    
     return {
         id: doc.id,
         userId: data.userId,
         customerName: data.customerName,
         address: data.address,
         items: data.items,
-        subtotal: subtotal,
-        deliveryFee: deliveryFee,
-        total: total,
+        subtotal: data.subtotal,
+        deliveryFee: data.deliveryFee,
+        discountAmount: data.discountAmount,
+        promoCode: data.promoCode,
+        total: data.total,
         paymentMethod: data.paymentMethod,
         status: data.status,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
@@ -61,6 +59,15 @@ function docToReview(doc: DocumentSnapshot<DocumentData>): Review {
         rating: data.rating,
         comment: data.comment,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+    };
+}
+
+function docToPromoCode(doc: DocumentSnapshot<DocumentData>): PromoCode {
+    const data = doc.data()!;
+    return {
+        id: doc.id,
+        discountPercentage: data.discountPercentage,
+        isActive: data.isActive,
     };
 }
 
@@ -310,9 +317,59 @@ export async function getDeliverySettings(): Promise<DeliverySettings> {
 export async function updateDeliverySettings(settings: DeliverySettings): Promise<void> {
   try {
     const settingsRef = doc(db, 'settings', 'delivery');
-    await setDoc(settingsRef, settings);
+    await setDoc(settingsRef, settings, { merge: true });
   } catch (error) {
     console.error("Error updating delivery settings:", error);
+    throw error;
+  }
+}
+
+// == Promo Code Functions ==
+
+export async function getPromoCodes(): Promise<PromoCode[]> {
+  try {
+    const promoCodesCol = collection(db, 'promocodes');
+    const snapshot = await getDocs(promoCodesCol);
+    return snapshot.docs.map(docToPromoCode);
+  } catch (error) {
+    console.error("Error fetching promo codes:", error);
+    return [];
+  }
+}
+
+export async function getPromoCodeByCode(code: string): Promise<PromoCode | null> {
+    if (!code) return null;
+    try {
+        const promoRef = doc(db, 'promocodes', code);
+        const docSnap = await getDoc(promoRef);
+        if (docSnap.exists() && docSnap.data().isActive) {
+            return docToPromoCode(docSnap);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching promo code:", error);
+        return null;
+    }
+}
+
+export async function createPromoCode(promoCode: {id: string, discountPercentage: number}): Promise<void> {
+  try {
+    const promoRef = doc(db, 'promocodes', promoCode.id);
+    await setDoc(promoRef, { 
+      discountPercentage: promoCode.discountPercentage,
+      isActive: true,
+    });
+  } catch (error) {
+    console.error("Error creating promo code:", error);
+    throw error;
+  }
+}
+
+export async function deletePromoCode(codeId: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "promocodes", codeId));
+  } catch (error) {
+    console.error("Error deleting promo code:", error);
     throw error;
   }
 }

@@ -36,9 +36,12 @@ const initialAddressState: Address = {
 
 interface CheckoutFormProps {
   deliveryFee: number;
+  discountAmount?: number;
+  promoCode?: string;
+  total: number;
 }
 
-export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
+export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: CheckoutFormProps) {
   const { cartItems, cartTotal, clearCart } = useCart();
   const { toast } = useToast();
   const router = useRouter();
@@ -60,6 +63,10 @@ export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
       getUserAddresses(user.uid)
         .then(addresses => {
           setSavedAddresses(addresses);
+          // Pre-select the first address if available
+          if (addresses.length > 0) {
+            setSelectedAddressId(addresses[0].id!);
+          }
         })
         .finally(() => {
           setIsLoadingAddresses(false);
@@ -114,7 +121,9 @@ export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
         items: cartItems.map(({ id, name, price, quantity, imageUrl }) => ({ id, name, price, quantity, imageUrl })),
         subtotal: cartTotal,
         deliveryFee: deliveryFee,
-        total: cartTotal + deliveryFee,
+        discountAmount: discountAmount,
+        promoCode: promoCode,
+        total: total,
         paymentMethod: paymentMethod as 'COD' | 'Online',
         status: 'Pending' as const,
         createdAt: serverTimestamp(),
@@ -138,11 +147,11 @@ export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
     <form onSubmit={handleSubmit}>
       <Card>
         <CardHeader>
-          <CardTitle>Shipping Details</CardTitle>
+          <CardTitle>Shipping & Payment</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="address-select">Saved Addresses</Label>
+            <Label htmlFor="address-select">Shipping Address</Label>
             {isLoadingAddresses ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -152,8 +161,8 @@ export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new">-- Enter a new address --</SelectItem>
-                  {savedAddresses.map((addr, index) => (
-                    <SelectItem key={addr.id || index} value={addr.id!}>
+                  {savedAddresses.map((addr) => (
+                    <SelectItem key={addr.id!} value={addr.id!}>
                       {addr.name}, {addr.street}
                     </SelectItem>
                   ))}
@@ -164,35 +173,35 @@ export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required />
+              <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required />
+              <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="street">Street Address</Label>
-            <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required />
+            <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required />
+              <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
             </div>
              <div className="space-y-2">
               <Label htmlFor="state">State / Province</Label>
-              <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required />
+              <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
             </div>
           </div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="zip">ZIP / Postal Code</Label>
-              <Input id="zip" name="zip" value={formData.zip} onChange={handleInputChange} required />
+              <Input id="zip" name="zip" value={formData.zip} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
-              <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required />
+              <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
             </div>
           </div>
           {selectedAddressId === 'new' && (
