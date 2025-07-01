@@ -35,7 +35,7 @@ export default function Home() {
         <Recommendations />
       </section>
 
-      <section>
+      <section id="products">
         <h2 className="text-3xl font-bold tracking-tight mb-6 font-headline">Our Products</h2>
         <div className="mb-6">
           <CategoryTabs 
