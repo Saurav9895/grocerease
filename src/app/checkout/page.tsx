@@ -100,11 +100,14 @@ function CheckoutView() {
 
   const threshold = deliverySettings.freeDeliveryThreshold;
   const freeDeliveryByThreshold = (threshold > 0 && cartTotal >= threshold) || (cartTotal === 0);
+  
+  // This is the fee that will be charged to the customer and saved in the order.
   const appliedDeliveryFee = freeDeliveryAppliedByPromo || freeDeliveryByThreshold ? 0 : deliverySettings.fee;
   
-  const finalDiscountAmount = appliedPromo?.type === 'free_delivery'
-    ? (freeDeliveryByThreshold ? 0 : deliverySettings.fee)
-    : discountAmount;
+  // This is the total value of all discounts, for display purposes only.
+  const displayableDiscountValue = discountAmount + (
+    (freeDeliveryAppliedByPromo && !freeDeliveryByThreshold) ? deliverySettings.fee : 0
+  );
     
   const finalTotal = cartTotal + appliedDeliveryFee - discountAmount;
 
@@ -115,7 +118,7 @@ function CheckoutView() {
         <div>
           <CheckoutForm 
             deliveryFee={appliedDeliveryFee}
-            discountAmount={finalDiscountAmount}
+            discountAmount={discountAmount}
             promoCode={appliedPromo?.id}
             total={finalTotal}
           />
@@ -146,15 +149,10 @@ function CheckoutView() {
                {freeDeliveryByThreshold && !freeDeliveryAppliedByPromo && cartTotal > 0 && (
                 <div className="flex justify-end"><Badge variant="secondary" className="bg-green-100 text-green-800">Free delivery applied!</Badge></div>
               )}
-               {appliedPromo && (
+               {appliedPromo && displayableDiscountValue > 0 && (
                 <div className="flex justify-between text-green-600">
                     <p>Discount ({appliedPromo.id})</p>
-                    <p>
-                        {appliedPromo.type === 'percentage'
-                            ? `-Rs{discountAmount.toFixed(2)}`
-                            : 'Free Delivery'
-                        }
-                    </p>
+                    <p>-Rs{displayableDiscountValue.toFixed(2)}</p>
                 </div>
               )}
               <Separator />
