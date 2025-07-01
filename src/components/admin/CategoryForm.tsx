@@ -28,10 +28,10 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   const isEditing = !!category;
   const { toast } = useToast();
-  const [previewUrl, setPreviewUrl] = useState<string | null>(category?.imageUrl || null);
+  const [imageUrl, setImageUrl] = useState(category?.imageUrl || 'https://placehold.co/100x100.png');
 
   useEffect(() => {
-    setPreviewUrl(category?.imageUrl || null);
+    setImageUrl(category?.imageUrl || 'https://placehold.co/100x100.png');
   }, [category]);
 
 
@@ -54,6 +54,15 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
       });
     }
   };
+  
+  const isPreviewable = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
 
   return (
     <form action={formAction} className="space-y-4">
@@ -71,21 +80,21 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
         <Input 
           id="imageUrl" 
           name="imageUrl" 
-          defaultValue={category?.imageUrl || 'https://placehold.co/100x100.png'} 
-          onChange={(e) => setPreviewUrl(e.target.value)}
+          value={imageUrl}
+          onChange={(e) => setImageUrl(e.target.value)}
           required 
         />
       </div>
-      {previewUrl && (
+      {isPreviewable(imageUrl) && (
         <div className="space-y-2">
             <Label>Image Preview</Label>
             <div className="relative h-24 w-24 rounded-md overflow-hidden border bg-muted">
                 <Image
-                    src={previewUrl}
+                    src={imageUrl}
                     alt="Category preview"
                     fill
                     className="object-cover"
-                    onError={() => setPreviewUrl('https://placehold.co/100x100.png')}
+                    onError={() => setImageUrl('')}
                     data-ai-hint="category image"
                 />
             </div>
