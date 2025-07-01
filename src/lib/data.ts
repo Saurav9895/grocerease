@@ -1,6 +1,6 @@
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address } from './types';
 
 // == Helper Functions ==
@@ -149,12 +149,44 @@ export async function saveUserAddress(userId: string, address: Omit<Address, 'id
   if (!userId) return;
   try {
     const userDocRef = doc(db, 'users', userId);
-    const addressWithId = { ...address, id: new Date().toISOString() };
+    const addressWithId = { ...address, id: doc(collection(db, "users")).id };
     await setDoc(userDocRef, { 
       addresses: arrayUnion(addressWithId)
     }, { merge: true });
   } catch (error) {
     console.error("Error saving user address:", error);
+    throw error;
+  }
+}
+
+export async function updateUserAddress(userId: string, updatedAddress: Address) {
+  if (!userId || !updatedAddress.id) throw new Error("User ID and Address ID are required.");
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(userDocRef);
+    if (docSnap.exists()) {
+      const currentAddresses: Address[] = docSnap.data().addresses || [];
+      const newAddresses = currentAddresses.map(addr => addr.id === updatedAddress.id ? updatedAddress : addr);
+      await updateDoc(userDocRef, { addresses: newAddresses });
+    }
+  } catch (error) {
+    console.error("Error updating user address:", error);
+    throw error;
+  }
+}
+
+export async function deleteUserAddress(userId: string, addressId: string) {
+  if (!userId || !addressId) throw new Error("User ID and Address ID are required.");
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(userDocRef);
+    if (docSnap.exists()) {
+      const currentAddresses: Address[] = docSnap.data().addresses || [];
+      const newAddresses = currentAddresses.filter(addr => addr.id !== addressId);
+      await updateDoc(userDocRef, { addresses: newAddresses });
+    }
+  } catch (error) {
+    console.error("Error deleting user address:", error);
     throw error;
   }
 }
