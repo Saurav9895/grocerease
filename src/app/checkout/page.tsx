@@ -32,6 +32,8 @@ function CheckoutView() {
   const [appliedPromo, setAppliedPromo] = useState<PromoCode | null>(null);
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isApplyingPromo, setIsApplyingPromo] = useState(false);
+  const [freeDeliveryAppliedByPromo, setFreeDeliveryAppliedByPromo] = useState(false);
+
 
   useEffect(() => {
     if (cartItems.length === 0) {
@@ -70,19 +72,40 @@ function CheckoutView() {
     const promo = await getPromoCodeByCode(code);
     if (promo) {
       setAppliedPromo(promo);
-      const discount = (cartTotal * promo.discountPercentage) / 100;
-      setDiscountAmount(discount);
-      toast({ title: "Success", description: `Promo code "${promo.id}" applied!` });
+       if (promo.type === 'percentage' && promo.discountPercentage) {
+        const discount = (cartTotal * promo.discountPercentage) / 100;
+        setDiscountAmount(discount);
+        setFreeDeliveryAppliedByPromo(false);
+        toast({ title: "Success", description: `Discount of ${promo.discountPercentage}% applied!` });
+      } else if (promo.type === 'free_delivery') {
+        setDiscountAmount(0);
+        setFreeDeliveryAppliedByPromo(true);
+        toast({ title: "Success", description: `Promo code for free delivery applied!` });
+      }
     } else {
       setAppliedPromo(null);
       setDiscountAmount(0);
+      setFreeDeliveryAppliedByPromo(false);
       toast({ variant: "destructive", title: "Error", description: "Invalid or expired promo code." });
     }
     setIsApplyingPromo(false);
   }
 
+  const handleRemovePromo = () => {
+      setAppliedPromo(null);
+      setDiscountAmount(0);
+      setPromoInput("");
+      setFreeDeliveryAppliedByPromo(false);
+  }
+
   const threshold = deliverySettings.freeDeliveryThreshold;
-  const appliedDeliveryFee = (threshold > 0 && cartTotal >= threshold) || (cartTotal === 0) ? 0 : deliverySettings.fee;
+  const freeDeliveryByThreshold = (threshold > 0 && cartTotal >= threshold) || (cartTotal === 0);
+  const appliedDeliveryFee = freeDeliveryAppliedByPromo || freeDeliveryByThreshold ? 0 : deliverySettings.fee;
+  
+  const finalDiscountAmount = appliedPromo?.type === 'free_delivery'
+    ? (freeDeliveryByThreshold ? 0 : deliverySettings.fee)
+    : discountAmount;
+    
   const finalTotal = cartTotal + appliedDeliveryFee - discountAmount;
 
   return (
@@ -92,7 +115,7 @@ function CheckoutView() {
         <div>
           <CheckoutForm 
             deliveryFee={appliedDeliveryFee}
-            discountAmount={discountAmount}
+            discountAmount={finalDiscountAmount}
             promoCode={appliedPromo?.id}
             total={finalTotal}
           />
@@ -120,11 +143,19 @@ function CheckoutView() {
               <Separator />
               <div className="flex justify-between text-muted-foreground"><p>Subtotal</p><p>Rs{cartTotal.toFixed(2)}</p></div>
               <div className="flex justify-between text-muted-foreground"><p>Delivery Fee</p>{isLoading ? <Skeleton className="h-5 w-12" /> : <p>Rs{appliedDeliveryFee.toFixed(2)}</p>}</div>
-               {appliedDeliveryFee === 0 && deliverySettings.fee > 0 && cartTotal > 0 && (
+               {freeDeliveryByThreshold && !freeDeliveryAppliedByPromo && cartTotal > 0 && (
                 <div className="flex justify-end"><Badge variant="secondary" className="bg-green-100 text-green-800">Free delivery applied!</Badge></div>
               )}
                {appliedPromo && (
-                <div className="flex justify-between text-green-600"><p>Discount ({appliedPromo.id})</p><p>-Rs{discountAmount.toFixed(2)}</p></div>
+                <div className="flex justify-between text-green-600">
+                    <p>Discount ({appliedPromo.id})</p>
+                    <p>
+                        {appliedPromo.type === 'percentage'
+                            ? `-Rs{discountAmount.toFixed(2)}`
+                            : 'Free Delivery'
+                        }
+                    </p>
+                </div>
               )}
               <Separator />
               <div className="flex justify-between font-semibold text-lg"><p>Total</p>{isLoading ? <Skeleton className="h-6 w-20" /> : <p>Rs{finalTotal.toFixed(2)}</p>}</div>
@@ -138,7 +169,7 @@ function CheckoutView() {
                     </Button>
                 </div>
                 {appliedPromo && (
-                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={() => { setAppliedPromo(null); setDiscountAmount(0); setPromoInput(""); }}>Remove code</Button>
+                    <Button variant="link" size="sm" className="p-0 h-auto" onClick={handleRemovePromo}>Remove code</Button>
                 )}
             </CardFooter>
           </Card>

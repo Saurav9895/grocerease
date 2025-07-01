@@ -29,6 +29,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -52,8 +59,18 @@ const settingsSchema = z.object({
 
 const promoCodeSchema = z.object({
     code: z.string().min(3, "Code must be at least 3 characters.").toUpperCase(),
-    discountPercentage: z.coerce.number().min(1, "Discount must be at least 1%.").max(100, "Discount cannot exceed 100%.")
-})
+    type: z.enum(['percentage', 'free_delivery'], { required_error: "Please select a promo type."}),
+    discountPercentage: z.coerce.number().optional(),
+}).refine(data => {
+    if (data.type === 'percentage') {
+        return data.discountPercentage && data.discountPercentage >= 1 && data.discountPercentage <= 100;
+    }
+    return true;
+}, {
+    message: "Discount must be 1-100% for percentage codes.",
+    path: ["discountPercentage"],
+});
+
 
 export default function AdminSettingsPage() {
   const { profile } = useAuth();
@@ -69,8 +86,10 @@ export default function AdminSettingsPage() {
 
   const promoForm = useForm<z.infer<typeof promoCodeSchema>>({
     resolver: zodResolver(promoCodeSchema),
-    defaultValues: { code: "", discountPercentage: 10 },
+    defaultValues: { code: "", type: "percentage", discountPercentage: 10 },
   });
+  
+  const promoType = promoForm.watch("type");
 
   const fetchSettings = async () => {
     setIsLoading(true);
@@ -108,9 +127,13 @@ export default function AdminSettingsPage() {
 
   const onPromoSubmit = async (values: z.infer<typeof promoCodeSchema>) => {
     try {
-        await createPromoCode({ id: values.code, discountPercentage: values.discountPercentage });
+        await createPromoCode({ 
+            id: values.code, 
+            type: values.type, 
+            discountPercentage: values.discountPercentage 
+        });
         toast({ title: "Promo Code Created", description: `Code "${values.code}" has been created.` });
-        promoForm.reset();
+        promoForm.reset({ code: "", type: "percentage", discountPercentage: 10 });
         fetchPromoCodes();
     } catch (error) {
         console.error("Error creating promo code:", error);
@@ -202,20 +225,39 @@ export default function AdminSettingsPage() {
                 </CardHeader>
                 <CardContent>
                     <Form {...promoForm}>
-                        <form onSubmit={promoForm.handleSubmit(onPromoSubmit)} className="flex items-end gap-2">
+                        <form onSubmit={promoForm.handleSubmit(onPromoSubmit)} className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-end">
                             <FormField control={promoForm.control} name="code" render={({ field }) => (
-                                <FormItem className="flex-1">
+                                <FormItem>
                                     <FormLabel>New Code</FormLabel>
                                     <FormControl><Input placeholder="SUMMER20" {...field} /></FormControl>
+                                    <FormMessage/>
                                 </FormItem>
                             )} />
-                            <FormField control={promoForm.control} name="discountPercentage" render={({ field }) => (
+                             <FormField control={promoForm.control} name="type" render={({ field }) => (
                                 <FormItem>
-                                    <FormLabel>Discount (%)</FormLabel>
-                                    <FormControl><Input type="number" className="w-24" {...field} /></FormControl>
+                                    <FormLabel>Type</FormLabel>
+                                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                        <FormControl>
+                                            <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                                        </FormControl>
+                                        <SelectContent>
+                                            <SelectItem value="percentage">Percentage</SelectItem>
+                                            <SelectItem value="free_delivery">Free Delivery</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                    <FormMessage/>
                                 </FormItem>
                             )} />
-                            <Button type="submit" disabled={promoForm.formState.isSubmitting}>Add</Button>
+                            {promoType === 'percentage' && (
+                                <FormField control={promoForm.control} name="discountPercentage" render={({ field }) => (
+                                    <FormItem>
+                                        <FormLabel>Discount (%)</FormLabel>
+                                        <FormControl><Input type="number" {...field} /></FormControl>
+                                        <FormMessage/>
+                                    </FormItem>
+                                )} />
+                            )}
+                            <Button type="submit" disabled={promoForm.formState.isSubmitting} className="sm:col-start-2">Add</Button>
                         </form>
                     </Form>
                     <Separator className="my-6"/>
@@ -226,7 +268,9 @@ export default function AdminSettingsPage() {
                                 <div key={pc.id} className="flex items-center justify-between p-2 border rounded-md">
                                     <Badge variant="outline" className="text-base">{pc.id}</Badge>
                                     <div className="flex items-center gap-2">
-                                        <span className="font-semibold">{pc.discountPercentage}% OFF</span>
+                                        <span className="font-semibold text-sm">
+                                            {pc.type === 'percentage' ? `${pc.discountPercentage}% OFF` : 'Free Delivery'}
+                                        </span>
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="ghost" size="icon" className="h-7 w-7"><Trash2 className="h-4 w-4 text-destructive"/></Button>

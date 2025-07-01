@@ -1,5 +1,6 @@
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile } from './types';
@@ -68,6 +69,7 @@ function docToPromoCode(doc: DocumentSnapshot<DocumentData>): PromoCode {
     const data = doc.data()!;
     return {
         id: doc.id,
+        type: data.type || 'percentage',
         discountPercentage: data.discountPercentage,
         isActive: data.isActive,
     };
@@ -397,13 +399,17 @@ export async function getPromoCodeByCode(code: string): Promise<PromoCode | null
     }
 }
 
-export async function createPromoCode(promoCode: {id: string, discountPercentage: number}): Promise<void> {
+export async function createPromoCode(promoData: {id: string, type: 'percentage' | 'free_delivery', discountPercentage?: number}): Promise<void> {
   try {
-    const promoRef = doc(db, 'promocodes', promoCode.id);
-    await setDoc(promoRef, { 
-      discountPercentage: promoCode.discountPercentage,
+    const promoRef = doc(db, 'promocodes', promoData.id);
+    const dataToSet: any = {
+      type: promoData.type,
       isActive: true,
-    });
+    };
+    if (promoData.type === 'percentage' && promoData.discountPercentage) {
+      dataToSet.discountPercentage = promoData.discountPercentage;
+    }
+    await setDoc(promoRef, dataToSet);
   } catch (error) {
     console.error("Error creating promo code:", error);
     throw error;

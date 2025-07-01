@@ -68,7 +68,8 @@ export interface DeliverySettings {
 
 export interface PromoCode {
   id: string; // The code itself, e.g. "SUMMER10"
-  discountPercentage: number;
+  type: 'percentage' | 'free_delivery';
+  discountPercentage?: number;
   isActive: boolean;
 }
 
