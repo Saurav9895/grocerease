@@ -8,10 +8,9 @@ import { ProductCard } from '@/components/shop/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X, ArrowRight } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { CategoryCarousel } from '@/components/shop/CategoryCarousel';
 
 
 export default function Home() {
@@ -141,11 +140,45 @@ export default function Home() {
       </section>
 
       <section id="categories" className="mb-16">
-        <h2 className="text-xl font-bold uppercase tracking-wider mb-6">Category</h2>
+        <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tight">
+                Product <span className="bg-primary text-primary-foreground px-4 py-2 skew-x-[-15deg] inline-block"><span className="inline-block skew-x-[15deg]">Categories</span></span>
+            </h2>
+        </div>
         {isLoading ? (
-          <Skeleton className="h-48 w-full rounded-lg" />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => (
+                <div key={i} className="border rounded-md p-4">
+                    <Skeleton className="w-full h-40 mb-4" />
+                    <Skeleton className="h-6 w-3/4 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-1/2 mx-auto mb-4" />
+                    <Skeleton className="h-10 w-4/5 mx-auto" />
+                </div>
+            ))}
+            </div>
         ) : (
-          <CategoryCarousel categories={categories} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
+            {categories.slice(0, 4).map((category) => (
+                <Link href={`/category/${category.id}`} key={category.id} className="block h-full">
+                    <div className="border rounded-md p-4 text-center h-full flex flex-col items-center justify-between transition-shadow duration-300 hover:shadow-xl group">
+                        <div className="relative w-full h-40 mb-4">
+                        <Image
+                            src={category.imageUrl}
+                            alt={category.name}
+                            fill
+                            className="object-contain group-hover:scale-105 transition-transform duration-300"
+                            data-ai-hint={category.name.toLowerCase()}
+                        />
+                        </div>
+                        <div className="flex-grow flex flex-col items-center justify-center">
+                            <h3 className="text-lg font-semibold">{category.name}</h3>
+                            <p className="text-sm text-muted-foreground mt-1">Upto 45% Off</p>
+                        </div>
+                        <Button variant="outline" className="mt-4 w-full sm:w-4/5">Shop Now</Button>
+                    </div>
+                </Link>
+            ))}
+            </div>
         )}
       </section>
 
