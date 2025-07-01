@@ -1,48 +1,74 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isOwner(userId) {
-      return request.auth.uid == userId;
+
+    function isSignedIn() {
+      return request.auth != null;
     }
-    function isAdmin() {
-        return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+
+    function isUserProfileOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // This function can be called from any rule *except* the /users/{userId} rule to avoid recursion.
+    function isRequestingUserAdmin() {
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && 'adminRole' in userProfile.data && userProfile.data.adminRole in ['main', 'standard'];
+    }
+
+    function isRequestingUserMainAdmin() {
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid));
+      return isSignedIn() && 'adminRole' in userProfile.data && userProfile.data.adminRole == 'main';
     }
 
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin();
-      
+      allow write: if isRequestingUserAdmin();
+
       match /reviews/{reviewId} {
         allow read: if true;
-        allow create: if request.auth != null;
+        // Writing a review is a transaction, which is handled in the data.ts file.
+        // We just need to ensure the user is logged in.
+        allow write: if isSignedIn();
       }
     }
-
+    
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin();
+      allow write: if isRequestingUserAdmin();
     }
 
     match /orders/{orderId} {
-      allow read: if request.auth != null && (isOwner(resource.data.userId) || isAdmin());
-      allow create: if request.auth != null && isOwner(request.resource.data.userId);
-      allow update: if isAdmin();
+      // An admin can read any order. A user can only read their own.
+      allow read: if isRequestingUserAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
+      allow create: if isSignedIn();
+      // Only admins can update an order's status.
+      allow update: if isRequestingUserAdmin();
+      allow delete: if false; // Orders should not be deleted.
     }
     
     match /users/{userId} {
-        allow read: if isOwner(userId) || isAdmin();
-        allow create: if isOwner(userId);
-        // Users can update their own profile, but cannot change their admin status.
-        // Admins can change other users' status (though no UI exists for it currently).
-        allow update: if (isOwner(userId) && request.resource.data.isAdmin == resource.data.isAdmin) || isAdmin();
+      // Any authenticated user can read user profiles.
+      // This is necessary to break the security rule recursion, allowing admin checks to work.
+      // This is a security trade-off: it exposes user data (name, email, phone) to other logged-in users.
+      allow read: if isSignedIn();
+
+      // A user can create their own document on signup.
+      allow create: if isUserProfileOwner(userId);
+      
+      // A user can update their own data, but CANNOT change their adminRole.
+      // Only a main admin can change another user's adminRole.
+      allow update: if (isUserProfileOwner(userId) && request.resource.data.adminRole == resource.data.adminRole) 
+                   || isRequestingUserMainAdmin();
     }
     
-    match /settings/{docId} {
-        allow read, write: if isAdmin();
+    match /settings/{settingId} {
+      allow read, write: if isRequestingUserMainAdmin();
     }
 
     match /promocodes/{codeId} {
-         allow read, write: if isAdmin();
+      allow read, write: if isRequestingUserMainAdmin();
     }
   }
 }
