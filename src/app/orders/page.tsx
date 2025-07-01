@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Eye } from "lucide-react";
+import Link from "next/link";
 
 function UserOrdersPage() {
     const { user } = useAuth();
@@ -99,16 +100,22 @@ function UserOrdersPage() {
                         <TableBody>
                             {orders.map(order => (
                                 <TableRow key={order.id}>
-                                    <TableCell className="font-medium text-primary">{order.id}</TableCell>
+                                    <TableCell className="font-medium">
+                                      <Link href={`/orders/${order.id}`} className="text-primary hover:underline">
+                                        {order.id}
+                                      </Link>
+                                    </TableCell>
                                     <TableCell>{format(order.createdAt, 'PP')}</TableCell>
                                     <TableCell>${order.total.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button variant="outline" size="sm">
-                                            <Eye className="mr-2 h-4 w-4" />
-                                            Track
+                                        <Button asChild variant="outline" size="sm">
+                                            <Link href={`/orders/${order.id}`}>
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                View Details
+                                            </Link>
                                         </Button>
                                     </TableCell>
                                 </TableRow>
