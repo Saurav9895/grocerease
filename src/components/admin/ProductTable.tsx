@@ -80,7 +80,7 @@ export function ProductTable({ products, onDataChanged }: ProductTableProps) {
           <DialogTrigger asChild>
             <Button>Add New Product</Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>{selectedProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
             </DialogHeader>

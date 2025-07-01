@@ -111,67 +111,79 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      {isEditing && <input type="hidden" name="id" value={product.id} />}
-      <div className="space-y-2">
-        <Label htmlFor="name">Product Name</Label>
-        <Input id="name" name="name" defaultValue={product?.name} required />
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" name="description" defaultValue={product?.description} required />
-      </div>
-      <div className="grid grid-cols-2 gap-4">
+    <form onSubmit={handleSubmit} className="grid md:grid-cols-3 gap-6">
+      {isEditing && <input type="hidden" name="id" value={product?.id} />}
+      
+      {/* Left Column */}
+      <div className="md:col-span-2 grid gap-4">
         <div className="space-y-2">
-          <Label htmlFor="price">Price</Label>
-          <Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required />
+          <Label htmlFor="name">Product Name</Label>
+          <Input id="name" name="name" defaultValue={product?.name} required />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="stock">Stock</Label>
-          <Input id="stock" name="stock" type="number" defaultValue={product?.stock} required />
+          <Label htmlFor="description">Description</Label>
+          <Textarea id="description" name="description" defaultValue={product?.description} required rows={5} />
         </div>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="category">Category</Label>
-        <Select name="category" defaultValue={product?.category}>
-            <SelectTrigger id="category">
-                <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-                {categories.map(cat => (
-                    <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                ))}
-            </SelectContent>
-        </Select>
-      </div>
-      <div className="space-y-2">
-        <Label htmlFor="imageUrl">Image URL</Label>
-        <Input 
-            id="imageUrl" 
-            name="imageUrl" 
-            value={imageUrl} 
-            onChange={(e) => setImageUrl(e.target.value)} 
-            required 
-        />
-      </div>
-      {isPreviewable(imageUrl) && (
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="price">Price</Label>
+            <Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="stock">Stock</Label>
+            <Input id="stock" name="stock" type="number" defaultValue={product?.stock} required />
+          </div>
+        </div>
         <div className="space-y-2">
-            <Label>Image Preview</Label>
-            <div className="relative aspect-video w-full rounded-md overflow-hidden border bg-muted">
-                <Image
-                    src={imageUrl}
-                    alt="Product preview"
-                    fill
-                    className="object-cover"
-                    onError={() => setImageUrl('https://placehold.co/600x400.png')}
-                    data-ai-hint="product image"
-                />
-            </div>
+          <Label htmlFor="category">Category</Label>
+          <Select name="category" defaultValue={product?.category}>
+              <SelectTrigger id="category">
+                  <SelectValue placeholder="Select a category" />
+              </SelectTrigger>
+              <SelectContent>
+                  {categories.map(cat => (
+                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                  ))}
+              </SelectContent>
+          </Select>
         </div>
-      )}
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
-      </Button>
+      </div>
+
+      {/* Right Column */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="imageUrl">Image URL</Label>
+          <Input 
+              id="imageUrl" 
+              name="imageUrl" 
+              value={imageUrl} 
+              onChange={(e) => setImageUrl(e.target.value)} 
+              required 
+          />
+        </div>
+        {isPreviewable(imageUrl) && (
+          <div className="space-y-2">
+              <Label>Image Preview</Label>
+              <div className="relative aspect-square w-full rounded-md overflow-hidden border bg-muted">
+                  <Image
+                      src={imageUrl}
+                      alt="Product preview"
+                      fill
+                      className="object-cover"
+                      onError={() => setImageUrl('https://placehold.co/600x400.png')}
+                      data-ai-hint="product image"
+                  />
+              </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Footer */}
+      <div className="md:col-span-3">
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
+        </Button>
+      </div>
     </form>
   );
 }
