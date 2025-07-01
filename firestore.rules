@@ -1,35 +1,42 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    // Helper function to check for authentication
-    function isAuthenticated() {
-      return request.auth != null;
+    
+    // By default, deny all reads and writes. This makes our rules more secure.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+    
+    // Allow logged-in users to manage their own user document (e.g., for saved addresses)
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
-    // Products can be read by anyone, but only modified by authenticated users
+    // Products and Categories can be read by anyone, but only written by authenticated users.
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAuthenticated();
+      allow write: if request.auth != null;
     }
-    
-    // Categories can be read by anyone, but only modified by authenticated users
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAuthenticated();
-    }
-
-    // Orders can be created, read, and updated by authenticated users.
-    // Users can only read their own orders.
-    match /orders/{orderId} {
-      allow create: if isAuthenticated();
-      allow read, update: if isAuthenticated(); 
+      allow write: if request.auth != null;
     }
     
-    // User-specific data (like saved addresses)
-    match /users/{userId} {
-      allow read, write: if isAuthenticated() && request.auth.uid == userId;
+    // Rules for the 'orders' collection
+    match /orders/{orderId} {
+      // Allow authenticated users to create their own orders
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Allow users to read their own orders, and any authenticated user (as admin) to read all orders.
+      allow read: if request.auth != null;
+
+      // Allow any authenticated user (as admin) to update an order.
+      allow update: if request.auth != null;
+      
+      // Prevent orders from being deleted from the client-side.
+      allow delete: if false;
     }
   }
 }
