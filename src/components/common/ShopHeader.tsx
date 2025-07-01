@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -17,7 +18,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
@@ -184,14 +185,6 @@ export function ShopHeader() {
                       className="relative h-8 w-8 rounded-full"
                     >
                       <Avatar className="h-8 w-8">
-                        <AvatarImage
-                          src={
-                            user.photoURL ||
-                            `https://i.pravatar.cc/40?u=${user.uid}`
-                          }
-                          alt={user.email || "User"}
-                          data-ai-hint="user avatar"
-                        />
                         <AvatarFallback>
                           {getInitials(user.email)}
                         </AvatarFallback>
@@ -261,7 +254,7 @@ export function ShopHeader() {
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[280px] p-0">
                    <SheetHeader>
-                    <SheetTitle className="p-6 pb-0">Navigation Menu</SheetTitle>
+                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
                     <SheetDescription className="sr-only">
                       Links to navigate the GrocerEase store.
                     </SheetDescription>

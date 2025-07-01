@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import type { Review } from "@/lib/types";
 import { format } from "date-fns";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Star } from "lucide-react";
 
 interface ReviewListProps {
@@ -39,7 +40,6 @@ export function ReviewList({ reviews }: ReviewListProps) {
       {reviews.map((review) => (
         <div key={review.id} className="flex gap-4">
           <Avatar>
-            <AvatarImage src={review.userAvatarUrl} alt={review.userName} data-ai-hint="user avatar" />
             <AvatarFallback>{review.userName.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex-1">

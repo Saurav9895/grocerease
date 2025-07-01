@@ -55,7 +55,6 @@ export interface Review {
   id: string;
   userId: string;
   userName: string;
-  userAvatarUrl?: string;
   rating: number;
   comment: string;
   createdAt: Date;

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -17,7 +18,7 @@ import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home,
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
-import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
+import { Avatar, AvatarFallback } from "../ui/avatar";
 
 export function AdminSidebar() {
   const pathname = usePathname();
@@ -132,7 +133,6 @@ export function AdminSidebar() {
         {user && (
           <div className="flex items-center gap-3 w-full px-2">
             <Avatar className="h-8 w-8">
-                <AvatarImage src={user.photoURL || `https://i.pravatar.cc/40?u=${user.uid}`} alt={user.email || 'User'} />
                 <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col truncate">

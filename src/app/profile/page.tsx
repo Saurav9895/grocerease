@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import { useAuth } from "@/context/AuthProvider";
 import { AuthGuard } from "@/components/common/AuthGuard";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { List, LogOut, Settings, Phone, ShieldCheck, KeyRound } from "lucide-react";
@@ -112,7 +113,6 @@ function ProfilePageContent() {
                         <Card>
                             <CardHeader className="items-center text-center">
                                 <Avatar className="h-24 w-24 mb-4">
-                                    <AvatarImage src={user.photoURL || `https://i.pravatar.cc/120?u=${user.uid}`} alt={profile?.name || 'User'} data-ai-hint="user avatar" />
                                     <AvatarFallback className="text-3xl">{getInitials(profile?.name || user.email)}</AvatarFallback>
                                 </Avatar>
                                 <CardTitle className="flex items-center gap-2">

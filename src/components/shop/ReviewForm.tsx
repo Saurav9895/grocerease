@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState } from "react";
@@ -41,7 +42,6 @@ export function ReviewForm({ productId, onReviewSubmitted }: ReviewFormProps) {
       const newReview: Omit<Review, 'id' | 'createdAt'> = {
         userId: user.uid,
         userName: user.displayName || user.email || "Anonymous",
-        userAvatarUrl: user.photoURL || `https://i.pravatar.cc/40?u=${user.uid}`,
         rating,
         comment,
       };

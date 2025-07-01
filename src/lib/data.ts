@@ -3,6 +3,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile } from './types';
@@ -60,7 +61,6 @@ function docToReview(doc: DocumentSnapshot<DocumentData>): Review {
         id: doc.id,
         userId: data.userId,
         userName: data.userName,
-        userAvatarUrl: data.userAvatarUrl,
         rating: data.rating,
         comment: data.comment,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
