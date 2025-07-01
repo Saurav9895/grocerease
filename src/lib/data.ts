@@ -100,6 +100,23 @@ export async function getOrders(options: { limit?: number } = {}): Promise<Order
   }
 }
 
+export async function getOrderById(id: string): Promise<Order | null> {
+    try {
+        const orderRef = doc(db, 'orders', id);
+        const docSnap = await getDoc(orderRef);
+        if (docSnap.exists()) {
+            return docToOrder(docSnap);
+        } else {
+            console.warn(`No order found with id: ${id}`);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching order:", error);
+        return null;
+    }
+}
+
+
 export async function getUserOrders(userId: string): Promise<Order[]> {
   if (!userId) return [];
   try {

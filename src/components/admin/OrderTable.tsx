@@ -11,6 +11,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Order } from "@/lib/types";
 import { format } from "date-fns";
+import Link from "next/link";
 
 interface OrderTableProps {
   orders: Order[];
@@ -46,7 +47,11 @@ export function OrderTable({ orders }: OrderTableProps) {
           {orders.length > 0 ? (
             orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id.substring(0, 7)}...</TableCell>
+                <TableCell className="font-medium">
+                   <Link href={`/admin/orders/${order.id}`} className="hover:underline text-primary">
+                    {order.id.substring(0, 7)}...
+                  </Link>
+                </TableCell>
                 <TableCell>{order.customerName}</TableCell>
                 <TableCell>{format(order.createdAt, 'PPp')}</TableCell>
                 <TableCell>

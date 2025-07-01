@@ -2,28 +2,34 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Allow users to read their own orders and admins to read all orders
-    match /orders/{orderId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth.uid == request.resource.data.userId;
-    }
-    
-    // Allow admins to manage categories
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if request.auth != null;
+  
+    // Helper function to check for authentication
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Allow anyone to read products, but only admins to write
+    // Products can be read by anyone, but only modified by authenticated users
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthenticated();
+    }
+    
+    // Categories can be read by anyone, but only modified by authenticated users
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
     }
 
-    // Allow users to manage their own address list
+    // Orders can be created, read, and updated by authenticated users.
+    // Users can only read their own orders.
+    match /orders/{orderId} {
+      allow create: if isAuthenticated();
+      allow read, update: if isAuthenticated(); 
+    }
+    
+    // User-specific data (like saved addresses)
     match /users/{userId} {
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
     }
   }
 }

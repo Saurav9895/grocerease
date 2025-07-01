@@ -146,7 +146,7 @@ export default function AdminDashboardPage() {
                 {recentOrders.map(order => (
                   <TableRow key={order.id}>
                     <TableCell className="font-medium text-primary hover:underline">
-                      <Link href="/admin/orders">{order.id.substring(0, 7)}...</Link>
+                      <Link href={`/admin/orders/${order.id}`}>{order.id.substring(0, 7)}...</Link>
                     </TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell>{format(order.createdAt, 'PPp')}</TableCell>
