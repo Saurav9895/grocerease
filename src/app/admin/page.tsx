@@ -1,4 +1,9 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import { getOrders, getProducts, getCategories } from "@/lib/data";
+import type { Order, Product, Category } from "@/lib/types";
+import { useAuth } from "@/context/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users, ClipboardCheck, BarChartBig, LayoutList } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -6,18 +11,56 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
-export const revalidate = 0; // Revalidate on every request
+export default function AdminDashboardPage() {
+  const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const [data, setData] = useState<{
+    recentOrders: Order[],
+    recentProducts: Product[],
+    allOrders: Order[],
+    allProducts: Product[],
+    allCategories: Category[]
+  } | null>(null);
 
-export default async function AdminDashboardPage() {
-  const [recentOrders, recentProducts, allOrders, allProducts, allCategories] = await Promise.all([
-    getOrders({ limit: 5 }),
-    getProducts({ limit: 5 }),
-    getOrders(),
-    getProducts(),
-    getCategories(),
-  ]);
+  useEffect(() => {
+    if (user) {
+      const fetchData = async () => {
+        setIsLoading(true);
+        const [recentOrders, recentProducts, allOrders, allProducts, allCategories] = await Promise.all([
+          getOrders({ limit: 5 }),
+          getProducts({ limit: 5 }),
+          getOrders(),
+          getProducts(),
+          getCategories(),
+        ]);
+        setData({ recentOrders, recentProducts, allOrders, allProducts, allCategories });
+        setIsLoading(false);
+      };
+      fetchData();
+    }
+  }, [user]);
 
+  if (isLoading || !data) {
+    return (
+      <div className="space-y-8">
+        <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+          <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
+        </div>
+        <div className="grid gap-8 md:grid-cols-2">
+          <Card className="h-96"><CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader><CardContent><Skeleton className="h-full w-full" /></CardContent></Card>
+          <Card className="h-96"><CardHeader><Skeleton className="h-6 w-1/2" /></CardHeader><CardContent><Skeleton className="h-full w-full" /></CardContent></Card>
+        </div>
+      </div>
+    );
+  }
+  
+  const { recentOrders, recentProducts, allOrders, allProducts, allCategories } = data;
   const totalRevenue = allOrders.reduce((sum, order) => sum + order.total, 0);
   const totalSales = allOrders.length;
   const totalProducts = allProducts.length;
