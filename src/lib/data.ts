@@ -6,12 +6,6 @@ import type { Product, Category, Order, Address, Review, DeliverySettings, Promo
 
 // == Helper Functions ==
 
-// Hardcoded list of initial admin users and their roles
-const ADMIN_USERS: { [email: string]: 'full' | 'restricted' } = {
-    'admin@gmail.com': 'full',
-};
-
-
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     const data = doc.data()!;
     return {
@@ -86,7 +80,7 @@ function docToUserProfile(doc: DocumentSnapshot<DocumentData>): UserProfile {
         name: data.name || '',
         email: data.email || '',
         phone: data.phone || '',
-        adminRole: data.adminRole || null,
+        isAdmin: data.isAdmin || false,
     };
 }
 
@@ -213,7 +207,7 @@ export async function createUserInFirestore(userId: string, name: string, email:
       name: name,
       email: email,
       phone: phone,
-      adminRole: ADMIN_USERS[email.toLowerCase()] || null,
+      isAdmin: email.toLowerCase() === 'admin@gmail.com',
     }, { merge: true });
   } catch (error) {
     console.error("Error creating user in Firestore:", error);
@@ -462,13 +456,13 @@ export async function findUserByEmail(email: string): Promise<UserProfile | null
     }
 }
 
-export async function updateUserAdminRole(userId: string, role: UserProfile['adminRole']): Promise<void> {
+export async function updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<void> {
     if (!userId) throw new Error("User ID is required.");
     try {
         const userDocRef = doc(db, 'users', userId);
-        await updateDoc(userDocRef, { adminRole: role });
+        await updateDoc(userDocRef, { isAdmin: isAdmin });
     } catch (error) {
-        console.error("Error updating admin role:", error);
+        console.error("Error updating admin status:", error);
         throw error;
     }
 }
@@ -476,7 +470,7 @@ export async function updateUserAdminRole(userId: string, role: UserProfile['adm
 export async function getAdminUsers(): Promise<UserProfile[]> {
     try {
         const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('adminRole', 'in', ['full', 'restricted']));
+        const q = query(usersCol, where('isAdmin', '==', true));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(docToUserProfile);
     } catch (error) {

@@ -77,5 +77,5 @@ export interface UserProfile {
     name: string;
     email: string;
     phone: string;
-    adminRole: 'full' | 'restricted' | null;
+    isAdmin: boolean;
 }

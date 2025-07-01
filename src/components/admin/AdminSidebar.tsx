@@ -97,7 +97,7 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           {profile?.adminRole === 'full' && (
+           {profile?.isAdmin && (
              <SidebarMenuItem>
               <SidebarMenuButton
                 asChild

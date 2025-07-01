@@ -2,14 +2,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { findUserByEmail, updateUserAdminRole, getAdminUsers } from "@/lib/data";
+import { findUserByEmail, updateUserAdminStatus, getAdminUsers } from "@/lib/data";
 import type { UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, UserCog, Trash2 } from "lucide-react";
@@ -18,7 +17,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 export function AdminManager() {
   const { toast } = useToast();
   const [email, setEmail] = useState("");
-  const [role, setRole] = useState<UserProfile['adminRole']>('restricted');
   const [admins, setAdmins] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingAdmins, setIsFetchingAdmins] = useState(true);
@@ -34,7 +32,7 @@ export function AdminManager() {
     fetchAdmins();
   }, []);
 
-  const handleSetRole = async (e: React.FormEvent) => {
+  const handleMakeAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -45,21 +43,21 @@ export function AdminManager() {
         return;
       }
 
-      await updateUserAdminRole(userToUpdate.id, role);
-      toast({ title: "Success", description: `${userToUpdate.name}'s role has been set to ${role}.` });
+      await updateUserAdminStatus(userToUpdate.id, true);
+      toast({ title: "Success", description: `${userToUpdate.name} has been made an admin.` });
       setEmail("");
       fetchAdmins();
     } catch (error) {
-      console.error("Error setting admin role:", error);
+      console.error("Error setting admin status:", error);
       toast({ variant: "destructive", title: "Error", description: "Could not update the user's role." });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRemoveAdmin = async (userId: string, userName: string) => {
+  const handleRevokeAdmin = async (userId: string, userName: string) => {
     try {
-        await updateUserAdminRole(userId, null);
+        await updateUserAdminStatus(userId, false);
         toast({ title: "Admin Removed", description: `${userName} is no longer an admin.` });
         fetchAdmins();
     } catch (error) {
@@ -68,20 +66,15 @@ export function AdminManager() {
     }
   };
 
-  const roleDisplay: Record<string, string> = {
-    full: 'Full Access',
-    restricted: 'Restricted Access'
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>Admin Management</CardTitle>
-        <CardDescription>Grant, modify, or revoke admin privileges for users.</CardDescription>
+        <CardDescription>Grant or revoke admin privileges for users.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleSetRole} className="space-y-4 p-4 border rounded-lg">
-          <h3 className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4"/>Set User Role</h3>
+        <form onSubmit={handleMakeAdmin} className="space-y-4 p-4 border rounded-lg">
+          <h3 className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4"/>Grant Admin Access</h3>
           <div className="flex flex-col sm:flex-row items-end gap-2">
             <div className="flex-1 w-full">
               <Label htmlFor="email">User Email</Label>
@@ -94,19 +87,7 @@ export function AdminManager() {
                 required
               />
             </div>
-            <div className="w-full sm:w-auto">
-              <Label htmlFor="role">Role</Label>
-              <Select value={role || 'restricted'} onValueChange={(v) => setRole(v as UserProfile['adminRole'])}>
-                <SelectTrigger id="role" className="w-full sm:w-[180px]">
-                  <SelectValue placeholder="Select a role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="full">Full Access</SelectItem>
-                  <SelectItem value="restricted">Restricted</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button type="submit" disabled={isLoading}>{isLoading ? "Saving..." : "Set Role"}</Button>
+            <Button type="submit" disabled={isLoading}>{isLoading ? "Saving..." : "Grant Admin"}</Button>
           </div>
         </form>
 
@@ -126,25 +107,25 @@ export function AdminManager() {
                             <p className="text-sm text-muted-foreground">{admin.email}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant={admin.adminRole === 'full' ? 'destructive' : 'secondary'} className="flex items-center gap-1">
+                            <Badge variant="destructive" className="flex items-center gap-1">
                                 <ShieldCheck className="h-3 w-3" />
-                                {roleDisplay[admin.adminRole!]}
+                                Admin
                             </Badge>
                              <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
                                         <Trash2 className="h-4 w-4"/>
-                                        <span className="sr-only">Remove Admin Role</span>
+                                        <span className="sr-only">Revoke Admin</span>
                                     </Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
-                                        <AlertDialogTitle>Remove admin rights for {admin.name}?</AlertDialogTitle>
+                                        <AlertDialogTitle>Revoke admin rights for {admin.name}?</AlertDialogTitle>
                                         <AlertDialogDescription>This will revoke all admin privileges for this user. They will become a regular customer.</AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleRemoveAdmin(admin.id, admin.name)}>Confirm</AlertDialogAction>
+                                        <AlertDialogAction onClick={() => handleRevokeAdmin(admin.id, admin.name)}>Confirm</AlertDialogAction>
                                     </AlertDialogFooter>
                                 </AlertDialogContent>
                             </AlertDialog>

@@ -95,10 +95,10 @@ function ProfilePageContent() {
                                 </Avatar>
                                 <CardTitle className="flex items-center gap-2">
                                     {profile?.name || "Valued Customer"}
-                                    {profile?.adminRole && (
+                                    {profile?.isAdmin && (
                                       <Badge variant="destructive" className="flex items-center gap-1">
                                         <ShieldCheck className="h-3 w-3" />
-                                        {profile.adminRole === 'full' ? 'Full Admin' : 'Restricted Admin'}
+                                        Admin
                                       </Badge>
                                     )}
                                 </CardTitle>
@@ -156,7 +156,7 @@ function ProfilePageContent() {
                         </CardContent>
                     </Card>
                     <AddressManager />
-                    {profile?.adminRole === 'full' && <AdminManager />}
+                    {profile?.isAdmin && <AdminManager />}
                 </div>
             </div>
         </div>
