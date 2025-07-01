@@ -1,9 +1,13 @@
 
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile } from './types';
 
 // == Helper Functions ==
+
+// Hardcoded list of admin emails
+const ADMIN_EMAILS = ['admin@example.com', 'admin@grocerease.com'];
+
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     const data = doc.data()!;
     return {
@@ -186,19 +190,44 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   }
 }
 
-export async function createUserInFirestore(userId: string, name: string, email: string): Promise<void> {
+export async function createUserInFirestore(userId: string, name: string, email: string, phone: string): Promise<void> {
   if (!userId) throw new Error("User ID is required to create user in Firestore.");
   try {
     const userDocRef = doc(db, 'users', userId);
     await setDoc(userDocRef, { 
       name: name,
-      email: email
+      email: email,
+      phone: phone,
+      isAdmin: ADMIN_EMAILS.includes(email.toLowerCase()),
     }, { merge: true });
   } catch (error) {
     console.error("Error creating user in Firestore:", error);
     throw error;
   }
 }
+
+export async function getUserProfile(userId: string): Promise<UserProfile | null> {
+    if (!userId) return null;
+    try {
+        const userRef = doc(db, 'users', userId);
+        const docSnap = await getDoc(userRef);
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            return {
+                id: docSnap.id,
+                name: data.name || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                isAdmin: data.isAdmin || false,
+            };
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching user profile:", error);
+        return null;
+    }
+}
+
 
 export async function getUserAddresses(userId: string): Promise<Address[]> {
   if (!userId) return [];

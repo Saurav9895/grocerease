@@ -24,6 +24,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
+  const [phone, setPhone] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
@@ -41,7 +42,7 @@ export default function SignUpPage() {
       });
 
       // Save user details to Firestore
-      await createUserInFirestore(user.uid, fullName, email);
+      await createUserInFirestore(user.uid, fullName, email, phone);
 
       toast({
         title: "Account created successfully!",
@@ -97,6 +98,17 @@ export default function SignUpPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">Mobile Number</Label>
+              <Input
+                id="phone"
+                type="tel"
+                placeholder="123-456-7890"
+                required
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
               />
             </div>
             <div className="grid gap-2">

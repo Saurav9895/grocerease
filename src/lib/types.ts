@@ -43,8 +43,8 @@ export interface Order {
   items: CartItem[];
   subtotal: number;
   deliveryFee: number;
-  discountAmount?: number;
-  promoCode?: string;
+  discountAmount: number;
+  promoCode: string | null;
   total: number;
   paymentMethod: 'COD' | 'Online';
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
@@ -70,4 +70,12 @@ export interface PromoCode {
   id: string; // The code itself, e.g. "SUMMER10"
   discountPercentage: number;
   isActive: boolean;
+}
+
+export interface UserProfile {
+    id: string;
+    name: string;
+    email: string;
+    phone: string;
+    isAdmin: boolean;
 }
