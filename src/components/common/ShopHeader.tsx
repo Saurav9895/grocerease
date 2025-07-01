@@ -33,8 +33,9 @@ export function ShopHeader() {
 
   const navLinks = [
     { href: "/", label: "Home" },
-    { href: "/#products", label: "Categories" },
-    { href: "/orders", label: "My Orders" },
+    { href: "/#categories", label: "Categories" },
+    { href: "/orders", label: "My Orders", auth: true },
+    { href: "/admin", label: "Admin", auth: true },
   ];
 
   const handleSignOut = async () => {
@@ -70,17 +71,19 @@ export function ShopHeader() {
                 </Link>
                 <nav className="flex flex-col space-y-2">
                   {navLinks.map((link) => (
-                    <SheetClose asChild key={link.href}>
-                      <Link
-                        href={link.href}
-                        className={cn(
-                          "text-muted-foreground transition-colors hover:text-foreground",
-                          pathname === link.href && "text-foreground"
-                        )}
-                      >
-                        {link.label}
-                      </Link>
-                    </SheetClose>
+                    (!link.auth || user) && (
+                      <SheetClose asChild key={link.href}>
+                        <Link
+                          href={link.href}
+                          className={cn(
+                            "text-muted-foreground transition-colors hover:text-foreground",
+                            pathname === link.href && "text-foreground"
+                          )}
+                        >
+                          {link.label}
+                        </Link>
+                      </SheetClose>
+                    )
                   ))}
                 </nav>
               </SheetContent>
@@ -94,25 +97,27 @@ export function ShopHeader() {
 
           <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
             {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "transition-colors hover:text-primary",
-                  pathname === link.href
-                    ? "text-primary"
-                    : "text-muted-foreground"
-                )}
-              >
-                {link.label}
-              </Link>
+              (!link.auth || user) && (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  className={cn(
+                    "transition-colors hover:text-primary",
+                    pathname === link.href || (link.href.startsWith("/#") && pathname === "/")
+                      ? "text-primary font-medium"
+                      : "text-muted-foreground"
+                  )}
+                >
+                  {link.label}
+                </Link>
+              )
             ))}
           </nav>
 
           <div className="flex flex-1 items-center justify-end">
             <nav className="flex items-center gap-2 md:gap-4">
               {loading ? (
-                <Skeleton className="h-8 w-24" />
+                <Skeleton className="h-8 w-8 rounded-full" />
               ) : user ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
@@ -147,15 +152,15 @@ export function ShopHeader() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={() => router.push('/orders')}>
+                     <DropdownMenuItem onClick={() => router.push('/orders')} className="md:hidden">
                          <ShoppingCart className="mr-2 h-4 w-4" />
                          <span>My Orders</span>
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/admin")}>
+                    <DropdownMenuItem onClick={() => router.push("/admin")} className="md:hidden">
                       <User className="mr-2 h-4 w-4" />
                       <span>Admin</span>
                     </DropdownMenuItem>
-                    <DropdownMenuSeparator />
+                    <DropdownMenuSeparator className="md:hidden" />
                     <DropdownMenuItem onClick={handleSignOut}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Sign out</span>

@@ -6,11 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { categories } from "@/lib/data";
-import type { Product } from "@/lib/types";
+import { getCategories } from "@/lib/data";
+import type { Product, Category } from "@/lib/types";
 import { addProduct, updateProduct } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -27,8 +27,17 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 }
 
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
+  const [categories, setCategories] = useState<Category[]>([]);
   const isEditing = !!product;
   const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const fetchedCategories = await getCategories();
+      setCategories(fetchedCategories);
+    };
+    fetchCategories();
+  }, []);
 
   const formAction = async (formData: FormData) => {
     const action = isEditing ? updateProduct : addProduct;
@@ -78,7 +87,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
                 <SelectValue placeholder="Select a category" />
             </SelectTrigger>
             <SelectContent>
-                {categories.filter(c => c.id !== 'all').map(cat => (
+                {categories.map(cat => (
                     <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
                 ))}
             </SelectContent>
