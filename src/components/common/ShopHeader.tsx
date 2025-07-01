@@ -130,8 +130,8 @@ export function ShopHeader() {
           </div>
           
           <div ref={searchContainerRef} className="flex-1 hidden md:flex justify-center px-4">
-            <div className="relative w-full max-w-lg">
-                <form onSubmit={handleSearchSubmit} className="w-full flex items-center gap-2">
+            <form onSubmit={handleSearchSubmit} className="relative w-full max-w-lg">
+                <div className="w-full flex items-center gap-2">
                     <div className="relative w-full">
                         <Input 
                             placeholder="Search products..." 
@@ -154,7 +154,7 @@ export function ShopHeader() {
                     <Button type="submit" size="icon">
                         <Search className="h-5 w-5" />
                     </Button>
-                </form>
+                </div>
                 {isResultsVisible && (
                 <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-50">
                     <ul className="py-1">
@@ -173,7 +173,7 @@ export function ShopHeader() {
                     </ul>
                 </div>
                 )}
-            </div>
+            </form>
           </div>
           
           <div className="flex items-center gap-4">
