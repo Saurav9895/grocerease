@@ -7,10 +7,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { List, LogOut, Settings, Phone, ShieldCheck } from "lucide-react";
+import { List, LogOut, Settings, Phone, ShieldCheck, KeyRound } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddressManager } from "@/components/shop/AddressManager";
-import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +18,9 @@ import { AdminManager } from "@/components/admin/AdminManager";
 import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { updateUserPhone } from "@/lib/data";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { PasswordChangeForm } from "@/components/shop/PasswordChangeForm";
+
 
 function ProfilePageContent() {
     const { user, profile, signOut, refreshProfile } = useAuth();
@@ -29,6 +31,7 @@ function ProfilePageContent() {
     const [isEditingPhone, setIsEditingPhone] = useState(false);
     const [phone, setPhone] = useState("");
     const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
+    const [isPasswordDialogOpen, setIsPasswordDialogOpen] = useState(false);
 
     useEffect(() => {
         if (!user || profile) {
@@ -86,19 +89,6 @@ function ProfilePageContent() {
         router.push("/");
     };
     
-    const handlePasswordReset = async () => {
-        if (!user?.email) {
-            toast({ variant: "destructive", title: "Could not send reset email.", description: "No email address associated with this account." });
-            return;
-        }
-        try {
-            await sendPasswordResetEmail(auth, user.email);
-            toast({ title: "Password reset email sent", description: "Please check your inbox to reset your password." });
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "Error", description: error.message });
-        }
-    }
-
     const ProfileSkeleton = () => (
         <Card>
             <CardHeader className="items-center text-center">
@@ -149,15 +139,28 @@ function ProfilePageContent() {
                             <CardTitle>Account Settings</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
-                            <div className="flex items-center justify-between p-4 rounded-lg border">
+                             <div className="flex items-center justify-between p-4 rounded-lg border">
                                 <div className="flex items-center gap-4">
-                                    <Settings className="w-6 h-6 text-primary"/>
+                                    <KeyRound className="w-6 h-6 text-primary"/>
                                     <div>
                                         <h3 className="font-semibold">Password</h3>
-                                        <p className="text-sm text-muted-foreground">Reset your password.</p>
+                                        <p className="text-sm text-muted-foreground">Change your account password.</p>
                                     </div>
                                 </div>
-                                <Button variant="secondary" onClick={handlePasswordReset}>Send Reset Email</Button>
+                                <Dialog open={isPasswordDialogOpen} onOpenChange={setIsPasswordDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button variant="secondary">Change</Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-md">
+                                        <DialogHeader>
+                                            <DialogTitle>Change Password</DialogTitle>
+                                            <DialogDescription>
+                                                Enter your current password and a new password.
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <PasswordChangeForm onSuccess={() => setIsPasswordDialogOpen(false)} />
+                                    </DialogContent>
+                                </Dialog>
                             </div>
                             <div className="flex items-center justify-between p-4 rounded-lg border">
                                 <div className="flex items-center gap-4 flex-grow">
