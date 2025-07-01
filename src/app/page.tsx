@@ -54,12 +54,12 @@ export default function Home() {
       <section className="mb-12">
         <div className="relative rounded-2xl overflow-hidden bg-gray-100">
           <Image
-            src="https://placehold.co/1200x350.png"
+            src="https://img.freepik.com/free-vector/grocery-store-sale-banner-template_23-2151089846.jpg"
             alt="Hero background"
             width={1200}
             height={350}
             className="w-full h-full object-cover"
-            data-ai-hint="groceries background"
+            data-ai-hint="grocery sale"
             priority
           />
           <div className="absolute inset-0 bg-black/20" />
