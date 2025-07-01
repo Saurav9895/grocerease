@@ -11,25 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Search, X, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { cn } from '@/lib/utils';
-
-// Card component for categories
-const CategoryCard = ({
-  category,
-  className,
-  children,
-}: {
-  category: Category;
-  className?: string;
-  children: React.ReactNode;
-}) => (
-  <Link
-    href={`/category/${category.id}`}
-    className={cn("group relative block overflow-hidden rounded-2xl", className)}
-  >
-    {children}
-  </Link>
-);
+import { CategoryCarousel } from '@/components/shop/CategoryCarousel';
 
 
 export default function Home() {
@@ -83,8 +65,6 @@ export default function Home() {
   }
 
   const showSearchResults = isSearchFocused && searchQuery.length > 0;
-  
-  const categoryCards = useMemo(() => categories.slice(0, 6), [categories]);
 
   return (
     <div className="container py-8">
@@ -161,102 +141,11 @@ export default function Home() {
       </section>
 
       <section id="categories" className="mb-16">
-        <h2 className="text-3xl font-bold tracking-tight text-center mb-8 font-headline">Product Categories</h2>
+        <h2 className="text-xl font-bold uppercase tracking-wider mb-6">Category</h2>
         {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[250px] lg:auto-rows-[minmax(0,_1fr)]">
-                <Skeleton className="lg:col-span-2 lg:row-span-2 rounded-2xl h-full min-h-[300px] lg:min-h-0"/>
-                <Skeleton className="rounded-2xl" />
-                <Skeleton className="rounded-2xl" />
-                <Skeleton className="rounded-2xl" />
-                <Skeleton className="rounded-2xl" />
-                <Skeleton className="rounded-2xl" />
-            </div>
+          <Skeleton className="h-48 w-full rounded-lg" />
         ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-[250px] lg:auto-rows-[minmax(0,_1fr)]">
-              {categoryCards.length > 0 && (
-                <CategoryCard category={categoryCards[0]} className="lg:col-span-2 lg:row-span-2">
-                  <div className="bg-gray-100 dark:bg-zinc-900 h-full w-full p-8 flex flex-col md:flex-row items-center justify-between gap-4">
-                    <div className="md:w-1/2 text-left w-full">
-                      <p className="text-muted-foreground uppercase tracking-wider">{categoryCards[0].description || 'Featured'}</p>
-                      <h3 className="text-3xl lg:text-4xl font-bold text-foreground mt-1">{categoryCards[0].name}</h3>
-                      <Button className="mt-6 bg-foreground text-background hover:bg-foreground/80 font-bold py-2 px-4 rounded-lg inline-flex items-center">
-                        <span>Shop Now</span>
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div className="md:w-1/2 h-48 md:h-full w-full relative">
-                      <Image src="https://placehold.co/400x300.png" data-ai-hint="sofa pillow" alt={categoryCards[0].name} fill className="object-contain transition-transform duration-300 group-hover:scale-105" />
-                    </div>
-                  </div>
-                </CategoryCard>
-              )}
-              {categoryCards.length > 1 && (
-                <CategoryCard category={categoryCards[1]}>
-                  <div className="bg-cyan-100 dark:bg-cyan-900/40 h-full w-full p-6 flex flex-col">
-                    <div>
-                      <p className="text-cyan-800 dark:text-cyan-200/80 uppercase tracking-wider text-sm">{categoryCards[1].description || 'Top Picks'}</p>
-                      <h3 className="text-2xl font-bold text-cyan-900 dark:text-cyan-100 mt-1">{categoryCards[1].name}</h3>
-                    </div>
-                    <div className="relative mt-auto -mb-6 -mr-6 h-full w-full">
-                      <Image src="https://placehold.co/200x200.png" data-ai-hint="running shoes" alt={categoryCards[1].name} fill className="object-contain transition-transform duration-300 group-hover:scale-105 group-hover:-rotate-6" />
-                    </div>
-                  </div>
-                </CategoryCard>
-              )}
-              {categoryCards.length > 2 && (
-                <CategoryCard category={categoryCards[2]}>
-                  <div className="bg-yellow-100 dark:bg-yellow-900/40 h-full w-full p-6 flex flex-col">
-                    <div>
-                      <p className="text-yellow-800 dark:text-yellow-200/80 uppercase tracking-wider text-sm">{categoryCards[2].description || 'Fun Times'}</p>
-                      <h3 className="text-2xl font-bold text-yellow-900 dark:text-yellow-100 mt-1">{categoryCards[2].name}</h3>
-                    </div>
-                    <div className="relative mt-auto -mb-6 h-full w-full">
-                      <Image src="https://placehold.co/200x200.png" data-ai-hint="toy train" alt={categoryCards[2].name} fill className="object-contain transition-transform duration-300 group-hover:scale-105" />
-                    </div>
-                  </div>
-                </CategoryCard>
-              )}
-              {categoryCards.length > 3 && (
-                <CategoryCard category={categoryCards[3]}>
-                  <div className="bg-pink-100 dark:bg-pink-900/40 h-full w-full p-6 flex flex-col">
-                     <div>
-                      <p className="text-pink-800 dark:text-pink-200/80 uppercase tracking-wider text-sm">{categoryCards[3].description || 'Decor'}</p>
-                      <h3 className="text-2xl font-bold text-pink-900 dark:text-pink-100 mt-1">{categoryCards[3].name}</h3>
-                    </div>
-                    <div className="relative mt-auto h-full w-full">
-                      <Image src="https://placehold.co/200x200.png" data-ai-hint="art frame" alt={categoryCards[3].name} fill className="object-contain transition-transform duration-300 group-hover:scale-105" />
-                    </div>
-                  </div>
-                </CategoryCard>
-              )}
-              {categoryCards.length > 4 && (
-                <CategoryCard category={categoryCards[4]}>
-                  <div className="bg-green-100 dark:bg-green-900/40 h-full w-full p-6 flex flex-col">
-                     <div>
-                      <p className="text-green-800 dark:text-green-200/80 uppercase tracking-wider text-sm">{categoryCards[4].description || 'Celebrations'}</p>
-                      <h3 className="text-2xl font-bold text-green-900 dark:text-green-100 mt-1">{categoryCards[4].name}</h3>
-                    </div>
-                    <div className="relative mt-auto -mb-6 h-full w-full">
-                      <Image src="https://placehold.co/200x200.png" data-ai-hint="party hats" alt={categoryCards[4].name} fill className="object-contain transition-transform duration-300 group-hover:scale-105" />
-                    </div>
-                  </div>
-                </CategoryCard>
-              )}
-              {categoryCards.length > 5 && (
-                <CategoryCard category={categoryCards[5]}>
-                   <div className="bg-rose-100 dark:bg-rose-900/40 h-full w-full p-6 flex flex-col items-start">
-                     <div>
-                      <p className="text-rose-800 dark:text-rose-200/80 uppercase tracking-wider text-sm">{categoryCards[5].description || 'Luxury'}</p>
-                      <h3 className="text-2xl font-bold text-rose-900 dark:text-rose-100 mt-1">{categoryCards[5].name}</h3>
-                       <Button variant="link" className="text-rose-900 dark:text-rose-100 px-0 h-auto">Shop Now</Button>
-                    </div>
-                    <div className="relative mt-auto -mb-6 -mr-6 h-full w-full self-end">
-                      <Image src="https://placehold.co/200x200.png" data-ai-hint="diamond ring" alt={categoryCards[5].name} fill className="object-contain transition-transform duration-300 group-hover:scale-105" />
-                    </div>
-                  </div>
-                </CategoryCard>
-              )}
-            </div>
+          <CategoryCarousel categories={categories} />
         )}
       </section>
 
