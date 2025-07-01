@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -6,7 +5,7 @@ import { getProducts, getCategories } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
@@ -94,9 +93,9 @@ export default function Home() {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-6 flex flex-col justify-end">
                           <h3 className="text-2xl font-bold text-white">{featuredCategories[0].name}</h3>
                           <p className="text-white/90 truncate">{featuredCategories[0].description}</p>
-                          <Button asChild variant="secondary" className="mt-4 self-start">
-                              <Link href={`/category/${featuredCategories[0].id}`}>Shop Now</Link>
-                          </Button>
+                          <div className={cn(buttonVariants({ variant: 'secondary' }), "mt-4 self-start")}>
+                              Shop Now
+                          </div>
                       </div>
                     </CategoryCard>
                     {featuredCategories.slice(1).map((cat) => (
