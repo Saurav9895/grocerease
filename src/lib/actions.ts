@@ -44,10 +44,9 @@ export async function placeOrder(cartItems: CartItem[], cartTotal: number, userI
 
     const docRef = await addDoc(collection(db, "orders"), newOrder);
     
-    console.log("New order placed with ID:", docRef.id);
-
     revalidatePath("/");
     revalidatePath("/checkout");
+    revalidatePath("/admin");
     revalidatePath("/admin/orders");
     revalidatePath("/orders");
 
@@ -63,7 +62,7 @@ export async function placeOrder(cartItems: CartItem[], cartTotal: number, userI
 }
 
 
-// --- Admin Actions ---
+// --- Admin Product Actions ---
 
 const productSchema = z.object({
   id: z.string().optional(),
@@ -88,8 +87,12 @@ export async function addProduct(formData: FormData) {
   }
 
   try {
-    await addDoc(collection(db, "products"), validatedFields.data);
+    await addDoc(collection(db, "products"), {
+      ...validatedFields.data,
+      createdAt: serverTimestamp()
+    });
     revalidatePath("/admin/products");
+    revalidatePath("/admin");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
@@ -118,6 +121,7 @@ export async function updateProduct(formData: FormData) {
     await updateDoc(productRef, productData);
     
     revalidatePath("/admin/products");
+    revalidatePath("/admin");
     revalidatePath("/");
 
     return { success: true };
@@ -138,10 +142,85 @@ export async function deleteProduct(productId: string) {
   try {
     await deleteDoc(doc(db, "products", productId));
     revalidatePath("/admin/products");
+    revalidatePath("/admin");
     revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting product:", error);
     return { success: false, message: "Failed to delete product." };
+  }
+}
+
+
+// --- Admin Category Actions ---
+
+const categorySchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(2, "Name must be at least 2 characters."),
+});
+
+export async function addCategory(formData: FormData) {
+  const rawFormData = Object.fromEntries(formData.entries());
+  const validatedFields = categorySchema.omit({ id: true }).safeParse(rawFormData);
+
+  if (!validatedFields.success) {
+    return {
+      success: false,
+      errors: validatedFields.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    await addDoc(collection(db, "categories"), validatedFields.data);
+    revalidatePath("/admin/categories");
+    return { success: true };
+  } catch (error) {
+    console.error("Error adding category:", error);
+    return {
+      success: false,
+      errors: { _form: ["Failed to add category to database."] },
+    };
+  }
+}
+
+export async function updateCategory(formData: FormData) {
+  const rawFormData = Object.fromEntries(formData.entries());
+  const validatedFields = categorySchema.safeParse(rawFormData);
+
+  if(!validatedFields.success || !validatedFields.data.id) {
+    return {
+      success: false,
+      errors: validatedFields.error?.flatten().fieldErrors || {_form: ['Invalid category data']},
+    };
+  }
+  
+  try {
+    const { id, ...categoryData } = validatedFields.data;
+    const categoryRef = doc(db, "categories", id);
+    await updateDoc(categoryRef, categoryData);
+    
+    revalidatePath("/admin/categories");
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating category:", error);
+    return {
+      success: false,
+      errors: { _form: ["Failed to update category in database."] },
+    };
+  }
+}
+
+export async function deleteCategory(categoryId: string) {
+  if (!categoryId) {
+    return { success: false, message: "Category ID is missing." };
+  }
+  try {
+    await deleteDoc(doc(db, "categories", categoryId));
+    revalidatePath("/admin/categories");
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    return { success: false, message: "Failed to delete category." };
   }
 }

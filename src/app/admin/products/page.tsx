@@ -7,8 +7,8 @@ export default async function AdminProductsPage() {
   const allProducts = await getProducts();
 
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Manage Products</h1>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Manage Products</h1>
       <ProductTable products={allProducts} />
     </div>
   );

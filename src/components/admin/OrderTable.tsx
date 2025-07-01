@@ -20,18 +20,18 @@ export function OrderTable({ orders }: OrderTableProps) {
 
   const getStatusVariant = (status: Order['status']) => {
     switch (status) {
-      case 'Pending': return 'default';
-      case 'Processing': return 'secondary';
+      case 'Pending': return 'secondary';
+      case 'Processing': return 'default';
       case 'Shipped': return 'outline';
       case 'Delivered': return 'default';
       case 'Cancelled': return 'destructive';
-      default: return 'default';
+      default: return 'secondary';
     }
   };
 
 
   return (
-    <div className="border rounded-md">
+    <div className="border rounded-md bg-card">
       <Table>
         <TableHeader>
           <TableRow>

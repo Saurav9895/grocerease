@@ -13,6 +13,7 @@ function docToProduct(doc: QueryDocumentSnapshot<DocumentData>): Product {
         imageUrl: data.imageUrl,
         category: data.category,
         stock: data.stock,
+        createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
     };
 }
 
@@ -52,10 +53,13 @@ export async function getCategories(): Promise<Category[]> {
   }
 }
 
-export async function getProducts(): Promise<Product[]> {
+export async function getProducts(options: { limit?: number } = {}): Promise<Product[]> {
   try {
     const productsCol = collection(db, 'products');
-    const snapshot = await getDocs(productsCol);
+    const q = options.limit 
+      ? query(productsCol, orderBy('createdAt', 'desc'), limit(options.limit))
+      : query(productsCol, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
     return snapshot.docs.map(docToProduct);
   } catch (error) {
     console.error("Error fetching products:", error);
@@ -63,10 +67,12 @@ export async function getProducts(): Promise<Product[]> {
   }
 }
 
-export async function getOrders(): Promise<Order[]> {
+export async function getOrders(options: { limit?: number } = {}): Promise<Order[]> {
   try {
     const ordersCol = collection(db, 'orders');
-    const q = query(ordersCol, orderBy('createdAt', 'desc'));
+    const q = options.limit
+      ? query(ordersCol, orderBy('createdAt', 'desc'), limit(options.limit))
+      : query(ordersCol, orderBy('createdAt', 'desc'));
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToOrder);
   } catch (error) {
