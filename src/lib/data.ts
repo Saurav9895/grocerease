@@ -56,6 +56,22 @@ export async function getCategories(): Promise<Category[]> {
   }
 }
 
+export async function getCategoryById(id: string): Promise<Category | null> {
+    try {
+        const categoryRef = doc(db, 'categories', id);
+        const docSnap = await getDoc(categoryRef);
+        if (docSnap.exists()) {
+            return docToCategory(docSnap);
+        } else {
+            console.warn(`No category found with id: ${id}`);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching category:", error);
+        return null;
+    }
+}
+
 export async function getProducts(options: { limit?: number } = {}): Promise<Product[]> {
   try {
     const productsCol = collection(db, 'products');
@@ -66,6 +82,18 @@ export async function getProducts(options: { limit?: number } = {}): Promise<Pro
     return snapshot.docs.map(docToProduct);
   } catch (error) {
     console.error("Error fetching products:", error);
+    return [];
+  }
+}
+
+export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
+  try {
+    const productsCol = collection(db, 'products');
+    const q = query(productsCol, where('category', '==', categoryId), orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToProduct);
+  } catch (error) {
+    console.error(`Error fetching products for category ${categoryId}:`, error);
     return [];
   }
 }

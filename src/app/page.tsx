@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useMemo } from 'react';
@@ -10,16 +11,12 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-
-  const searchParams = useSearchParams();
-  const selectedCategory = searchParams.get('category') || 'all';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -29,29 +26,22 @@ export default function Home() {
         getCategories(),
       ]);
       setProducts(productsData);
-      setCategories([{ id: 'all', name: 'All' }, ...categoriesData]);
+      setCategories(categoriesData);
       setIsLoading(false);
     };
     fetchData();
   }, []);
 
   const filteredProducts = useMemo(() => {
-    let tempProducts = products;
-
-    if (selectedCategory !== 'all') {
-      tempProducts = tempProducts.filter(p => p.category === selectedCategory);
+    if (!searchQuery) {
+        return products;
     }
-
-    if (searchQuery) {
-        const lowercasedQuery = searchQuery.toLowerCase();
-        tempProducts = tempProducts.filter(p => 
-            p.name.toLowerCase().includes(lowercasedQuery) ||
-            p.description.toLowerCase().includes(lowercasedQuery)
-        );
-    }
-    
-    return tempProducts;
-  }, [searchQuery, selectedCategory, products]);
+    const lowercasedQuery = searchQuery.toLowerCase();
+    return products.filter(p => 
+        p.name.toLowerCase().includes(lowercasedQuery) ||
+        p.description.toLowerCase().includes(lowercasedQuery)
+    );
+  }, [searchQuery, products]);
 
   const handleBrowseAllClick = () => {
     setSearchQuery('');
@@ -81,7 +71,7 @@ export default function Home() {
         </div>
          <div className="mt-6">
             <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-8 py-6 text-base">
-                <Link href="/#products" onClick={handleBrowseAllClick}>Browse All Categories</Link>
+                <Link href="/#products" onClick={handleBrowseAllClick}>Browse All Products</Link>
             </Button>
         </div>
       </section>
@@ -99,8 +89,8 @@ export default function Home() {
             </div>
         ) : (
              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
-                {categories.filter(c => c.id !== 'all').map((category) => (
-                    <Link href={`/?category=${category.id}#products`} key={category.id} className="cursor-pointer group block text-center">
+                {categories.map((category) => (
+                    <Link href={`/category/${category.id}`} key={category.id} className="cursor-pointer group block text-center">
                         <div className="aspect-square relative rounded-lg overflow-hidden border bg-card shadow-sm transition-all duration-300 hover:shadow-lg">
                             <Image 
                                 src={category.imageUrl} 
@@ -120,13 +110,8 @@ export default function Home() {
       <section id="products">
          <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold tracking-tight font-headline">
-                {selectedCategory === 'all' ? 'All Products' : categories.find(c => c.id === selectedCategory)?.name}
+                Featured Products
             </h2>
-            {selectedCategory !== 'all' && (
-              <Button asChild variant="outline">
-                <Link href="/#products">View All Products</Link>
-              </Button>
-            )}
         </div>
         {isLoading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
@@ -143,7 +128,7 @@ export default function Home() {
             ) : (
               <div className="text-center py-16 text-muted-foreground bg-card rounded-lg">
                 <p className="text-lg font-medium">No products found.</p>
-                <p>Try adjusting your search or category selection.</p>
+                <p>Try adjusting your search query.</p>
               </div>
             )}
           </>
