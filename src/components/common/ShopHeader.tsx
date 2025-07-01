@@ -26,7 +26,7 @@ import { cn } from "@/lib/utils";
 
 export function ShopHeader() {
   const { cartCount } = useCart();
-  const { user, signOut, loading } = useAuth();
+  const { user, profile, signOut, loading } = useAuth();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
@@ -162,10 +162,12 @@ export function ShopHeader() {
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push('/admin')}>
-                        <LayoutDashboard className="mr-2 h-4 w-4" />
-                        <span>Admin Dashboard</span>
-                      </DropdownMenuItem>
+                      {profile?.isAdmin && (
+                        <DropdownMenuItem onClick={() => router.push('/admin')}>
+                            <LayoutDashboard className="mr-2 h-4 w-4" />
+                            <span>Admin Dashboard</span>
+                        </DropdownMenuItem>
+                      )}
                        <DropdownMenuItem onClick={() => router.push('/orders')} className="md:hidden">
                            <ShoppingCart className="mr-2 h-4 w-4" />
                            <span>My Orders</span>

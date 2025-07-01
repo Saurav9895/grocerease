@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useAuth } from '@/context/AuthProvider';
@@ -8,16 +9,26 @@ import { SidebarProvider } from '../ui/sidebar';
 import { AdminSidebar } from './AdminSidebar';
 
 export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useAuth();
+    const { user, profile, loading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
-        if (!loading && !user) {
-            router.push('/signin');
-        }
-    }, [user, loading, router]);
+        if (loading) return; // Wait until loading is finished
 
-    if (loading || !user) {
+        if (!user) {
+            router.replace('/signin');
+            return;
+        }
+        
+        // After auth is loaded, if profile is available but user is not admin
+        if (profile && !profile.isAdmin) {
+             router.replace('/'); // Redirect non-admins to homepage
+        }
+
+    }, [user, profile, loading, router]);
+
+    // Show skeleton while loading auth or profile, or if the user is not an admin yet (profile is still loading or they are being redirected)
+    if (loading || !profile || !profile.isAdmin) {
         return (
           <SidebarProvider>
             <div className="flex min-h-screen">
