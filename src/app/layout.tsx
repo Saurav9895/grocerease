@@ -9,6 +9,7 @@ import { ShopHeader } from '@/components/common/ShopHeader';
 import { Footer } from '@/components/common/Footer';
 import { cn } from '@/lib/utils';
 import { Inter } from 'next/font/google';
+import { AuthProvider } from '@/context/AuthProvider';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -40,14 +41,16 @@ export default function RootLayout({
         <title>GrocerEase</title>
       </head>
       <body className={cn("font-body antialiased", inter.variable)}>
-        <CartProvider>
-          <div className="flex flex-col min-h-screen">
-            {!isAdminPage && !isAuthPage && <ShopHeader />}
-            <main className="flex-grow">{children}</main>
-            {!isAdminPage && !isAuthPage && <Footer />}
-          </div>
-          <Toaster />
-        </CartProvider>
+        <AuthProvider>
+          <CartProvider>
+            <div className="flex flex-col min-h-screen">
+              {!isAdminPage && !isAuthPage && <ShopHeader />}
+              <main className="flex-grow">{children}</main>
+              {!isAdminPage && !isAuthPage && <Footer />}
+            </div>
+            <Toaster />
+          </CartProvider>
+        </AuthProvider>
       </body>
     </html>
   );
