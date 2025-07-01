@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc } from 'firebase/firestore';
-import type { Product, Category, Order } from './types';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import type { Product, Category, Order, Address } from './types';
 
 // == Helper Functions ==
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
@@ -110,5 +110,34 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   } catch (error) {
     console.error("Error fetching user orders:", error);
     return [];
+  }
+}
+
+export async function getUserAddresses(userId: string): Promise<Address[]> {
+  if (!userId) return [];
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(userDocRef);
+    if (docSnap.exists() && docSnap.data().addresses) {
+      return docSnap.data().addresses;
+    }
+    return [];
+  } catch (error) {
+    console.error("Error fetching user addresses:", error);
+    return [];
+  }
+}
+
+export async function saveUserAddress(userId: string, address: Omit<Address, 'id'>) {
+  if (!userId) return;
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const addressWithId = { ...address, id: new Date().toISOString() };
+    await setDoc(userDocRef, { 
+      addresses: arrayUnion(addressWithId)
+    }, { merge: true });
+  } catch (error) {
+    console.error("Error saving user address:", error);
+    throw error;
   }
 }

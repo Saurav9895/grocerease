@@ -20,11 +20,22 @@ export interface CartItem extends Product {
   quantity: number;
 }
 
+export interface Address {
+  id?: string;
+  name: string;
+  phone: string;
+  street: string;
+  city: string;
+  state: string;
+  zip: string;
+  country: string;
+}
+
 export interface Order {
   id: string;
   userId: string;
   customerName: string;
-  address: string;
+  address: Address;
   items: CartItem[];
   total: number;
   paymentMethod: 'COD' | 'Online';

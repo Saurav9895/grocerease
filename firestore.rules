@@ -3,26 +3,27 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products and Categories are publically readable, but only
-    // authenticated users (admins) can modify them.
+    function isAuthed() {
+      return request.auth != null;
+    }
+
     match /products/{productId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthed();
     }
 
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if request.auth != null;
+      allow write: if isAuthed();
     }
 
-    // Users can create their own orders and read their own orders.
-    // Any authenticated user can list/read all orders for the admin panel.
     match /orders/{orderId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
-      
-      // Nobody can update or delete from the client.
-      allow update, delete: if false;
+      allow create: if isAuthed() && request.auth.uid == request.resource.data.userId;
+      allow read: if isAuthed();
+    }
+
+    match /users/{userId} {
+      allow read, write: if isAuthed() && request.auth.uid == userId;
     }
   }
 }

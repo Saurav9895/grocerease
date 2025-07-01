@@ -69,6 +69,16 @@ function UserOrdersPage() {
                                 <Badge variant={getStatusVariant(order.status)} className="w-fit">{order.status}</Badge>
                             </CardHeader>
                             <CardContent className="space-y-4">
+                                <div className="text-sm">
+                                    <p className="font-medium text-foreground">Shipping to:</p>
+                                    <div className="text-muted-foreground">
+                                      <p>{order.address.name}</p>
+                                      <p>{order.address.street}</p>
+                                      <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
+                                      <p>{order.address.country}</p>
+                                    </div>
+                                </div>
+                                <Separator />
                                 {order.items.map(item => (
                                     <div key={item.id} className="flex justify-between items-center">
                                       <div className="flex items-center gap-4">
