@@ -4,37 +4,20 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useCart } from '@/hooks/use-cart';
 import type { Product } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
-import { PlusCircle, Star, StarHalf } from 'lucide-react';
+import { Plus, Minus, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
 }
 
-const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-  
-    return (
-      <div className="flex items-center gap-0.5 text-amber-400">
-        {[...Array(fullStars)].map((_, i) => (
-          <Star key={`full-${i}`} className="h-4 w-4 fill-current" />
-        ))}
-        {hasHalfStar && <StarHalf className="h-4 w-4 fill-current" />}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} className="h-4 w-4 text-muted-foreground/50 fill-muted-foreground/20" />
-        ))}
-      </div>
-    );
-  };
-
-
 export function ProductCard({ product }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const { cartItems, addToCart, updateQuantity } = useCart();
+  const cartItem = cartItems.find(item => item.id === product.id);
+  const quantityInCart = cartItem?.quantity || 0;
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -46,37 +29,83 @@ export function ProductCard({ product }: ProductCardProps) {
     });
   };
 
+  const handleIncrease = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    updateQuantity(product.id, quantityInCart + 1);
+  };
+  
+  const handleDecrease = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    updateQuantity(product.id, quantityInCart - 1);
+  };
+  
+  const mockOldPrice = product.price * 1.15;
+
   return (
-    <Link href={`/product/${product.id}`} className="block outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-lg h-full">
-      <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
-        <CardHeader className="p-0">
-          <div className="aspect-video relative">
-            <Image
-              src={product.imageUrl}
-              alt={product.name}
-              fill
-              className="object-cover"
-              data-ai-hint={`${product.category.replace(/-/g, ' ')} grocery`}
-            />
-          </div>
-          <div className="p-4 pb-0">
-            <CardTitle className="text-lg leading-tight line-clamp-2">{product.name}</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent className="flex-grow p-4 space-y-2">
-           <div className="flex items-center gap-2">
-            {renderStars(product.rating)}
-            <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
-          </div>
-          <p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p>
+    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg group">
+      <Link href={`/product/${product.id}`} className="block outline-none">
+        <CardContent className="p-4 space-y-3 flex flex-col h-full">
+            <div className="relative">
+                <div className="aspect-square relative rounded-md overflow-hidden">
+                    <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-contain"
+                    data-ai-hint={`${product.category.replace(/-/g, ' ')} grocery`}
+                    />
+                </div>
+                 <Button variant="ghost" size="icon" className="absolute top-1 right-1 h-8 w-8 rounded-full bg-background/50 backdrop-blur-sm hover:bg-background">
+                    <Heart className="h-4 w-4" />
+                </Button>
+            </div>
+          
+            <div className="flex-grow">
+              <h3 className="text-sm font-semibold leading-tight line-clamp-2">{product.name}</h3>
+              <p className="text-xs text-muted-foreground">1 kg</p>
+            </div>
+
+            <div className="flex items-end justify-between mt-auto pt-2">
+                <div>
+                    <p className="text-sm font-bold text-foreground">Rs{product.price.toFixed(2)}</p>
+                    <p className="text-xs text-muted-foreground line-through">Rs{mockOldPrice.toFixed(2)}</p>
+                </div>
+
+                {quantityInCart === 0 ? (
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-9 w-20 border-primary text-primary hover:bg-primary/10 hover:text-primary font-bold"
+                        onClick={handleAddToCart}
+                    >
+                        ADD
+                    </Button>
+                ) : (
+                    <div className="flex items-center justify-center h-9 w-24 rounded-md border border-primary bg-primary/10">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-full w-8 text-primary hover:bg-primary/20 hover:text-primary"
+                            onClick={handleDecrease}
+                        >
+                            <Minus className="h-4 w-4" />
+                        </Button>
+                        <span className="font-bold text-primary text-sm tabular-nums">{quantityInCart}</span>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-full w-8 text-primary hover:bg-primary/20 hover:text-primary"
+                            onClick={handleIncrease}
+                        >
+                            <Plus className="h-4 w-4" />
+                        </Button>
+                    </div>
+                )}
+            </div>
         </CardContent>
-        <CardFooter className="flex items-center justify-between p-4 bg-muted/50 mt-auto">
-          <p className="text-lg font-semibold text-primary">Rs{product.price.toFixed(2)}</p>
-          <Button onClick={handleAddToCart}>
-            <PlusCircle className="mr-2 h-4 w-4" /> Add to cart
-          </Button>
-        </CardFooter>
-      </Card>
-    </Link>
+      </Link>
+    </Card>
   );
 }

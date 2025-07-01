@@ -6,20 +6,67 @@ import { getProducts, getCategories } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Search, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { ArrowRight, ChevronRight, ShoppingBasket } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
+
+const displayCategories = [
+    { name: 'Grocery', discount: 'upto 15% off', Icon: (props: any) => (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 21.82a2 2 0 0 0 4 0" />
+            <path d="M5.18 5.18A2 2 0 0 0 3.75 7H2.25A2 2 0 0 0 .25 9l1.22 7.32A2 2 0 0 0 3.44 18h17.12a2 2 0 0 0 1.97-1.68L23.75 9a2 2 0 0 0-2-2h-1.5a2 2 0 0 0-1.43-1.82" />
+            <path d="M8 12a2 2 0 1 1-4 0" />
+            <path d="M12 12a2 2 0 1 1-4 0" />
+            <path d="M16 12a2 2 0 1 1-4 0" />
+            <path d="M20 12a2 2 0 1 1-4 0" />
+            <path d="M16 7a2 2 0 1 1-4 0" />
+        </svg>
+    ), bgColor: 'bg-green-100', textColor: 'text-green-800', id: 'vegetables-and-fruits' },
+    { name: 'Vegetables', discount: 'upto 10% off', Icon: (props: any) => (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 15.5c.6-1.1 1.6-2.5 1.6-2.5-2.2-2.7-4-1.5-4-1.5-.2 2.2 1.4 4.5 1.4 4.5.9 1.1 2.3.9 2.3.9z" />
+            <path d="M11 16c-1.8-1.5-2.5-3.1-2.5-3.1-2.8-.2-4.6 1.3-4.6 1.3s1.2 2.9 4.1 3.2c0 0 .9 1.5 2.5 1.5C12.5 19 11 16 11 16z" />
+            <path d="M10 14c-2.3-1.4-2.5-3-2.5-3-3.1.2-4.5 1.6-4.5 1.6s1.6 2.7 4.5 2.6c0 0 1.3 1.5 2.5 1.5s2.5-2.5 2.5-2.5c1.1.8 1.9 1.6 1.9 1.6s.6-1.2-.5-2.4c-1.1-1.2-2.1-1.7-2.1-1.7s-.2 1.9-1.8 3.2z" />
+        </svg>
+    ), bgColor: 'bg-orange-100', textColor: 'text-orange-800', id: 'vegetables-and-fruits' },
+    { name: 'Grocery', discount: 'upto 15% off', Icon: (props: any) => (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 21.82a2 2 0 0 0 4 0" />
+            <path d="M5.18 5.18A2 2 0 0 0 3.75 7H2.25A2 2 0 0 0 .25 9l1.22 7.32A2 2 0 0 0 3.44 18h17.12a2 2 0 0 0 1.97-1.68L23.75 9a2 2 0 0 0-2-2h-1.5a2 2 0 0 0-1.43-1.82" />
+            <path d="M8 12a2 2 0 1 1-4 0" />
+            <path d="M12 12a2 2 0 1 1-4 0" />
+            <path d="M16 12a2 2 0 1 1-4 0" />
+            <path d="M20 12a2 2 0 1 1-4 0" />
+            <path d="M16 7a2 2 0 1 1-4 0" />
+        </svg>
+    ), bgColor: 'bg-blue-100', textColor: 'text-blue-800', id: 'vegetables-and-fruits' },
+    { name: 'Vegetables', discount: 'upto 10% off', Icon: (props: any) => (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14 15.5c.6-1.1 1.6-2.5 1.6-2.5-2.2-2.7-4-1.5-4-1.5-.2 2.2 1.4 4.5 1.4 4.5.9 1.1 2.3.9 2.3.9z" />
+            <path d="M11 16c-1.8-1.5-2.5-3.1-2.5-3.1-2.8-.2-4.6 1.3-4.6 1.3s1.2 2.9 4.1 3.2c0 0 .9 1.5 2.5 1.5C12.5 19 11 16 11 16z" />
+            <path d="M10 14c-2.3-1.4-2.5-3-2.5-3-3.1.2-4.5 1.6-4.5 1.6s1.6 2.7 4.5 2.6c0 0 1.3 1.5 2.5 1.5s2.5-2.5 2.5-2.5c1.1.8 1.9 1.6 1.9 1.6s.6-1.2-.5-2.4c-1.1-1.2-2.1-1.7-2.1-1.7s-.2 1.9-1.8 3.2z" />
+        </svg>
+    ), bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', id: 'vegetables-and-fruits' },
+     { name: 'Grocery', discount: 'upto 15% off', Icon: (props: any) => (
+        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M10 21.82a2 2 0 0 0 4 0" />
+            <path d="M5.18 5.18A2 2 0 0 0 3.75 7H2.25A2 2 0 0 0 .25 9l1.22 7.32A2 2 0 0 0 3.44 18h17.12a2 2 0 0 0 1.97-1.68L23.75 9a2 2 0 0 0-2-2h-1.5a2 2 0 0 0-1.43-1.82" />
+            <path d="M8 12a2 2 0 1 1-4 0" />
+            <path d="M12 12a2 2 0 1 1-4 0" />
+            <path d="M16 12a2 2 0 1 1-4 0" />
+            <path d="M20 12a2 2 0 1 1-4 0" />
+            <path d="M16 7a2 2 0 1 1-4 0" />
+        </svg>
+    ), bgColor: 'bg-red-100', textColor: 'text-red-800', id: 'vegetables-and-fruits' },
+]
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
-  const searchContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -35,168 +82,89 @@ export default function Home() {
     fetchData();
   }, []);
 
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsSearchFocused(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [searchContainerRef]);
-
-  const searchResults = useMemo(() => {
-    if (!searchQuery) {
-        return [];
-    }
-    const lowercasedQuery = searchQuery.toLowerCase();
-    return products.filter(p => 
-        p.name.toLowerCase().includes(lowercasedQuery) ||
-        p.description.toLowerCase().includes(lowercasedQuery)
-    ).slice(0, 5);
-  }, [searchQuery, products]);
-  
-  const handleResultClick = () => {
-    setSearchQuery('');
-    setIsSearchFocused(false);
-  }
-
-  const showSearchResults = isSearchFocused && searchQuery.length > 0;
 
   return (
     <div className="container py-8">
-       <section className="text-center mb-16">
-        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-primary font-headline">
-          Welcome to GrocerEase!
-        </h1>
-        <p className="mt-4 text-lg text-muted-foreground max-w-3xl mx-auto">
-          Your favorite groceries, delivered fresh to your doorstep. Explore our wide selection of quality products.
-        </p>
-        <div ref={searchContainerRef} className="mt-8 max-w-xl mx-auto relative">
-            <div className="flex items-center">
-                 <div className="relative w-full">
-                    <Input 
-                        type="search"
-                        placeholder="Search for groceries..."
-                        className="text-base h-12 rounded-r-none focus-visible:ring-offset-0 focus-visible:ring-1 pr-10"
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onFocus={() => setIsSearchFocused(true)}
-                    />
-                    {searchQuery && (
-                        <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full"
-                            onClick={() => setSearchQuery('')}
-                        >
-                            <X className="h-4 w-4 text-muted-foreground" />
-                        </Button>
-                    )}
-                </div>
-                <Button size="icon" className="h-12 w-12 rounded-l-none bg-primary hover:bg-primary/90">
-                    <Search className="h-5 w-5" />
-                    <span className="sr-only">Search</span>
-                </Button>
+      <section className="mb-12">
+        <div className="relative rounded-2xl overflow-hidden bg-gray-100">
+          <Image
+            src="https://placehold.co/1200x350.png"
+            alt="Hero background"
+            width={1200}
+            height={350}
+            className="w-full h-full object-cover"
+            data-ai-hint="groceries background"
+            priority
+          />
+          <div className="absolute inset-0 bg-black/20" />
+          <div className="absolute top-1/2 left-16 -translate-y-1/2">
+            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg max-w-md">
+              <h1 className="text-4xl font-extrabold tracking-tight text-primary font-headline">
+                InstaGrocer
+              </h1>
+              <p className="mt-2 text-lg text-muted-foreground">
+                Sample text to describe 1daycart in simple words
+              </p>
+              <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-6 text-base">
+                <Link href="/products">Shop Now</Link>
+              </Button>
             </div>
-            
-            {showSearchResults && (
-                 <div className="absolute top-full mt-2 w-full bg-card border rounded-lg shadow-lg z-50 text-left">
-                     {searchResults.length > 0 ? (
-                        <ul className="py-2">
-                            {searchResults.map(product => (
-                                <li key={product.id}>
-                                    <Link 
-                                        href={`/product/${product.id}`} 
-                                        onClick={handleResultClick} 
-                                        className="flex items-center gap-4 px-4 py-2 hover:bg-muted transition-colors"
-                                    >
-                                        <Image 
-                                            src={product.imageUrl}
-                                            alt={product.name}
-                                            width={40}
-                                            height={40}
-                                            className="rounded-md object-cover"
-                                            data-ai-hint="product image"
-                                        />
-                                        <span>{product.name}</span>
-                                    </Link>
-                                </li>
-                            ))}
-                        </ul>
-                     ) : (
-                        <p className="p-4 text-center text-muted-foreground">No products found for &quot;{searchQuery}&quot;</p>
-                     )}
-                 </div>
-            )}
-        </div>
-         <div className="mt-6">
-            <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-8 py-6 text-base">
-                <Link href="/products">Browse All Products</Link>
-            </Button>
+          </div>
         </div>
       </section>
 
-      <section id="categories" className="mb-16">
-        <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tight">
-                Product <span className="bg-primary text-primary-foreground px-4 py-2 skew-x-[-15deg] inline-block"><span className="inline-block skew-x-[15deg]">Categories</span></span>
+      <section id="categories" className="mb-12">
+        <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold tracking-tight">
+                Shop by category
             </h2>
+            <Button variant="ghost" asChild>
+                <Link href="/products" className="text-sm font-medium">
+                    See all <ChevronRight className="h-4 w-4 ml-1" />
+                </Link>
+            </Button>
         </div>
         {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {[...Array(4)].map((_, i) => (
-                <div key={i} className="border rounded-md p-4">
-                    <Skeleton className="w-full h-40 mb-4" />
-                    <Skeleton className="h-6 w-3/4 mx-auto mb-2" />
-                    <Skeleton className="h-4 w-1/2 mx-auto mb-4" />
-                    <Skeleton className="h-10 w-4/5 mx-auto" />
-                </div>
-            ))}
+             <div className="flex space-x-4">
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="w-48 h-24 rounded-lg" />)}
             </div>
         ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-6">
-            {categories.slice(0, 4).map((category) => (
-                <Link href={`/category/${category.id}`} key={category.id} className="block h-full">
-                    <div className="border rounded-md p-4 text-center h-full flex flex-col items-center justify-between transition-shadow duration-300 hover:shadow-xl group">
-                        <div className="relative w-full h-40 mb-4">
-                        <Image
-                            src={category.imageUrl}
-                            alt={category.name}
-                            fill
-                            className="object-contain group-hover:scale-105 transition-transform duration-300"
-                            data-ai-hint={category.name.toLowerCase()}
-                        />
+            <div className="flex space-x-4 overflow-x-auto pb-4 -ml-4 pl-4">
+                {displayCategories.map((category, index) => (
+                    <Link href={`/category/${category.id}`} key={index} className="flex-shrink-0">
+                        <div className={cn("w-48 h-24 rounded-lg p-4 flex justify-between items-center", category.bgColor)}>
+                            <div className={cn("font-semibold", category.textColor)}>
+                                <h3 className="text-base">{category.name}</h3>
+                                <p className="text-xs">{category.discount}</p>
+                            </div>
+                            <category.Icon className={cn("h-12 w-12", category.textColor)} />
                         </div>
-                        <div className="flex-grow flex flex-col items-center justify-center">
-                            <h3 className="text-lg font-semibold">{category.name}</h3>
-                            <p className="text-sm text-muted-foreground mt-1">Upto 45% Off</p>
-                        </div>
-                        <Button variant="outline" className="mt-4 w-full sm:w-4/5">Shop Now</Button>
-                    </div>
-                </Link>
-            ))}
+                    </Link>
+                ))}
             </div>
         )}
       </section>
 
       <section id="products">
          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-3xl font-bold tracking-tight font-headline">
-                Featured Products
+            <h2 className="text-2xl font-bold tracking-tight font-headline">
+                Buy again
             </h2>
+            <Button variant="ghost" asChild>
+                <Link href="/products" className="text-sm font-medium">
+                    See more <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
+            </Button>
         </div>
         {isLoading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {[...Array(8)].map((_, i) => <Skeleton key={i} className="h-96 w-full" />)}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+            {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}
           </div>
         ) : (
           <>
             {products.length > 0 ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {products.slice(0, 8).map((product) => (
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+                {products.slice(0, 10).map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>
