@@ -1,10 +1,11 @@
+
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, QueryDocumentSnapshot, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc } from 'firebase/firestore';
 import type { Product, Category, Order } from './types';
 
 // == Helper Functions ==
-function docToProduct(doc: QueryDocumentSnapshot<DocumentData>): Product {
-    const data = doc.data();
+function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
+    const data = doc.data()!;
     return {
         id: doc.id,
         name: data.name,
@@ -17,8 +18,8 @@ function docToProduct(doc: QueryDocumentSnapshot<DocumentData>): Product {
     };
 }
 
-function docToCategory(doc: QueryDocumentSnapshot<DocumentData>): Category {
-    const data = doc.data();
+function docToCategory(doc: DocumentSnapshot<DocumentData>): Category {
+    const data = doc.data()!;
     return {
         id: doc.id,
         name: data.name,
@@ -27,8 +28,8 @@ function docToCategory(doc: QueryDocumentSnapshot<DocumentData>): Category {
     };
 }
 
-function docToOrder(doc: QueryDocumentSnapshot<DocumentData>): Order {
-    const data = doc.data();
+function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
+    const data = doc.data()!;
     return {
         id: doc.id,
         userId: data.userId,
@@ -67,6 +68,22 @@ export async function getProducts(options: { limit?: number } = {}): Promise<Pro
     console.error("Error fetching products:", error);
     return [];
   }
+}
+
+export async function getProductById(id: string): Promise<Product | null> {
+    try {
+        const productRef = doc(db, 'products', id);
+        const docSnap = await getDoc(productRef);
+        if (docSnap.exists()) {
+            return docToProduct(docSnap);
+        } else {
+            console.warn(`No product found with id: ${id}`);
+            return null;
+        }
+    } catch (error) {
+        console.error("Error fetching product:", error);
+        return null;
+    }
 }
 
 export async function getOrders(options: { limit?: number } = {}): Promise<Order[]> {
