@@ -1,6 +1,7 @@
+
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { getProducts, getCategories } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
@@ -34,13 +35,24 @@ export default function Home() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  
   const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isResultsVisible, setIsResultsVisible] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/products?q=${searchQuery.trim()}`);
+      setIsResultsVisible(false);
     }
+  };
+
+  const handleResultClick = () => {
+    setSearchQuery('');
+    setIsResultsVisible(false);
   };
 
   useEffect(() => {
@@ -56,6 +68,36 @@ export default function Home() {
     };
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      setIsResultsVisible(false);
+      return;
+    }
+
+    const filtered = products
+      .filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .slice(0, 5); 
+
+    setSearchResults(filtered);
+    setIsResultsVisible(filtered.length > 0);
+  }, [searchQuery, products]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsResultsVisible(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
 
   const featuredCategories = categories.slice(0, 4);
 
@@ -82,18 +124,39 @@ export default function Home() {
                 Quality ingredients, unbeatable prices. Your one-stop shop for all things fresh.
               </p>
               
-              <form onSubmit={handleSearchSubmit} className="relative mt-6 md:hidden">
-                <Input 
-                  placeholder="Search products..." 
-                  className="h-12 pr-12 text-base"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-                <Button type="submit" size="icon" className="absolute right-1 top-1 h-10 w-10">
-                  <Search className="h-5 w-5" />
-                  <span className="sr-only">Search</span>
-                </Button>
-              </form>
+              <div ref={searchContainerRef} className="relative mt-6 md:hidden">
+                <form onSubmit={handleSearchSubmit} className="relative">
+                  <Input 
+                    placeholder="Search products..." 
+                    className="h-12 pr-12 text-base"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                  <Button type="submit" size="icon" className="absolute right-1 top-1 h-10 w-10">
+                    <Search className="h-5 w-5" />
+                    <span className="sr-only">Search</span>
+                  </Button>
+                </form>
+                {isResultsVisible && (
+                  <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-50">
+                      <ul className="py-1">
+                      {searchResults.map(product => (
+                          <li key={product.id}>
+                          <Link 
+                              href={`/product/${product.id}`} 
+                              className="flex items-center gap-3 px-3 py-2 hover:bg-accent"
+                              onClick={handleResultClick}
+                          >
+                              <Image src={product.imageUrl} alt={product.name} width={32} height={32} className="rounded-sm object-cover" data-ai-hint={product.category.replace(/-/g, ' ')} />
+                              <span className="text-sm font-medium">{product.name}</span>
+                          </Link>
+                          </li>
+                      ))}
+                      </ul>
+                  </div>
+                )}
+              </div>
+
 
               <Button asChild size="lg" className="mt-6 hidden md:inline-flex">
                 <Link href="/products">Shop Now</Link>
