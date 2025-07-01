@@ -21,7 +21,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
-import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types";
@@ -131,29 +139,14 @@ export function ShopHeader() {
           
           <div ref={searchContainerRef} className="flex-1 hidden md:flex justify-center px-4">
             <form onSubmit={handleSearchSubmit} className="relative w-full max-w-lg">
-                <div className="w-full flex items-center gap-2">
-                    <div className="relative w-full">
-                        <Input 
-                            placeholder="Search products..." 
-                            className="pr-10"
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        {searchQuery && (
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
-                            onClick={() => setSearchQuery('')}
-                        >
-                            <X className="h-4 w-4" />
-                        </Button>
-                        )}
-                    </div>
-                    <Button type="submit" size="icon">
-                        <Search className="h-5 w-5" />
-                    </Button>
+                <div className="relative w-full">
+                    <Input 
+                        placeholder="Search products..." 
+                        className="pr-10"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
                 </div>
                 {isResultsVisible && (
                 <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-50">
@@ -262,6 +255,12 @@ export function ShopHeader() {
                   </Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[280px]">
+                  <SheetHeader className="sr-only">
+                    <SheetTitle>Navigation Menu</SheetTitle>
+                    <SheetDescription>
+                      Links to navigate the GrocerEase store.
+                    </SheetDescription>
+                  </SheetHeader>
                   <Link href="/" className="flex items-center space-x-2 mb-6">
                     <Leaf className="h-6 w-6 text-primary" />
                     <span className="font-bold">GrocerEase</span>
