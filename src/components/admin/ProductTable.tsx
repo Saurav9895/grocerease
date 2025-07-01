@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import type { Product } from "@/lib/types";
+import type { Product, Category } from "@/lib/types";
 import { ProductForm } from "./ProductForm";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
@@ -40,13 +40,16 @@ import { deleteDoc, doc } from "firebase/firestore";
 
 interface ProductTableProps {
   products: Product[];
+  categories: Category[];
   onDataChanged: () => void;
 }
 
-export function ProductTable({ products, onDataChanged }: ProductTableProps) {
+export function ProductTable({ products, categories, onDataChanged }: ProductTableProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();
+
+  const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
   const handleEdit = (product: Product) => {
     setSelectedProduct(product);
@@ -108,7 +111,7 @@ export function ProductTable({ products, onDataChanged }: ProductTableProps) {
                     <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
-                  <TableCell><Badge variant="outline">{product.category}</Badge></TableCell>
+                  <TableCell><Badge variant="outline">{categoryMap.get(product.category) || product.category}</Badge></TableCell>
                   <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">{product.stock}</TableCell>
                   <TableCell>

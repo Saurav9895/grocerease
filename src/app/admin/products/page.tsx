@@ -2,26 +2,31 @@
 
 import { useEffect, useState } from "react";
 import { ProductTable } from "@/components/admin/ProductTable";
-import { getProducts } from "@/lib/data";
+import { getProducts, getCategories } from "@/lib/data";
 import { useAuth } from "@/context/AuthProvider";
-import type { Product } from "@/lib/types";
+import type { Product, Category } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminProductsPage() {
   const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const fetchProducts = async () => {
+  const fetchData = async () => {
     setIsLoading(true);
-    const allProducts = await getProducts();
+    const [allProducts, allCategories] = await Promise.all([
+      getProducts(),
+      getCategories(),
+    ]);
     setProducts(allProducts);
+    setCategories(allCategories);
     setIsLoading(false);
   };
 
   useEffect(() => {
     if (user) {
-      fetchProducts();
+      fetchData();
     }
   }, [user]);
 
@@ -39,7 +44,11 @@ export default function AdminProductsPage() {
             </div>
         </div>
       ) : (
-        <ProductTable products={products} onDataChanged={fetchProducts} />
+        <ProductTable 
+          products={products} 
+          categories={categories} 
+          onDataChanged={fetchData} 
+        />
       )}
     </div>
   );
