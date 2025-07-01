@@ -162,7 +162,7 @@ export function ShopHeader() {
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </DropdownMenuItem>
-                      {profile?.adminRole && (
+                      {profile?.isAdmin && (
                         <DropdownMenuItem onClick={() => router.push('/admin')}>
                             <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Admin Dashboard</span>

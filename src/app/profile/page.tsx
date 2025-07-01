@@ -10,12 +10,9 @@ import { useRouter } from "next/navigation";
 import { List, LogOut, Settings, Phone, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddressManager } from "@/components/shop/AddressManager";
-import { AdminManager } from "@/components/admin/AdminManager";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useEffect, useState } from "react";
-import type { UserProfile } from "@/lib/types";
-import { getUserProfile } from "@/lib/data";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -95,10 +92,10 @@ function ProfilePageContent() {
                                 </Avatar>
                                 <CardTitle className="flex items-center gap-2">
                                     {profile?.name || "Valued Customer"}
-                                    {profile?.adminRole && (
+                                    {profile?.isAdmin && (
                                       <Badge variant="destructive" className="flex items-center gap-1">
                                         <ShieldCheck className="h-3 w-3" />
-                                        {profile.adminRole === 'main' ? 'Main Admin' : 'Admin'}
+                                        Admin
                                       </Badge>
                                     )}
                                 </CardTitle>
@@ -156,7 +153,6 @@ function ProfilePageContent() {
                         </CardContent>
                     </Card>
                     <AddressManager />
-                    {profile?.adminRole === 'main' && <AdminManager />}
                 </div>
             </div>
         </div>

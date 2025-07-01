@@ -97,7 +97,7 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           {profile?.adminRole === 'main' && (
+           {profile?.isAdmin && (
              <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -137,7 +137,7 @@ export function AdminSidebar() {
             </Avatar>
             <div className="flex flex-col truncate">
                 <span className="text-sm font-semibold truncate">{profile?.name || user.email}</span>
-                <span className="text-xs text-muted-foreground capitalize">{profile?.adminRole} Administrator</span>
+                <span className="text-xs text-muted-foreground capitalize">Administrator</span>
             </div>
           </div>
         )}

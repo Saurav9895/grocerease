@@ -80,7 +80,7 @@ function docToUserProfile(doc: DocumentSnapshot<DocumentData>): UserProfile {
         name: data.name || '',
         email: data.email || '',
         phone: data.phone || '',
-        adminRole: data.adminRole || null,
+        isAdmin: data.isAdmin || false,
     };
 }
 
@@ -207,7 +207,7 @@ export async function createUserInFirestore(userId: string, name: string, email:
       name: name,
       email: email,
       phone: phone,
-      adminRole: email.toLowerCase() === 'admin@gmail.com' ? 'main' : null,
+      isAdmin: email.toLowerCase() === 'admin@gmail.com',
     }, { merge: true });
   } catch (error) {
     console.error("Error creating user in Firestore:", error);
@@ -436,45 +436,4 @@ export async function hasUserUsedPromo(userId: string, promoCode: string): Promi
     // Fail safe: if there's an error, assume they haven't used it to not block a valid user.
     return false;
   }
-}
-
-// == Admin Management Functions ==
-
-export async function findUserByEmail(email: string): Promise<UserProfile | null> {
-    if (!email) return null;
-    try {
-        const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('email', '==', email), limit(1));
-        const snapshot = await getDocs(q);
-        if (snapshot.empty) {
-            return null;
-        }
-        return docToUserProfile(snapshot.docs[0]);
-    } catch (error) {
-        console.error("Error finding user by email:", error);
-        return null;
-    }
-}
-
-export async function updateUserAdminRole(userId: string, role: 'standard' | null): Promise<void> {
-    if (!userId) throw new Error("User ID is required.");
-    try {
-        const userDocRef = doc(db, 'users', userId);
-        await updateDoc(userDocRef, { adminRole: role });
-    } catch (error) {
-        console.error("Error updating admin role:", error);
-        throw error;
-    }
-}
-
-export async function getAdminUsers(): Promise<UserProfile[]> {
-    try {
-        const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('adminRole', 'in', ['main', 'standard']));
-        const snapshot = await getDocs(q);
-        return snapshot.docs.map(docToUserProfile);
-    } catch (error) {
-        console.error("Error fetching admin users:", error);
-        return [];
-    }
 }
