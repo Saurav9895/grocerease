@@ -2,30 +2,29 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // --- Products & Categories: Public Read, Admin Write ---
-    match /products/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    match /categories/{document=**} {
-      allow read: if true;
+    // Products can be read by anyone, but only created/updated/deleted by authenticated users.
+    match /products/{productId} {
+      allow read;
       allow write: if request.auth != null;
     }
 
-    // --- Orders ---
+    // Categories can be read by anyone, but only created/updated/deleted by authenticated users.
+    match /categories/{categoryId} {
+      allow read;
+      allow write: if request.auth != null;
+    }
+
+    // Orders can be created by authenticated users for themselves.
+    // Users can read their own orders (enforced by the query in getUserOrders).
+    // Admins (any authenticated user) can read all orders.
     match /orders/{orderId} {
-      // Users can create their own order.
-      allow create: if request.auth != null;
-
-      // Users can get their own orders, Admins can get any order.
-      allow get: if request.auth != null && (request.auth.uid == resource.data.userId || request.auth != null);
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      // Allow any authenticated user to read orders. This is necessary for the admin panel.
+      // User-specific orders are filtered in the application code.
+      allow read: if request.auth != null;
       
-      // Admins can list all orders for the dashboard.
-      allow list: if request.auth != null;
-
-      // Admins can update/delete orders.
-      allow update, delete: if request.auth != null;
+      // For now, disallow updates and deletes from the client.
+      allow update, delete: if false;
     }
   }
 }
