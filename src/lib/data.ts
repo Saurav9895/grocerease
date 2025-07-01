@@ -186,6 +186,20 @@ export async function getUserOrders(userId: string): Promise<Order[]> {
   }
 }
 
+export async function createUserInFirestore(userId: string, name: string, email: string): Promise<void> {
+  if (!userId) throw new Error("User ID is required to create user in Firestore.");
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(userDocRef, { 
+      name: name,
+      email: email
+    }, { merge: true });
+  } catch (error) {
+    console.error("Error creating user in Firestore:", error);
+    throw error;
+  }
+}
+
 export async function getUserAddresses(userId: string): Promise<Address[]> {
   if (!userId) return [];
   try {

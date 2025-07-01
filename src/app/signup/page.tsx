@@ -1,9 +1,10 @@
+
 "use client";
 
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
+import { createUserInFirestore } from "@/lib/data";
 
 export default function SignUpPage() {
   const [email, setEmail] = useState("");
@@ -30,14 +32,24 @@ export default function SignUpPage() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      await createUserWithEmailAndPassword(auth, email, password);
-      // In a real app, you would also save the user's full name to Firestore here.
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      
+      // Update Firebase Auth profile
+      await updateProfile(user, {
+        displayName: fullName,
+      });
+
+      // Save user details to Firestore
+      await createUserInFirestore(user.uid, fullName, email);
+
       toast({
         title: "Account created successfully!",
         description: "You've been signed in. Redirecting...",
       });
       router.push("/");
-    } catch (error: any) {
+    } catch (error: any)
+    {
       console.error(error);
       toast({
         variant: "destructive",
