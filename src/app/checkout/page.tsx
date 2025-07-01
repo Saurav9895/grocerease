@@ -13,11 +13,12 @@ import { useEffect, useState } from "react";
 import { getDeliverySettings } from "@/lib/data";
 import type { DeliverySettings } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 
 function CheckoutView() {
   const { cartItems, cartTotal } = useCart();
   const router = useRouter();
-  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings>({ fee: 0 });
+  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings>({ fee: 0, freeDeliveryThreshold: 0 });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -47,14 +48,16 @@ function CheckoutView() {
     );
   }
   
-  const finalTotal = cartTotal + deliverySettings.fee;
+  const threshold = deliverySettings.freeDeliveryThreshold;
+  const appliedDeliveryFee = threshold > 0 && cartTotal >= threshold ? 0 : deliverySettings.fee;
+  const finalTotal = cartTotal + appliedDeliveryFee;
 
   return (
     <div className="container py-12">
       <h1 className="text-3xl font-bold text-center mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
         <div>
-          <CheckoutForm deliveryFee={deliverySettings.fee} />
+          <CheckoutForm deliveryFee={appliedDeliveryFee} />
         </div>
         <div className="order-first lg:order-last">
           <Card>
@@ -87,8 +90,13 @@ function CheckoutView() {
               </div>
               <div className="flex justify-between text-muted-foreground">
                 <p>Delivery Fee</p>
-                {isLoading ? <Skeleton className="h-5 w-12" /> : <p>${deliverySettings.fee.toFixed(2)}</p>}
+                {isLoading ? <Skeleton className="h-5 w-12" /> : <p>${appliedDeliveryFee.toFixed(2)}</p>}
               </div>
+               {appliedDeliveryFee === 0 && deliverySettings.fee > 0 && (
+                <div className="flex justify-end">
+                    <Badge variant="secondary" className="bg-green-100 text-green-800">Free delivery applied!</Badge>
+                </div>
+              )}
               <Separator />
               <div className="flex justify-between font-semibold text-lg">
                 <p>Total</p>

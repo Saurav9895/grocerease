@@ -289,16 +289,21 @@ export async function addReviewAndUpdateProduct(
 }
 
 export async function getDeliverySettings(): Promise<DeliverySettings> {
+  const defaultSettings = { fee: 0, freeDeliveryThreshold: 0 };
   try {
     const settingsRef = doc(db, 'settings', 'delivery');
     const docSnap = await getDoc(settingsRef);
     if (docSnap.exists()) {
-        return docSnap.data() as DeliverySettings;
+        const data = docSnap.data();
+        return {
+          fee: data.fee || 0,
+          freeDeliveryThreshold: data.freeDeliveryThreshold || 0,
+        };
     }
-    return { fee: 0 }; // Default fee
+    return defaultSettings;
   } catch (error) {
     console.error("Error fetching delivery settings:", error);
-    return { fee: 0 };
+    return defaultSettings;
   }
 }
 

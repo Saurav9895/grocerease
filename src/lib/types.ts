@@ -61,4 +61,5 @@ export interface Review {
 
 export interface DeliverySettings {
   fee: number;
+  freeDeliveryThreshold: number;
 }

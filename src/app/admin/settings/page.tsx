@@ -20,6 +20,7 @@ import { Input } from "@/components/ui/input";
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -30,6 +31,7 @@ import type { DeliverySettings } from "@/lib/types";
 
 const settingsSchema = z.object({
   fee: z.coerce.number().min(0, "Delivery fee must be a positive number."),
+  freeDeliveryThreshold: z.coerce.number().min(0, "Threshold must be a positive number."),
 });
 
 export default function AdminSettingsPage() {
@@ -40,6 +42,7 @@ export default function AdminSettingsPage() {
     resolver: zodResolver(settingsSchema),
     defaultValues: {
       fee: 0,
+      freeDeliveryThreshold: 0,
     },
   });
 
@@ -47,7 +50,10 @@ export default function AdminSettingsPage() {
     const fetchSettings = async () => {
       setIsLoading(true);
       const settings = await getDeliverySettings();
-      form.reset({ fee: settings.fee });
+      form.reset({ 
+        fee: settings.fee,
+        freeDeliveryThreshold: settings.freeDeliveryThreshold
+      });
       setIsLoading(false);
     };
     fetchSettings();
@@ -58,7 +64,7 @@ export default function AdminSettingsPage() {
       await updateDeliverySettings(values);
       toast({
         title: "Settings Updated",
-        description: "Delivery fee has been successfully updated.",
+        description: "Delivery settings have been successfully updated.",
       });
     } catch (error) {
       console.error("Error updating settings:", error);
@@ -77,7 +83,7 @@ export default function AdminSettingsPage() {
         <CardHeader>
           <CardTitle>Delivery Settings</CardTitle>
           <CardDescription>
-            Set the delivery fee for all orders.
+            Manage delivery fees and promotions for your store.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -91,21 +97,39 @@ export default function AdminSettingsPage() {
             <Form {...form}>
               <form
                 onSubmit={form.handleSubmit(onSubmit)}
-                className="space-y-4"
+                className="space-y-8"
               >
-                <FormField
-                  control={form.control}
-                  name="fee"
-                  render={({ field }) => (
-                    <FormItem className="max-w-sm">
-                      <FormLabel>Delivery Fee ($)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="0.01" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid md:grid-cols-2 gap-8">
+                  <FormField
+                    control={form.control}
+                    name="fee"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Standard Delivery Fee ($)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="freeDeliveryThreshold"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Free Delivery Threshold ($)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Minimum order total to qualify for free delivery. Set to 0 to disable.
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
                 <Button type="submit" disabled={form.formState.isSubmitting}>
                   {form.formState.isSubmitting ? "Saving..." : "Save Settings"}
                 </Button>
