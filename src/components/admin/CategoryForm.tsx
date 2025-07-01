@@ -92,44 +92,56 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
       {isEditing && <input type="hidden" name="id" value={category.id} />}
-      <div className="space-y-2">
-        <Label htmlFor="name">Category Name</Label>
-        <Input id="name" name="name" defaultValue={category?.name} required />
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
-        <Textarea id="description" name="description" defaultValue={category?.description} placeholder="Optional description..." />
-      </div>
-       <div className="space-y-2">
-        <Label htmlFor="imageUrl">Image URL</Label>
-        <Input 
-          id="imageUrl" 
-          name="imageUrl" 
-          value={imageUrl}
-          onChange={(e) => setImageUrl(e.target.value)}
-          required 
-        />
-      </div>
-      {isPreviewable(imageUrl) && (
+      
+      {/* Left Column */}
+      <div className="space-y-4">
         <div className="space-y-2">
-            <Label>Image Preview</Label>
-            <div className="relative h-24 w-24 rounded-md overflow-hidden border bg-muted">
-                <Image
-                    src={imageUrl}
-                    alt="Category preview"
-                    fill
-                    className="object-cover"
-                    onError={() => setImageUrl('https://placehold.co/100x100.png')}
-                    data-ai-hint="category image"
-                />
-            </div>
+          <Label htmlFor="name">Category Name</Label>
+          <Input id="name" name="name" defaultValue={category?.name} required />
         </div>
-      )}
-      <Button type="submit" disabled={isLoading}>
-        {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Category' : 'Add Category')}
-      </Button>
+        <div className="space-y-2">
+          <Label htmlFor="description">Description</Label>
+          <Textarea id="description" name="description" defaultValue={category?.description} placeholder="Optional description..." rows={5} />
+        </div>
+      </div>
+
+      {/* Right Column */}
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label htmlFor="imageUrl">Image URL</Label>
+          <Input 
+            id="imageUrl" 
+            name="imageUrl" 
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            required 
+          />
+        </div>
+        {isPreviewable(imageUrl) && (
+          <div className="space-y-2">
+              <Label>Image Preview</Label>
+              <div className="relative aspect-square w-full rounded-md overflow-hidden border bg-muted">
+                  <Image
+                      src={imageUrl}
+                      alt="Category preview"
+                      fill
+                      className="object-cover"
+                      onError={() => setImageUrl('https://placehold.co/100x100.png')}
+                      data-ai-hint="category image"
+                  />
+              </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Footer */}
+      <div className="md:col-span-2">
+        <Button type="submit" disabled={isLoading}>
+          {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Category' : 'Add Category')}
+        </Button>
+      </div>
     </form>
   );
 }
