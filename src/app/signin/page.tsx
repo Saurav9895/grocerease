@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -37,10 +38,16 @@ export default function SignInPage() {
       router.push("/");
     } catch (error: any) {
       console.error(error);
+      let description = "An unexpected error occurred. Please try again.";
+      if (error.code === 'auth/invalid-credential') {
+        description = "Invalid email or password. Please try again.";
+      } else {
+        description = error.message;
+      }
       toast({
         variant: "destructive",
         title: "Sign in failed",
-        description: error.message,
+        description: description,
       });
     } finally {
       setIsLoading(false);
