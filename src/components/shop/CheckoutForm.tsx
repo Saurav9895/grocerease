@@ -3,7 +3,7 @@
 
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -144,14 +144,14 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
   };
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Shipping & Payment</CardTitle>
+          <CardTitle>Shipping Address</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="address-select">Shipping Address</Label>
+            <Label htmlFor="address-select">Saved Addresses</Label>
             {isLoadingAddresses ? (
               <Skeleton className="h-10 w-full" />
             ) : (
@@ -210,26 +210,30 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
               <Label htmlFor="saveAddress" className="cursor-pointer">Save this address for future purchases</Label>
             </div>
           )}
-          <div className="space-y-2 pt-4">
-            <Label>Payment Method</Label>
-            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod}>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="COD" id="cod" />
-                <Label htmlFor="cod">Cash on Delivery (COD)</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="Online" id="online" disabled />
-                <Label htmlFor="online">Online Payment (Coming Soon)</Label>
-              </div>
-            </RadioGroup>
-          </div>
         </CardContent>
-        <CardFooter>
-          <Button type="submit" className="w-full" disabled={isLoading || isLoadingAddresses}>
-            {isLoading ? "Placing Order..." : "Place Order"}
-          </Button>
-        </CardFooter>
       </Card>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Payment Method</CardTitle>
+        </CardHeader>
+        <CardContent>
+            <RadioGroup value={paymentMethod} onValueChange={setPaymentMethod} className="space-y-2">
+              <Label className="flex items-center gap-2 p-4 border rounded-md has-[:checked]:bg-muted has-[:checked]:border-primary cursor-pointer">
+                <RadioGroupItem value="COD" id="cod" />
+                <span>Cash on Delivery (COD)</span>
+              </Label>
+              <Label className="flex items-center gap-2 p-4 border rounded-md has-[:checked]:bg-muted has-[:checked]:border-primary cursor-pointer has-[:disabled]:opacity-50 has-[:disabled]:cursor-not-allowed">
+                <RadioGroupItem value="Online" id="online" disabled />
+                <span>Online Payment (Coming Soon)</span>
+              </Label>
+            </RadioGroup>
+        </CardContent>
+      </Card>
+
+      <Button type="submit" size="lg" className="w-full" disabled={isLoading || isLoadingAddresses}>
+        {isLoading ? "Placing Order..." : "Place Order"}
+      </Button>
     </form>
   );
 }
