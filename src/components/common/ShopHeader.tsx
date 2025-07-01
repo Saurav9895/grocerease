@@ -104,6 +104,9 @@ export function ShopHeader() {
   const handleResultClick = () => {
     setSearchQuery('');
     setIsResultsVisible(false);
+    if (isMobileMenuOpen) {
+      setIsMobileMenuOpen(false);
+    }
   };
 
   const navLinks = [
@@ -146,7 +149,9 @@ export function ShopHeader() {
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                     />
-                    <Search className="absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <button type="submit" className="absolute right-0 top-0 h-full px-3 text-muted-foreground">
+                      <Search className="h-5 w-5" />
+                    </button>
                 </div>
                 {isResultsVisible && (
                 <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-50">
@@ -254,34 +259,71 @@ export function ShopHeader() {
                     <span className="sr-only">Open menu</span>
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[280px]">
-                  <SheetHeader className="sr-only">
-                    <SheetTitle>Navigation Menu</SheetTitle>
-                    <SheetDescription>
+                <SheetContent side="left" className="w-[280px] p-0">
+                   <SheetHeader>
+                    <SheetTitle className="p-6 pb-0">Navigation Menu</SheetTitle>
+                    <SheetDescription className="sr-only">
                       Links to navigate the GrocerEase store.
                     </SheetDescription>
                   </SheetHeader>
-                  <Link href="/" className="flex items-center space-x-2 mb-6">
-                    <Leaf className="h-6 w-6 text-primary" />
-                    <span className="font-bold">GrocerEase</span>
-                  </Link>
-                   <nav className="flex flex-col space-y-2">
-                    {navLinks.map((link) => (
-                      (!link.auth || user) && (
-                        <SheetClose asChild key={link.href}>
-                           <Link
-                            href={link.href}
-                            className={cn(
-                              "text-muted-foreground transition-colors hover:text-foreground py-2 text-base",
-                               pathname === link.href && "text-foreground font-semibold"
+                  <div className="p-6">
+                    <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2 mb-6">
+                        <Leaf className="h-6 w-6 text-primary" />
+                        <span className="font-bold">GrocerEase</span>
+                    </Link>
+
+                    <div className="mb-4">
+                        <form onSubmit={handleSearchSubmit} className="relative w-full">
+                            <div className="relative w-full">
+                                <Input 
+                                    placeholder="Search products..." 
+                                    className="pr-10"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                                <button type="submit" className="absolute right-0 top-0 h-full px-3 text-muted-foreground">
+                                  <Search className="h-5 w-5" />
+                                </button>
+                            </div>
+                            {isResultsVisible && (
+                            <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-[51]">
+                                <ul className="py-1">
+                                {searchResults.map(product => (
+                                    <li key={product.id}>
+                                    <Link 
+                                        href={`/product/${product.id}`} 
+                                        className="flex items-center gap-3 px-3 py-2 hover:bg-accent"
+                                        onClick={handleResultClick}
+                                    >
+                                        <Image src={product.imageUrl} alt={product.name} width={32} height={32} className="rounded-sm object-cover" data-ai-hint={`${product.category.replace(/-/g, ' ')}`} />
+                                        <span className="text-sm font-medium">{product.name}</span>
+                                    </Link>
+                                    </li>
+                                ))}
+                                </ul>
+                            </div>
                             )}
-                          >
-                            {link.label}
-                          </Link>
-                        </SheetClose>
-                      )
-                    ))}
-                  </nav>
+                        </form>
+                    </div>
+
+                    <nav className="flex flex-col space-y-2">
+                        {navLinks.map((link) => (
+                        (!link.auth || user) && (
+                            <SheetClose asChild key={link.href}>
+                            <Link
+                                href={link.href}
+                                className={cn(
+                                "text-muted-foreground transition-colors hover:text-foreground py-2 text-base",
+                                pathname === link.href && "text-foreground font-semibold"
+                                )}
+                            >
+                                {link.label}
+                            </Link>
+                            </SheetClose>
+                        )
+                        ))}
+                    </nav>
+                  </div>
                 </SheetContent>
               </Sheet>
             </div>
