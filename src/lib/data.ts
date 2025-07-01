@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address } from './types';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
+import type { Product, Category, Order, Address, Review } from './types';
 
 // == Helper Functions ==
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
@@ -15,8 +15,8 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         category: data.category,
         stock: data.stock,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
-        rating: data.rating || 4.5,
-        reviewCount: data.reviewCount || Math.floor(Math.random() * 150) + 1,
+        rating: data.rating || 0,
+        reviewCount: data.reviewCount || 0,
     };
 }
 
@@ -41,6 +41,19 @@ function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
         total: data.total,
         paymentMethod: data.paymentMethod,
         status: data.status,
+        createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+    };
+}
+
+function docToReview(doc: DocumentSnapshot<DocumentData>): Review {
+    const data = doc.data()!;
+    return {
+        id: doc.id,
+        userId: data.userId,
+        userName: data.userName,
+        userAvatarUrl: data.userAvatarUrl,
+        rating: data.rating,
+        comment: data.comment,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
     };
 }
@@ -218,5 +231,53 @@ export async function deleteUserAddress(userId: string, addressId: string) {
   } catch (error) {
     console.error("Error deleting user address:", error);
     throw error;
+  }
+}
+
+export async function getReviewsForProduct(productId: string): Promise<Review[]> {
+  if (!productId) return [];
+  try {
+    const reviewsCol = collection(db, 'products', productId, 'reviews');
+    const q = query(reviewsCol, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToReview);
+  } catch (error) {
+    console.error(`Error fetching reviews for product ${productId}:`, error);
+    return [];
+  }
+}
+
+export async function addReviewAndUpdateProduct(
+  productId: string,
+  review: Omit<Review, 'id' | 'createdAt'>
+): Promise<void> {
+  const productRef = doc(db, 'products', productId);
+  const reviewColRef = collection(db, 'products', productId, 'reviews');
+  const newReviewRef = doc(reviewColRef);
+
+  try {
+    await runTransaction(db, async (transaction) => {
+      const productDoc = await transaction.get(productRef);
+      if (!productDoc.exists()) {
+        throw "Product does not exist!";
+      }
+
+      transaction.set(newReviewRef, { ...review, createdAt: serverTimestamp() });
+
+      const productData = productDoc.data();
+      const currentRating = productData.rating || 0;
+      const currentReviewCount = productData.reviewCount || 0;
+
+      const newReviewCount = currentReviewCount + 1;
+      const newRating = (currentRating * currentReviewCount + review.rating) / newReviewCount;
+
+      transaction.update(productRef, {
+        rating: newRating,
+        reviewCount: newReviewCount,
+      });
+    });
+  } catch (error) {
+    console.error("Transaction failed: ", error);
+    throw new Error("Failed to submit review.");
   }
 }

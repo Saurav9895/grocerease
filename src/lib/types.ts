@@ -1,3 +1,4 @@
+
 export interface Product {
   id: string;
   name: string;
@@ -42,5 +43,15 @@ export interface Order {
   total: number;
   paymentMethod: 'COD' | 'Online';
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
+  createdAt: Date;
+}
+
+export interface Review {
+  id: string;
+  userId: string;
+  userName: string;
+  userAvatarUrl?: string;
+  rating: number;
+  comment: string;
   createdAt: Date;
 }

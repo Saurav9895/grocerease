@@ -4,8 +4,8 @@
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getProductById, getCategories, getProductsByCategory } from '@/lib/data';
-import type { Product, Category } from '@/lib/types';
+import { getProductById, getCategories, getProductsByCategory, getReviewsForProduct } from '@/lib/data';
+import type { Product, Category, Review } from '@/lib/types';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,10 @@ import { ArrowLeft, ShoppingCart, Star, StarHalf } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Separator } from '@/components/ui/separator';
+import { useAuth } from '@/context/AuthProvider';
+import { ReviewList } from '@/components/shop/ReviewList';
+import { ReviewForm } from '@/components/shop/ReviewForm';
+
 
 const renderStars = (rating: number) => {
     const fullStars = Math.floor(rating);
@@ -39,35 +43,53 @@ export default function ProductDetailPage() {
   const { id } = params;
   const { addToCart } = useCart();
   const { toast } = useToast();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState<Product | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [reviews, setReviews] = useState<Review[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
-  const [isLoadingRelated, setIsLoadingRelated] = useState(true);
 
+  const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingRelated, setIsLoadingRelated] = useState(true);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(true);
+
+  const fetchData = async (productId: string) => {
+    setIsLoading(true);
+    setIsLoadingRelated(true);
+    setIsLoadingReviews(true);
+
+    const [fetchedProduct, fetchedCategories, fetchedReviews] = await Promise.all([
+        getProductById(productId),
+        getCategories(),
+        getReviewsForProduct(productId)
+    ]);
+
+    setProduct(fetchedProduct);
+    setCategories(fetchedCategories);
+    setReviews(fetchedReviews);
+    setIsLoading(false);
+    setIsLoadingReviews(false);
+
+    if (fetchedProduct) {
+        const related = await getProductsByCategory(fetchedProduct.category);
+        setRelatedProducts(related.filter(p => p.id !== fetchedProduct.id).slice(0, 4));
+    }
+    setIsLoadingRelated(false);
+  };
+  
   useEffect(() => {
     if (typeof id === 'string') {
-      const fetchData = async () => {
-        setIsLoading(true);
-        const [fetchedProduct, fetchedCategories] = await Promise.all([
-            getProductById(id),
-            getCategories()
-        ]);
-        setProduct(fetchedProduct);
-        setCategories(fetchedCategories);
-        setIsLoading(false);
-
-        if (fetchedProduct) {
-            setIsLoadingRelated(true);
-            const related = await getProductsByCategory(fetchedProduct.category);
-            setRelatedProducts(related.filter(p => p.id !== fetchedProduct.id).slice(0, 4));
-            setIsLoadingRelated(false);
-        }
-      };
-      fetchData();
+      fetchData(id);
     }
   }, [id]);
+
+  const handleReviewSubmitted = () => {
+    // Refetch reviews and product data to show the new review and updated average rating
+    if (typeof id === 'string') {
+      fetchData(id);
+    }
+  }
 
   const handleAddToCart = () => {
     if (product) {
@@ -135,7 +157,7 @@ export default function ProductDetailPage() {
             <Badge variant="secondary" className="mb-2">{getCategoryName(product.category)}</Badge>
             <h1 className="text-4xl font-bold tracking-tight">{product.name}</h1>
           </div>
-          <div className="flex items-center gap-2 cursor-pointer" title={`${product.rating} out of 5 stars`}>
+          <div className="flex items-center gap-2 cursor-pointer" title={`${product.rating.toFixed(1)} out of 5 stars`}>
             {renderStars(product.rating)}
             <span className="text-muted-foreground text-sm hover:underline">({product.reviewCount} reviews)</span>
           </div>
@@ -159,9 +181,20 @@ export default function ProductDetailPage() {
 
       <div id="reviews" className="space-y-8">
         <h2 className="text-3xl font-bold">Ratings & Reviews</h2>
-        <div className="p-8 text-center bg-card border rounded-lg">
-            <p className="text-muted-foreground">Full review functionality coming soon!</p>
-        </div>
+        {user && (
+            <div className="p-8 bg-card border rounded-lg">
+                <h3 className="text-xl font-semibold mb-4">Leave a Review</h3>
+                <ReviewForm productId={product.id} onReviewSubmitted={handleReviewSubmitted} />
+            </div>
+        )}
+        {isLoadingReviews ? (
+            <div className="space-y-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+            </div>
+        ) : (
+            <ReviewList reviews={reviews} />
+        )}
       </div>
       
       {relatedProducts.length > 0 && (
