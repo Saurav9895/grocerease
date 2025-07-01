@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -10,6 +11,7 @@ import { useState } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -152,15 +154,21 @@ export function ShopHeader() {
                       </div>
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                     <DropdownMenuItem onClick={() => router.push('/orders')} className="md:hidden">
-                         <ShoppingCart className="mr-2 h-4 w-4" />
-                         <span>My Orders</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => router.push("/admin")} className="md:hidden">
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Admin</span>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator className="md:hidden" />
+                    <DropdownMenuGroup>
+                      <DropdownMenuItem onClick={() => router.push('/profile')}>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                       <DropdownMenuItem onClick={() => router.push('/orders')} className="md:hidden">
+                           <ShoppingCart className="mr-2 h-4 w-4" />
+                           <span>My Orders</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push("/admin")} className="md:hidden">
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Admin</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuGroup>
+                    <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleSignOut}>
                       <LogOut className="mr-2 h-4 w-4" />
                       <span>Sign out</span>
