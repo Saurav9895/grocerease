@@ -3,14 +3,22 @@
 import type { Order } from "@/lib/types";
 import { useAuth } from "@/context/AuthProvider";
 import { AuthGuard } from "@/components/common/AuthGuard";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { format } from "date-fns";
-import Image from "next/image";
 import { useEffect, useState } from "react";
 import { getUserOrders } from "@/lib/data";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Eye } from "lucide-react";
 
 function UserOrdersPage() {
     const { user } = useAuth();
@@ -31,77 +39,84 @@ function UserOrdersPage() {
 
     const getStatusVariant = (status: Order['status']) => {
         switch (status) {
-            case 'Pending': return 'default';
-            case 'Processing': return 'secondary';
+            case 'Pending': return 'secondary';
+            case 'Processing': return 'default';
             case 'Shipped': return 'outline';
             case 'Delivered': return 'default';
             case 'Cancelled': return 'destructive';
-            default: return 'default';
+            default: return 'secondary';
         }
     };
 
     if (isLoading) {
         return (
             <div className="container py-12">
-                <h1 className="text-3xl font-bold mb-2">My Orders</h1>
-                <p className="text-muted-foreground mb-8">View your order history and status.</p>
-                <div className="space-y-6">
-                    <Skeleton className="h-48 w-full" />
-                    <Skeleton className="h-48 w-full" />
-                </div>
+                <h1 className="text-3xl font-bold mb-8">Your Orders</h1>
+                <Card>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Order ID</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Total</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {[...Array(3)].map((_, i) => (
+                                <TableRow key={i}>
+                                    <TableCell><Skeleton className="h-5 w-48" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                                    <TableCell><Skeleton className="h-5 w-16" /></TableCell>
+                                    <TableCell><Skeleton className="h-8 w-20 rounded-full" /></TableCell>
+                                    <TableCell className="text-right"><Skeleton className="h-9 w-24 rounded-md" /></TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </Card>
             </div>
         )
     }
 
     return (
         <div className="container py-12">
-            <h1 className="text-3xl font-bold mb-2">My Orders</h1>
-            <p className="text-muted-foreground mb-8">View your order history and status.</p>
+            <h1 className="text-3xl font-bold mb-8">Your Orders</h1>
             {orders.length > 0 ? (
-                <div className="space-y-6">
-                    {orders.map(order => (
-                        <Card key={order.id}>
-                            <CardHeader className="flex flex-col md:flex-row justify-between md:items-start gap-4">
-                                <div>
-                                    <CardTitle>Order #{order.id.substring(0, 7)}...</CardTitle>
-                                    <CardDescription>Placed on {format(order.createdAt, 'PPP')}</CardDescription>
-                                </div>
-                                <Badge variant={getStatusVariant(order.status)} className="w-fit">{order.status}</Badge>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="text-sm">
-                                    <p className="font-medium text-foreground">Shipping to:</p>
-                                    <div className="text-muted-foreground">
-                                      <p>{order.address.name}</p>
-                                      <p>{order.address.street}</p>
-                                      <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
-                                      <p>{order.address.country}</p>
-                                    </div>
-                                </div>
-                                <Separator />
-                                {order.items.map(item => (
-                                    <div key={item.id} className="flex justify-between items-center">
-                                      <div className="flex items-center gap-4">
-                                        <div className="relative h-12 w-12 rounded-md overflow-hidden">
-                                          <Image src={item.imageUrl} alt={item.name} fill className="object-cover" data-ai-hint="product image"/>
-                                        </div>
-                                        <div>
-                                          <p className="font-medium">{item.name}</p>
-                                          <p className="text-sm text-muted-foreground">
-                                            Qty: {item.quantity} x ${item.price.toFixed(2)}
-                                          </p>
-                                        </div>
-                                      </div>
-                                    </div>
-                                ))}
-                            </CardContent>
-                            <Separator />
-                            <CardFooter className="pt-4 flex justify-end font-semibold text-lg">
-                                <p>Total: ${order.total.toFixed(2)}</p>
-                            </CardFooter>
-                        </Card>
-                    ))}
-                </div>
+                <Card>
+                  <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Order ID</TableHead>
+                                <TableHead>Date</TableHead>
+                                <TableHead>Total</TableHead>
+                                <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {orders.map(order => (
+                                <TableRow key={order.id}>
+                                    <TableCell className="font-medium text-primary">{order.id}</TableCell>
+                                    <TableCell>{format(order.createdAt, 'PP')}</TableCell>
+                                    <TableCell>${order.total.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="outline" size="sm">
+                                            <Eye className="mr-2 h-4 w-4" />
+                                            Track
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
             ) : (
                 <Card>
                     <CardContent className="pt-6">
