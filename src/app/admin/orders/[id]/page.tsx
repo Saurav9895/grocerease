@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, CreditCard } from "lucide-react";
+import { ArrowLeft, User, Home, CreditCard, Phone } from "lucide-react";
 import { format } from "date-fns";
 
 type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
@@ -195,6 +195,10 @@ export default function OrderDetailPage() {
                 <div className="flex items-center gap-2">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">{order.customerName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span>{order.address.phone}</span>
                 </div>
                 <div className="flex items-start gap-2">
                     <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />

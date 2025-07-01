@@ -13,7 +13,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home } from "lucide-react";
+import { ArrowLeft, User, Home, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderTracker } from "@/components/shop/OrderTracker";
@@ -160,6 +160,10 @@ function OrderDetailPageContent() {
                 <div className="flex items-center gap-3">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <span className="font-medium">{order.customerName}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                    <Phone className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-muted-foreground">{order.address.phone}</span>
                 </div>
                 <div className="flex items-start gap-3">
                     <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />
