@@ -7,6 +7,8 @@ export interface Product {
   category: string;
   stock: number;
   createdAt: Date;
+  rating: number;
+  reviewCount: number;
 }
 
 export interface Category {

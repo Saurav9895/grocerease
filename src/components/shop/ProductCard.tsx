@@ -8,11 +8,30 @@ import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/componen
 import { useCart } from '@/hooks/use-cart';
 import type { Product } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
-import { PlusCircle } from 'lucide-react';
+import { PlusCircle, Star, StarHalf } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
 }
+
+const renderStars = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating % 1 !== 0;
+    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+  
+    return (
+      <div className="flex items-center gap-0.5 text-amber-400">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star key={`full-${i}`} className="h-4 w-4 fill-current" />
+        ))}
+        {hasHalfStar && <StarHalf className="h-4 w-4 fill-current" />}
+        {[...Array(emptyStars)].map((_, i) => (
+          <Star key={`empty-${i}`} className="h-4 w-4 text-muted-foreground/50 fill-muted-foreground/20" />
+        ))}
+      </div>
+    );
+  };
+
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
@@ -44,7 +63,11 @@ export function ProductCard({ product }: ProductCardProps) {
             <CardTitle className="text-lg leading-tight line-clamp-2">{product.name}</CardTitle>
           </div>
         </CardHeader>
-        <CardContent className="flex-grow p-4">
+        <CardContent className="flex-grow p-4 space-y-2">
+           <div className="flex items-center gap-2">
+            {renderStars(product.rating)}
+            <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
+          </div>
           <p className="text-sm text-muted-foreground line-clamp-3">{product.description}</p>
         </CardContent>
         <CardFooter className="flex items-center justify-between p-4 bg-muted/50 mt-auto">

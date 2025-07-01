@@ -15,6 +15,8 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         category: data.category,
         stock: data.stock,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+        rating: data.rating || 4.5,
+        reviewCount: data.reviewCount || Math.floor(Math.random() * 150) + 1,
     };
 }
 
