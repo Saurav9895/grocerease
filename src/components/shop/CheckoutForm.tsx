@@ -129,11 +129,11 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
         createdAt: serverTimestamp(),
       };
       
-      await addDoc(collection(db, "orders"), newOrder);
+      const orderDocRef = await addDoc(collection(db, "orders"), newOrder);
 
       toast({ title: "Order Placed!", description: "Your order has been successfully placed." });
       clearCart();
-      router.push('/orders');
+      router.push(`/orders/${orderDocRef.id}`);
 
     } catch (error) {
       console.error("Error placing order:", error);
