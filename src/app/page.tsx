@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Search, X, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { cn } from '@/lib/utils';
 
 // Card component for categories
 const CategoryCard = ({
@@ -288,4 +289,3 @@ export default function Home() {
     </div>
   );
 }
-
