@@ -2,6 +2,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile } from './types';
@@ -337,8 +338,8 @@ export async function addReviewAndUpdateProduct(
       transaction.set(newReviewRef, { ...review, createdAt: serverTimestamp() });
 
       const productData = productDoc.data();
-      const currentRating = productData.rating || 0;
-      const currentReviewCount = productData.reviewCount || 0;
+      const currentRating = Number(productData.rating || 0);
+      const currentReviewCount = Number(productData.reviewCount || 0);
 
       const newReviewCount = currentReviewCount + 1;
       const newRating = (currentRating * currentReviewCount + review.rating) / newReviewCount;
