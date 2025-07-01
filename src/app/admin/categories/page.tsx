@@ -65,7 +65,7 @@ export default function AdminCategoriesPage() {
         setIsFormOpen(open);
         if (!open) setSelectedCategory(null);
       }}>
-        <DialogContent className="sm:max-w-3xl">
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
           </DialogHeader>
