@@ -8,27 +8,7 @@ import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { useCart } from '@/hooks/use-cart';
 import type { Product } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
-import { ShoppingCart, Star, StarHalf } from 'lucide-react';
-
-// Helper function to render star ratings
-const renderStars = (rating: number) => {
-    const fullStars = Math.floor(rating);
-    const hasHalfStar = rating % 1 !== 0;
-    const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
-  
-    return (
-      <div className="flex items-center gap-0.5 text-amber-400">
-        {[...Array(fullStars)].map((_, i) => (
-          <Star key={`full-${i}`} className="h-4 w-4 fill-current" />
-        ))}
-        {hasHalfStar && <StarHalf className="h-4 w-4 fill-current" />}
-        {[...Array(emptyStars)].map((_, i) => (
-          <Star key={`empty-${i}`} className="h-4 w-4 text-muted-foreground/50 fill-muted-foreground/20" />
-        ))}
-      </div>
-    );
-};
-
+import { ArrowRight, MoreHorizontal } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -50,32 +30,45 @@ export function ProductCard({ product }: ProductCardProps) {
   };
 
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg group">
-      <Link href={`/product/${product.id}`} className="flex flex-col h-full">
-        <div className="relative aspect-square w-full overflow-hidden">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
-            data-ai-hint={`${product.category.replace(/-/g, ' ')} grocery`}
-          />
+    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg group w-full">
+        <div className="relative">
+            <Link href={`/product/${product.id}`} className="block w-full">
+                <div className="relative aspect-square w-full overflow-hidden">
+                    <Image
+                        src={product.imageUrl}
+                        alt={product.name}
+                        fill
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        data-ai-hint={`${product.category.replace(/-/g, ' ')} food`}
+                    />
+                </div>
+            </Link>
+            <div className="absolute top-2 right-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/20 text-white hover:bg-black/40 hover:text-white">
+                    <MoreHorizontal className="h-4 w-4" />
+                    <span className="sr-only">More options</span>
+                </Button>
+            </div>
         </div>
-        <CardContent className="p-4 flex-grow flex flex-col">
-          <h3 className="text-base font-semibold leading-tight flex-grow line-clamp-2">{product.name}</h3>
-          <div className="flex items-center gap-2 mt-2">
-            {renderStars(product.rating)}
-            <span className="text-xs text-muted-foreground">({product.reviewCount})</span>
-          </div>
+
+        <CardContent className="p-4 flex flex-col flex-grow">
+            <Link href={`/product/${product.id}`}>
+                <div className="flex justify-between items-start mb-1">
+                    <h3 className="text-base font-bold leading-tight hover:underline">{product.name}</h3>
+                    <p className="text-base font-bold text-foreground shrink-0 ml-2">Rs{product.price.toFixed(2)}</p>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2 flex-grow mb-4">
+                {product.description}
+                </p>
+            </Link>
         </CardContent>
-        <CardFooter className="p-4 pt-0 flex items-center justify-between">
-          <p className="text-lg font-bold text-primary">Rs{product.price.toFixed(2)}</p>
-          <Button size="sm" onClick={handleAddToCart} disabled={product.stock === 0}>
-             <ShoppingCart className="mr-2 h-4 w-4" />
-             {product.stock > 0 ? 'Add' : 'Out'}
-          </Button>
+
+        <CardFooter className="p-4 pt-0 mt-auto">
+            <Button size="sm" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+                {product.stock > 0 ? 'Order Now' : 'Out of Stock'}
+                <ArrowRight className="ml-2 h-4 w-4" />
+            </Button>
         </CardFooter>
-      </Link>
     </Card>
   );
 }
