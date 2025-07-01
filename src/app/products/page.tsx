@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { getProducts } from '@/lib/data';
 import type { Product } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -12,13 +13,20 @@ import { Slider } from '@/components/ui/slider';
 import { Search } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 
-export default function ProductsPage() {
+function ProductsPageContent() {
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState(initialQuery);
   const [sortOption, setSortOption] = useState('name-asc');
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 500]);
   const [maxPrice, setMaxPrice] = useState(500);
+
+  useEffect(() => {
+    setSearchQuery(initialQuery);
+  }, [initialQuery]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -158,9 +166,17 @@ export default function ProductsPage() {
         ) : (
             <div className="text-center py-16 text-muted-foreground bg-card rounded-lg">
                 <p className="text-lg font-medium">No products match your criteria.</p>
-                <p>Try adjusting your filters.</p>
+                <p>Try adjusting your filters or clearing your search.</p>
             </div>
         )}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <ProductsPageContent />
+    </Suspense>
   );
 }

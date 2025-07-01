@@ -1,7 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Leaf, User, LogOut, Menu, LayoutDashboard } from "lucide-react";
+import { ShoppingCart, Leaf, User, LogOut, Menu, LayoutDashboard, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "@/components/shop/CartSheet";
 import { useCart } from "@/hooks/use-cart";
@@ -21,6 +22,7 @@ import { useRouter, usePathname } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
 
@@ -32,6 +34,17 @@ export function ShopHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?q=${searchQuery.trim()}`);
+      if(isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    }
+  };
 
   const navLinks = [
     { href: "/", label: "Home" },
@@ -56,28 +69,24 @@ export function ShopHeader() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur-sm">
-        <div className="container flex h-16 items-center justify-between">
+        <div className="container flex h-16 items-center justify-between gap-4">
           <div className="flex items-center gap-6">
             <Link href="/" className="flex items-center space-x-2">
               <Leaf className="h-6 w-6 text-primary" />
               <span className="font-bold">GrocerEase</span>
             </Link>
-             <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
-              {navLinks.map((link) => (
-                (!link.auth || user) && (
-                  <Link
-                    key={link.href}
-                    href={link.href}
-                    className={cn(
-                      "transition-colors hover:text-primary",
-                      pathname === link.href ? "text-primary" : "text-muted-foreground"
-                    )}
-                  >
-                    {link.label}
-                  </Link>
-                )
-              ))}
-            </nav>
+          </div>
+          
+          <div className="flex-1 hidden md:flex justify-center px-4">
+            <form onSubmit={handleSearchSubmit} className="w-full max-w-lg relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input 
+                    placeholder="Search products..." 
+                    className="pl-10" 
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </form>
           </div>
           
           <div className="flex items-center gap-4">
