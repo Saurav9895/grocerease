@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { getProducts, getCategories } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -10,15 +10,16 @@ import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Card } from '@/components/ui/card';
+import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const searchParams = useSearchParams();
+  const selectedCategory = searchParams.get('category') || 'all';
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,18 +29,17 @@ export default function Home() {
         getCategories(),
       ]);
       setProducts(productsData);
-      setFilteredProducts(productsData);
       setCategories([{ id: 'all', name: 'All' }, ...categoriesData]);
       setIsLoading(false);
     };
     fetchData();
   }, []);
 
-  useEffect(() => {
+  const filteredProducts = useMemo(() => {
     let tempProducts = products;
 
     if (selectedCategory !== 'all') {
-      tempProducts = products.filter(p => p.category === selectedCategory);
+      tempProducts = tempProducts.filter(p => p.category === selectedCategory);
     }
 
     if (searchQuery) {
@@ -50,15 +50,10 @@ export default function Home() {
         );
     }
     
-    setFilteredProducts(tempProducts);
+    return tempProducts;
   }, [searchQuery, selectedCategory, products]);
 
-  const handleCategoryChange = (categoryId: string) => {
-    setSelectedCategory(categoryId);
-  };
-
   const handleBrowseAllClick = () => {
-    setSelectedCategory('all');
     setSearchQuery('');
   }
 
@@ -86,7 +81,7 @@ export default function Home() {
         </div>
          <div className="mt-6">
             <Button asChild size="lg" className="bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-8 py-6 text-base">
-                <Link href="#products" onClick={handleBrowseAllClick}>Browse All Categories</Link>
+                <Link href="/#products" onClick={handleBrowseAllClick}>Browse All Categories</Link>
             </Button>
         </div>
       </section>
@@ -105,7 +100,7 @@ export default function Home() {
         ) : (
              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {categories.filter(c => c.id !== 'all').map((category) => (
-                    <Link href="#products" key={category.id} onClick={() => handleCategoryChange(category.id)} className="cursor-pointer group block text-center">
+                    <Link href={`/?category=${category.id}#products`} key={category.id} className="cursor-pointer group block text-center">
                         <div className="aspect-square relative rounded-lg overflow-hidden border bg-card shadow-sm transition-all duration-300 hover:shadow-lg">
                             <Image 
                                 src={category.imageUrl} 
@@ -128,7 +123,9 @@ export default function Home() {
                 {selectedCategory === 'all' ? 'All Products' : categories.find(c => c.id === selectedCategory)?.name}
             </h2>
             {selectedCategory !== 'all' && (
-                <Button variant="outline" onClick={() => setSelectedCategory('all')}>View All Products</Button>
+              <Button asChild variant="outline">
+                <Link href="/#products">View All Products</Link>
+              </Button>
             )}
         </div>
         {isLoading ? (
