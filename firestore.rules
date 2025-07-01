@@ -1,74 +1,81 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    function isSignedIn() {
-      return request.auth != null;
+    function userExists() {
+      return request.auth != null && exists(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isUserProfileOwner(userId) {
-      return isSignedIn() && request.auth.uid == userId;
+    function getRole() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole;
     }
 
-    // This function can be called from any rule *except* the /users/{userId} rule to avoid recursion.
-    function isRequestingUserAdmin() {
-      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && 'adminRole' in userProfile.data && userProfile.data.adminRole in ['main', 'standard'];
+    function isStandardAdmin() {
+      return userExists() && getRole() == 'standard';
     }
 
-    function isRequestingUserMainAdmin() {
-      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid));
-      return isSignedIn() && 'adminRole' in userProfile.data && userProfile.data.adminRole == 'main';
+    function isMainAdmin() {
+      return userExists() && getRole() == 'main';
     }
 
+    function isAdmin() {
+      return isMainAdmin() || isStandardAdmin();
+    }
+
+    // Products can be read by anyone, but only written by admins.
     match /products/{productId} {
       allow read: if true;
-      allow write: if isRequestingUserAdmin();
-
+      allow write: if isAdmin();
+      
+      // Reviews can be written by any authenticated user, read by anyone.
       match /reviews/{reviewId} {
         allow read: if true;
-        // Writing a review is a transaction, which is handled in the data.ts file.
-        // We just need to ensure the user is logged in.
-        allow write: if isSignedIn();
+        allow create: if request.auth != null;
+        allow update, delete: if false; // For simplicity, no updates/deletes for now
       }
     }
-    
+
+    // Categories can be read by anyone, but only written by admins.
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isRequestingUserAdmin();
-    }
-
-    match /orders/{orderId} {
-      // An admin can read any order. A user can only read their own.
-      allow read: if isRequestingUserAdmin() || (isSignedIn() && request.auth.uid == resource.data.userId);
-      allow create: if isSignedIn();
-      // Only admins can update an order's status.
-      allow update: if isRequestingUserAdmin();
-      allow delete: if false; // Orders should not be deleted.
+      allow write: if isAdmin();
     }
     
+    // Promo codes can be read by authenticated users, written only by main admin
+    match /promocodes/{promoCode} {
+        allow read: if request.auth != null;
+        allow write: if isMainAdmin();
+    }
+
+    // Users collection rules
     match /users/{userId} {
-      // Any authenticated user can read user profiles.
-      // This is necessary to break the security rule recursion, allowing admin checks to work.
-      // This is a security trade-off: it exposes user data (name, email, phone) to other logged-in users.
-      allow read: if isSignedIn();
-
-      // A user can create their own document on signup.
-      allow create: if isUserProfileOwner(userId);
-      
-      // A user can update their own data, but CANNOT change their adminRole.
-      // Only a main admin can change another user's adminRole.
-      allow update: if (isUserProfileOwner(userId) && request.resource.data.adminRole == resource.data.adminRole) 
-                   || isRequestingUserMainAdmin();
+      // User can read/update their own profile, main admin can manage any profile
+      allow read, update: if request.auth.uid == userId || isMainAdmin();
+      // Allow any authenticated user to create their own user document
+      allow create: if request.auth != null && request.auth.uid == userId;
+      // Only main admins can delete users
+      allow delete: if isMainAdmin();
     }
     
-    match /settings/{settingId} {
-      allow read, write: if isRequestingUserMainAdmin();
+    // Orders collection rules
+    match /orders/{orderId} {
+      allow create: if request.auth != null;
+      // An order can be read by its owner OR by any admin.
+      // This rule works for both single doc `get` and collection `list` (queries).
+      // For queries, the query itself must be constrained to what the rule allows
+      // (e.g., a user querying for their own orders).
+      allow read: if (request.auth.uid == resource.data.userId) || isAdmin();
+      
+      // Only admins can update (e.g., change status) or delete orders.
+      allow update, delete: if isAdmin();
     }
-
-    match /promocodes/{codeId} {
-      allow read, write: if isRequestingUserMainAdmin();
+    
+    // Store settings can only be managed by the main admin
+    match /settings/{settingId} {
+        allow read: if true; // All users need to read delivery settings
+        allow write: if isMainAdmin();
     }
   }
 }
