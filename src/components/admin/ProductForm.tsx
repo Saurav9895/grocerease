@@ -12,6 +12,7 @@ import { useEffect, useState } from "react";
 import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import Image from "next/image";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -33,6 +34,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
   const { toast } = useToast();
+  const [imageUrl, setImageUrl] = useState(product?.imageUrl || 'https://placehold.co/600x400.png');
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -41,6 +43,14 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     };
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (product) {
+      setImageUrl(product.imageUrl);
+    } else {
+      setImageUrl('https://placehold.co/600x400.png');
+    }
+  }, [product]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -91,6 +101,15 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     }
   };
 
+  const isPreviewable = (url: string) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {isEditing && <input type="hidden" name="id" value={product.id} />}
@@ -127,8 +146,29 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       </div>
       <div className="space-y-2">
         <Label htmlFor="imageUrl">Image URL</Label>
-        <Input id="imageUrl" name="imageUrl" defaultValue={product?.imageUrl || 'https://placehold.co/600x400.png'} required />
+        <Input 
+            id="imageUrl" 
+            name="imageUrl" 
+            value={imageUrl} 
+            onChange={(e) => setImageUrl(e.target.value)} 
+            required 
+        />
       </div>
+      {isPreviewable(imageUrl) && (
+        <div className="space-y-2">
+            <Label>Image Preview</Label>
+            <div className="relative aspect-video w-full rounded-md overflow-hidden border bg-muted">
+                <Image
+                    src={imageUrl}
+                    alt="Product preview"
+                    fill
+                    className="object-cover"
+                    onError={() => setImageUrl('https://placehold.co/600x400.png')}
+                    data-ai-hint="product image"
+                />
+            </div>
+        </div>
+      )}
       <Button type="submit" disabled={isLoading}>
         {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
       </Button>
