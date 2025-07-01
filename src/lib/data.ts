@@ -1,6 +1,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile } from './types';
@@ -290,6 +291,17 @@ export async function deleteUserAddress(userId: string, addressId: string) {
     }
   } catch (error) {
     console.error("Error deleting user address:", error);
+    throw error;
+  }
+}
+
+export async function updateUserPhone(userId: string, phone: string): Promise<void> {
+  if (!userId) throw new Error("User ID is required.");
+  try {
+    const userRef = doc(db, "users", userId);
+    await updateDoc(userRef, { phone: phone });
+  } catch (error) {
+    console.error(`Error updating phone for user ${userId}:`, error);
     throw error;
   }
 }

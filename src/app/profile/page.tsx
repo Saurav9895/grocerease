@@ -17,20 +17,53 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AdminManager } from "@/components/admin/AdminManager";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { updateUserPhone } from "@/lib/data";
 
 function ProfilePageContent() {
-    const { user, profile, signOut } = useAuth();
+    const { user, profile, signOut, refreshProfile } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
-    // This local profile state is needed if you want to refresh data on this page specifically
-    // but for now, we rely on the global profile from useAuth()
+    const [isEditingPhone, setIsEditingPhone] = useState(false);
+    const [phone, setPhone] = useState("");
+    const [isUpdatingPhone, setIsUpdatingPhone] = useState(false);
+
     useEffect(() => {
         if (!user || profile) {
             setIsLoadingProfile(false);
         }
+        if (profile?.phone) {
+            setPhone(profile.phone);
+        }
     }, [user, profile]);
+
+    const handlePhoneCancel = () => {
+        setIsEditingPhone(false);
+        setPhone(profile?.phone || "");
+    };
+
+    const handlePhoneSave = async () => {
+        if (!user) return;
+        if (phone === profile?.phone) {
+            setIsEditingPhone(false);
+            return;
+        }
+
+        setIsUpdatingPhone(true);
+        try {
+            await updateUserPhone(user.uid, phone);
+            await refreshProfile();
+            toast({ title: "Phone number updated successfully!" });
+            setIsEditingPhone(false);
+        } catch (error) {
+            toast({ variant: "destructive", title: "Update Failed", description: "Could not update your phone number." });
+        } finally {
+            setIsUpdatingPhone(false);
+        }
+    };
+
 
     const getInitials = (nameOrEmail: string | null | undefined) => {
         if (!nameOrEmail) return "U";
@@ -103,13 +136,7 @@ function ProfilePageContent() {
                                 </CardTitle>
                                 <CardDescription>{profile?.email}</CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4">
-                               {profile?.phone && (
-                                   <div className="text-sm text-muted-foreground flex items-center justify-center gap-2 border p-2 rounded-md bg-muted/50">
-                                        <Phone className="h-4 w-4" />
-                                        <span>{profile.phone}</span>
-                                   </div>
-                               )}
+                            <CardContent>
                                <Button onClick={handleSignOut} variant="outline" className="w-full">
                                  <LogOut className="mr-2 h-4 w-4" />
                                  Sign Out
@@ -121,7 +148,7 @@ function ProfilePageContent() {
                         <CardHeader>
                             <CardTitle>Account Settings</CardTitle>
                         </CardHeader>
-                        <CardContent>
+                        <CardContent className="space-y-4">
                             <div className="flex items-center justify-between p-4 rounded-lg border">
                                 <div className="flex items-center gap-4">
                                     <Settings className="w-6 h-6 text-primary"/>
@@ -131,6 +158,37 @@ function ProfilePageContent() {
                                     </div>
                                 </div>
                                 <Button variant="secondary" onClick={handlePasswordReset}>Send Reset Email</Button>
+                            </div>
+                            <div className="flex items-center justify-between p-4 rounded-lg border">
+                                <div className="flex items-center gap-4 flex-grow">
+                                    <Phone className="w-6 h-6 text-primary flex-shrink-0"/>
+                                    <div className="w-full">
+                                        <h3 className="font-semibold">Mobile Number</h3>
+                                        {isEditingPhone ? (
+                                            <Input 
+                                                type="tel"
+                                                className="mt-1 h-9"
+                                                value={phone}
+                                                onChange={(e) => setPhone(e.target.value)}
+                                                placeholder="Enter mobile number"
+                                            />
+                                        ) : (
+                                            <p className="text-sm text-muted-foreground">{profile?.phone || "Not set"}</p>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex gap-2 ml-4 flex-shrink-0">
+                                {isEditingPhone ? (
+                                    <>
+                                        <Button variant="default" size="sm" onClick={handlePhoneSave} disabled={isUpdatingPhone}>
+                                            {isUpdatingPhone ? "Saving..." : "Save"}
+                                        </Button>
+                                        <Button variant="ghost" size="sm" onClick={handlePhoneCancel} disabled={isUpdatingPhone}>Cancel</Button>
+                                    </>
+                                ) : (
+                                    <Button variant="secondary" onClick={() => setIsEditingPhone(true)}>Edit</Button>
+                                )}
+                                </div>
                             </div>
                         </CardContent>
                     </Card>
