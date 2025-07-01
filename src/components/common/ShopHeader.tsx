@@ -2,12 +2,12 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Leaf, User, LogOut, Menu, LayoutDashboard, Search } from "lucide-react";
+import { ShoppingCart, Leaf, User, LogOut, Menu, LayoutDashboard, Search, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "@/components/shop/CartSheet";
 import { useCart } from "@/hooks/use-cart";
 import { useAuth } from "@/context/AuthProvider";
-import { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,6 +24,9 @@ import { Skeleton } from "../ui/skeleton";
 import { Sheet, SheetContent, SheetTrigger, SheetClose } from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import type { Product } from "@/lib/types";
+import { getProducts } from "@/lib/data";
+import Image from "next/image";
 
 
 export function ShopHeader() {
@@ -34,16 +37,65 @@ export function ShopHeader() {
   const router = useRouter();
   const pathname = usePathname();
   const { toast } = useToast();
+  
   const [searchQuery, setSearchQuery] = useState("");
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [searchResults, setSearchResults] = useState<Product[]>([]);
+  const [isResultsVisible, setIsResultsVisible] = useState(false);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const fetchAllProducts = async () => {
+      const productsData = await getProducts();
+      setAllProducts(productsData);
+    };
+    fetchAllProducts();
+  }, []);
+
+  useEffect(() => {
+    if (searchQuery.trim() === '') {
+      setSearchResults([]);
+      setIsResultsVisible(false);
+      return;
+    }
+
+    const filtered = allProducts
+      .filter(product =>
+        product.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+      .slice(0, 5); // Limit results for performance
+
+    setSearchResults(filtered);
+    setIsResultsVisible(filtered.length > 0);
+  }, [searchQuery, allProducts]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setIsResultsVisible(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
       router.push(`/products?q=${searchQuery.trim()}`);
+      setIsResultsVisible(false);
       if(isMobileMenuOpen) {
         setIsMobileMenuOpen(false);
       }
     }
+  };
+  
+  const handleResultClick = () => {
+    setSearchQuery('');
+    setIsResultsVisible(false);
   };
 
   const navLinks = [
@@ -77,16 +129,51 @@ export function ShopHeader() {
             </Link>
           </div>
           
-          <div className="flex-1 hidden md:flex justify-center px-4">
-            <form onSubmit={handleSearchSubmit} className="w-full max-w-lg relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                <Input 
-                    placeholder="Search products..." 
-                    className="pl-10" 
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                />
-            </form>
+          <div ref={searchContainerRef} className="flex-1 hidden md:flex justify-center px-4">
+            <div className="relative w-full max-w-lg">
+                <form onSubmit={handleSearchSubmit} className="w-full flex items-center gap-2">
+                    <div className="relative w-full">
+                        <Input 
+                            placeholder="Search products..." 
+                            className="pr-10"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                        />
+                        {searchQuery && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 h-6 w-6 text-muted-foreground"
+                            onClick={() => setSearchQuery('')}
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                        )}
+                    </div>
+                    <Button type="submit" size="icon">
+                        <Search className="h-5 w-5" />
+                    </Button>
+                </form>
+                {isResultsVisible && (
+                <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-50">
+                    <ul className="py-1">
+                    {searchResults.map(product => (
+                        <li key={product.id}>
+                        <Link 
+                            href={`/product/${product.id}`} 
+                            className="flex items-center gap-3 px-3 py-2 hover:bg-accent"
+                            onClick={handleResultClick}
+                        >
+                            <Image src={product.imageUrl} alt={product.name} width={32} height={32} className="rounded-sm object-cover" data-ai-hint={`${product.category.replace(/-/g, ' ')}`} />
+                            <span className="text-sm font-medium">{product.name}</span>
+                        </Link>
+                        </li>
+                    ))}
+                    </ul>
+                </div>
+                )}
+            </div>
           </div>
           
           <div className="flex items-center gap-4">
