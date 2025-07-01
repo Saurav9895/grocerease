@@ -19,11 +19,19 @@ export function ShopHeader() {
             <Leaf className="h-6 w-6 text-primary" />
             <span className="font-bold text-lg">GrocerEase</span>
           </Link>
-          <div className="flex flex-1 items-center justify-end space-x-4">
-            <nav className="flex items-center space-x-1">
+          <div className="flex flex-1 items-center justify-end">
+            <nav className="flex items-center gap-4">
+               <Button asChild>
+                <Link href="/signup">Sign Up</Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/signin">Sign In</Link>
+              </Button>
+              <div className="h-8 w-px bg-border" />
               <Button
                 variant="ghost"
                 className="relative"
+                size="icon"
                 onClick={() => setIsCartOpen(true)}
               >
                 <ShoppingCart className="h-5 w-5" />

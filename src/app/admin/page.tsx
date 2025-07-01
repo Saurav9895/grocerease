@@ -1,6 +1,7 @@
 import { products, orders } from "@/lib/data";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Package, ShoppingCart, Users } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 export default function AdminDashboardPage() {
   const totalRevenue = orders.reduce((sum, order) => sum + order.total, 0);
@@ -57,8 +58,44 @@ export default function AdminDashboardPage() {
        <div className="mt-8">
         <h2 className="text-2xl font-bold mb-4">Recent Activity</h2>
         <Card>
-            <CardContent className="pt-6">
-                <p className="text-muted-foreground">No recent activity to show.</p>
+            <CardContent className="pt-6 space-y-4">
+                <div className="flex items-center space-x-4">
+                    <Avatar>
+                        <AvatarImage src="https://i.pravatar.cc/40?u=a" data-ai-hint="user avatar" />
+                        <AvatarFallback>AJ</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="text-sm font-medium">New Order</p>
+                        <p className="text-sm text-muted-foreground">
+                            Alice Johnson placed an order for $45.50.
+                        </p>
+                    </div>
+                </div>
+                 <div className="flex items-center space-x-4">
+                    <Avatar>
+                        <AvatarImage src="https://i.pravatar.cc/40?u=b" data-ai-hint="user avatar" />
+                        <AvatarFallback>BS</AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="text-sm font-medium">New Customer</p>
+                        <p className="text-sm text-muted-foreground">
+                            Bob Smith just signed up.
+                        </p>
+                    </div>
+                </div>
+                 <div className="flex items-center space-x-4">
+                    <Avatar>
+                         <AvatarFallback>
+                            <Package className="h-5 w-5" />
+                         </AvatarFallback>
+                    </Avatar>
+                    <div>
+                        <p className="text-sm font-medium">New Product</p>
+                        <p className="text-sm text-muted-foreground">
+                            Organic Blueberries was added.
+                        </p>
+                    </div>
+                </div>
             </CardContent>
         </Card>
        </div>

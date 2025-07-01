@@ -29,6 +29,7 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isAdminPage = pathname.startsWith('/admin');
+  const isAuthPage = pathname.startsWith('/signin') || pathname.startsWith('/signup');
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -41,9 +42,9 @@ export default function RootLayout({
       <body className={cn("font-body antialiased", inter.variable)}>
         <CartProvider>
           <div className="flex flex-col min-h-screen">
-            {!isAdminPage && <ShopHeader />}
+            {!isAdminPage && !isAuthPage && <ShopHeader />}
             <main className="flex-grow">{children}</main>
-            {!isAdminPage && <Footer />}
+            {!isAdminPage && !isAuthPage && <Footer />}
           </div>
           <Toaster />
         </CartProvider>
