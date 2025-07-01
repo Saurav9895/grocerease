@@ -1,63 +1,58 @@
 
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
+
+    // ===== Default Deny =====
+    // match /{document=**} {
+    //   allow read, write: if false;
+    // }
+
+    // ===== Admin Access =====
+    // Admins can read and write all documents.
+    match /{document=**} {
+      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
     
-    // PUBLIC READS
-    match /products/{productId} {
-      allow read: if true;
-      match /reviews/{reviewId} {
-        allow read: if true;
-      }
-    }
-    match /categories/{categoryId} {
-      allow read: if true;
-    }
-    match /settings/{settingId} {
-      allow read: if true;
-    }
-     match /promocodes/{promoId} {
-      allow read: if true;
-    }
-
-    // ADMIN WRITES (SIMPLIFIED)
-    match /products/{productId} {
-      allow write: if request.auth != null;
-    }
-     match /categories/{categoryId} {
-      allow write: if request.auth != null;
-    }
-    match /settings/{settingId} {
-      allow write: if request.auth != null;
-    }
-    match /promocodes/{promoId} {
-      allow write: if request.auth != null;
-    }
-
-    // USER DATA
+    // ===== User-specific Rules =====
+    // Users can manage their own profile.
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
+      allow create: if request.auth != null;
+    }
+
+    // Users can read their own orders. Admins can read all orders.
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
+      allow create: if request.auth != null; // Any authenticated user can create an order.
     }
     
-    // ORDERS
-    match /orders/{orderId} {
-      // Users can create their own orders.
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-
-      // Users can read their own orders.
-      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
-      
-      // Listing is open to authenticated users for admin/user-specific queries.
-      // Client-side code MUST filter by userId for security.
-      allow list: if request.auth != null;
-
-      // Admin can update any order (e.g., status).
-      allow update: if request.auth != null; // Simplified rule for admin
+    // Logged-in users can create reviews.
+    match /products/{productId}/reviews/{reviewId} {
+        allow create: if request.auth != null;
     }
 
-    // REVIEWS
-     match /products/{productId}/reviews/{reviewId} {
-        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      }
+    // ===== Public Read Rules =====
+    // Anyone (including unauthenticated users) can read products, categories, reviews, and settings.
+    match /products/{productId} {
+      allow read: if true;
+    }
+
+    match /products/{productId}/reviews/{reviewId} {
+      allow read: if true;
+    }
+    
+    match /categories/{categoryId} {
+        allow read: if true;
+    }
+    
+    match /settings/{settingId} {
+        allow read: if true;
+    }
+    
+    match /promocodes/{promoId} {
+        allow read: if true;
+    }
   }
 }
