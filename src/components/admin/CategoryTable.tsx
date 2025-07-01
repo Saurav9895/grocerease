@@ -14,10 +14,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import type { Category } from "@/lib/types";
-import { deleteCategory } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { db } from "@/lib/firebase";
+import { deleteDoc, doc } from "firebase/firestore";
 
 interface CategoryTableProps {
   categories: Category[];
@@ -29,12 +30,13 @@ export function CategoryTable({ categories, onEdit, onDataChanged }: CategoryTab
   const { toast } = useToast();
 
   const handleDelete = async (categoryId: string) => {
-    const result = await deleteCategory(categoryId);
-    if (result.success) {
+    try {
+      await deleteDoc(doc(db, "categories", categoryId));
       toast({ title: "Category deleted successfully" });
       onDataChanged();
-    } else {
-      toast({ variant: "destructive", title: "Failed to delete category", description: result.message });
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast({ variant: "destructive", title: "Failed to delete category", description: "An unexpected error occurred." });
     }
   };
   

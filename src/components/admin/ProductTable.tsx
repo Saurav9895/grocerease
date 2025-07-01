@@ -31,17 +31,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import type { Product } from "@/lib/types";
 import { ProductForm } from "./ProductForm";
-import { deleteProduct } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
 import { MoreHorizontal } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { db } from "@/lib/firebase";
+import { deleteDoc, doc } from "firebase/firestore";
 
 interface ProductTableProps {
   products: Product[];
+  onDataChanged: () => void;
 }
 
-export function ProductTable({ products }: ProductTableProps) {
+export function ProductTable({ products, onDataChanged }: ProductTableProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const { toast } = useToast();
@@ -52,17 +54,20 @@ export function ProductTable({ products }: ProductTableProps) {
   };
 
   const handleDelete = async (productId: string) => {
-    const result = await deleteProduct(productId);
-    if (result.success) {
+    try {
+      await deleteDoc(doc(db, "products", productId));
       toast({ title: "Product deleted successfully" });
-    } else {
-      toast({ variant: "destructive", title: "Failed to delete product", description: result.message });
+      onDataChanged();
+    } catch (error) {
+      console.error("Error deleting product", error);
+      toast({ variant: "destructive", title: "Failed to delete product", description: "An unexpected error occurred." });
     }
   };
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
     setSelectedProduct(null);
+    onDataChanged();
   };
   
   return (

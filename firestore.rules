@@ -3,25 +3,25 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Products can be read by anyone, but only modified by authenticated users (admins).
+    // Products and Categories are publically readable, but only
+    // authenticated users (admins) can modify them.
     match /products/{productId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Categories can be read by anyone, but only modified by authenticated users (admins).
     match /categories/{categoryId} {
       allow read: if true;
       allow write: if request.auth != null;
     }
 
-    // Orders can be created by authenticated users for themselves.
-    // Authenticated users (acting as admins or customers) can read orders.
-    // The application logic ensures users can only see their own orders.
+    // Users can create their own orders and read their own orders.
+    // Any authenticated user can list/read all orders for the admin panel.
     match /orders/{orderId} {
-      allow create: if request.auth.uid == request.resource.data.userId;
       allow read: if request.auth != null;
-      // Users cannot update or delete orders after they are placed.
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      
+      // Nobody can update or delete from the client.
       allow update, delete: if false;
     }
   }

@@ -12,14 +12,15 @@ export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchProducts = async () => {
+    setIsLoading(true);
+    const allProducts = await getProducts();
+    setProducts(allProducts);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (user) {
-      const fetchProducts = async () => {
-        setIsLoading(true);
-        const allProducts = await getProducts();
-        setProducts(allProducts);
-        setIsLoading(false);
-      };
       fetchProducts();
     }
   }, [user]);
@@ -38,7 +39,7 @@ export default function AdminProductsPage() {
             </div>
         </div>
       ) : (
-        <ProductTable products={products} />
+        <ProductTable products={products} onDataChanged={fetchProducts} />
       )}
     </div>
   );

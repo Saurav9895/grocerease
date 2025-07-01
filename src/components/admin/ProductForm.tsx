@@ -1,6 +1,5 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,26 +7,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getCategories } from "@/lib/data";
 import type { Product, Category } from "@/lib/types";
-import { addProduct, updateProduct } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
+import { z } from "zod";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
 
 interface ProductFormProps {
   product?: Product | null;
   onSuccess: () => void;
 }
 
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
-    </Button>
-  );
-}
+const productSchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(3, "Name must be at least 3 characters."),
+  description: z.string().min(10, "Description must be at least 10 characters."),
+  price: z.coerce.number().min(0.01, "Price must be a positive number."),
+  category: z.string().min(1, "Please select a category."),
+  stock: z.coerce.number().int().min(0, "Stock must be a non-negative number."),
+  imageUrl: z.string().url("Please enter a valid image URL."),
+});
 
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
   const { toast } = useToast();
 
@@ -39,28 +42,57 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     fetchCategories();
   }, []);
 
-  const formAction = async (formData: FormData) => {
-    const action = isEditing ? updateProduct : addProduct;
-    const result = await action(formData);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
 
-    if (result.success) {
+    const formData = new FormData(event.currentTarget);
+    const rawFormData = Object.fromEntries(formData.entries());
+
+    const validatedFields = productSchema.safeParse(rawFormData);
+    
+    if (!validatedFields.success) {
+      const errorMessages = Object.values(validatedFields.error.flatten().fieldErrors).flat().join('\n');
+      toast({
+        variant: "destructive",
+        title: "Invalid data",
+        description: errorMessages || "Please check the form fields.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      if (isEditing && product) {
+        const productRef = doc(db, "products", product.id);
+        await updateDoc(productRef, validatedFields.data);
+      } else {
+        await addDoc(collection(db, "products"), {
+          ...validatedFields.data,
+          createdAt: serverTimestamp()
+        });
+      }
+
       toast({
         title: `Product ${isEditing ? 'updated' : 'added'}`,
         description: `The product has been successfully ${isEditing ? 'updated' : 'added'}.`,
       });
       onSuccess();
-    } else {
-      const errorMessages = Object.values(result.errors || {}).flat().join('\n');
+      
+    } catch (error) {
+      console.error("Error saving product:", error);
       toast({
         variant: "destructive",
         title: "Failed to save product",
-        description: errorMessages || "An unexpected error occurred.",
+        description: "An unexpected error occurred.",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {isEditing && <input type="hidden" name="id" value={product.id} />}
       <div className="space-y-2">
         <Label htmlFor="name">Product Name</Label>
@@ -97,7 +129,9 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         <Label htmlFor="imageUrl">Image URL</Label>
         <Input id="imageUrl" name="imageUrl" defaultValue={product?.imageUrl || 'https://placehold.co/600x400.png'} required />
       </div>
-      <SubmitButton isEditing={isEditing} />
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Product' : 'Add Product')}
+      </Button>
     </form>
   );
 }

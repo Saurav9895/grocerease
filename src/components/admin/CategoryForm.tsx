@@ -1,6 +1,5 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
@@ -8,50 +7,78 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/lib/types";
-import { addCategory, updateCategory } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
+import { z } from "zod";
+import { db } from "@/lib/firebase";
+import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
+
 
 interface CategoryFormProps {
   category?: Category | null;
   onSuccess: () => void;
 }
 
-function SubmitButton({ isEditing }: { isEditing: boolean }) {
-  const { pending } = useFormStatus();
-  return (
-    <Button type="submit" disabled={pending}>
-      {pending ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Category' : 'Add Category')}
-    </Button>
-  );
-}
+const categorySchema = z.object({
+  id: z.string().optional(),
+  name: z.string().min(2, "Name must be at least 2 characters."),
+  description: z.string().optional(),
+  imageUrl: z.string().url("Please enter a valid image URL."),
+});
 
 export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   const isEditing = !!category;
   const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState(category?.imageUrl || 'https://placehold.co/100x100.png');
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setImageUrl(category?.imageUrl || 'https://placehold.co/100x100.png');
   }, [category]);
 
 
-  const formAction = async (formData: FormData) => {
-    const action = isEditing ? updateCategory : addCategory;
-    const result = await action(formData);
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
 
-    if (result.success) {
+    const formData = new FormData(event.currentTarget);
+    const rawFormData = Object.fromEntries(formData.entries());
+
+    const validatedFields = categorySchema.safeParse(rawFormData);
+    
+    if (!validatedFields.success) {
+      const errorMessages = Object.values(validatedFields.error.flatten().fieldErrors).flat().join('\n');
+      toast({
+        variant: "destructive",
+        title: "Invalid data",
+        description: errorMessages || "Please check the form fields.",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      if (isEditing && category) {
+        const categoryRef = doc(db, "categories", category.id);
+        await updateDoc(categoryRef, validatedFields.data);
+      } else {
+        await addDoc(collection(db, "categories"), validatedFields.data);
+      }
+
       toast({
         title: `Category ${isEditing ? 'updated' : 'added'}`,
         description: `The category has been successfully ${isEditing ? 'updated' : 'added'}.`,
       });
       onSuccess();
-    } else {
-      const errorMessages = Object.values(result.errors || {}).flat().join('\n');
-      toast({
+
+    } catch (error) {
+       console.error("Error saving category:", error);
+       toast({
         variant: "destructive",
         title: "Failed to save category",
-        description: errorMessages || "An unexpected error occurred.",
+        description: "An unexpected error occurred.",
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
@@ -65,7 +92,7 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   }
 
   return (
-    <form action={formAction} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {isEditing && <input type="hidden" name="id" value={category.id} />}
       <div className="space-y-2">
         <Label htmlFor="name">Category Name</Label>
@@ -94,13 +121,15 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
                     alt="Category preview"
                     fill
                     className="object-cover"
-                    onError={() => setImageUrl('')}
+                    onError={() => setImageUrl('https://placehold.co/100x100.png')}
                     data-ai-hint="category image"
                 />
             </div>
         </div>
       )}
-      <SubmitButton isEditing={isEditing} />
+      <Button type="submit" disabled={isLoading}>
+        {isLoading ? (isEditing ? 'Updating...' : 'Adding...') : (isEditing ? 'Update Category' : 'Add Category')}
+      </Button>
     </form>
   );
 }
