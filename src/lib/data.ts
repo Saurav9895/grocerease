@@ -80,7 +80,7 @@ function docToUserProfile(doc: DocumentSnapshot<DocumentData>): UserProfile {
         name: data.name || '',
         email: data.email || '',
         phone: data.phone || '',
-        isAdmin: data.isAdmin || false,
+        adminRole: data.adminRole || null,
     };
 }
 
@@ -207,7 +207,7 @@ export async function createUserInFirestore(userId: string, name: string, email:
       name: name,
       email: email,
       phone: phone,
-      isAdmin: email.toLowerCase() === 'admin@gmail.com',
+      adminRole: email.toLowerCase() === 'admin@gmail.com' ? 'main' : null,
     }, { merge: true });
   } catch (error) {
     console.error("Error creating user in Firestore:", error);
@@ -456,13 +456,13 @@ export async function findUserByEmail(email: string): Promise<UserProfile | null
     }
 }
 
-export async function updateUserAdminStatus(userId: string, isAdmin: boolean): Promise<void> {
+export async function updateUserAdminRole(userId: string, role: 'standard' | null): Promise<void> {
     if (!userId) throw new Error("User ID is required.");
     try {
         const userDocRef = doc(db, 'users', userId);
-        await updateDoc(userDocRef, { isAdmin: isAdmin });
+        await updateDoc(userDocRef, { adminRole: role });
     } catch (error) {
-        console.error("Error updating admin status:", error);
+        console.error("Error updating admin role:", error);
         throw error;
     }
 }
@@ -470,7 +470,7 @@ export async function updateUserAdminStatus(userId: string, isAdmin: boolean): P
 export async function getAdminUsers(): Promise<UserProfile[]> {
     try {
         const usersCol = collection(db, 'users');
-        const q = query(usersCol, where('isAdmin', '==', true));
+        const q = query(usersCol, where('adminRole', 'in', ['main', 'standard']));
         const snapshot = await getDocs(q);
         return snapshot.docs.map(docToUserProfile);
     } catch (error) {

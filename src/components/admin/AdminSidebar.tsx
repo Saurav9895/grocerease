@@ -97,7 +97,7 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           {profile?.isAdmin && (
+           {profile?.adminRole === 'main' && (
              <SidebarMenuItem>
               <SidebarMenuButton
                 asChild
@@ -136,8 +136,8 @@ export function AdminSidebar() {
                 <AvatarFallback>{getInitials(user.email)}</AvatarFallback>
             </Avatar>
             <div className="flex flex-col truncate">
-                <span className="text-sm font-semibold truncate">{user.email}</span>
-                <span className="text-xs text-muted-foreground">Administrator</span>
+                <span className="text-sm font-semibold truncate">{profile?.name || user.email}</span>
+                <span className="text-xs text-muted-foreground capitalize">{profile?.adminRole} Administrator</span>
             </div>
           </div>
         )}

@@ -2,7 +2,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { findUserByEmail, updateUserAdminStatus, getAdminUsers } from "@/lib/data";
+import { findUserByEmail, updateUserAdminRole, getAdminUsers } from "@/lib/data";
 import type { UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,8 +13,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { ShieldCheck, UserCog, Trash2 } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { useAuth } from "@/context/AuthProvider";
 
 export function AdminManager() {
+  const { user: currentUser } = useAuth();
   const { toast } = useToast();
   const [email, setEmail] = useState("");
   const [admins, setAdmins] = useState<UserProfile[]>([]);
@@ -32,7 +34,7 @@ export function AdminManager() {
     fetchAdmins();
   }, []);
 
-  const handleMakeAdmin = async (e: React.FormEvent) => {
+  const handleGrantAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -42,9 +44,14 @@ export function AdminManager() {
         toast({ variant: "destructive", title: "User not found", description: `No user with the email ${email} exists.` });
         return;
       }
+      
+      if (userToUpdate.adminRole) {
+        toast({ variant: "destructive", title: "Already an Admin", description: `${userToUpdate.name} already has an admin role.` });
+        return;
+      }
 
-      await updateUserAdminStatus(userToUpdate.id, true);
-      toast({ title: "Success", description: `${userToUpdate.name} has been made an admin.` });
+      await updateUserAdminRole(userToUpdate.id, 'standard');
+      toast({ title: "Success", description: `${userToUpdate.name} has been made a standard admin.` });
       setEmail("");
       fetchAdmins();
     } catch (error) {
@@ -57,7 +64,7 @@ export function AdminManager() {
 
   const handleRevokeAdmin = async (userId: string, userName: string) => {
     try {
-        await updateUserAdminStatus(userId, false);
+        await updateUserAdminRole(userId, null);
         toast({ title: "Admin Removed", description: `${userName} is no longer an admin.` });
         fetchAdmins();
     } catch (error) {
@@ -70,11 +77,11 @@ export function AdminManager() {
     <Card>
       <CardHeader>
         <CardTitle>Admin Management</CardTitle>
-        <CardDescription>Grant or revoke admin privileges for users.</CardDescription>
+        <CardDescription>Grant or revoke admin privileges for other users.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleMakeAdmin} className="space-y-4 p-4 border rounded-lg">
-          <h3 className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4"/>Grant Admin Access</h3>
+        <form onSubmit={handleGrantAdmin} className="space-y-4 p-4 border rounded-lg">
+          <h3 className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4"/>Grant Standard Admin Access</h3>
           <div className="flex flex-col sm:flex-row items-end gap-2">
             <div className="flex-1 w-full">
               <Label htmlFor="email">User Email</Label>
@@ -87,7 +94,7 @@ export function AdminManager() {
                 required
               />
             </div>
-            <Button type="submit" disabled={isLoading}>{isLoading ? "Saving..." : "Grant Admin"}</Button>
+            <Button type="submit" disabled={isLoading}>{isLoading ? "Granting..." : "Grant Admin"}</Button>
           </div>
         </form>
 
@@ -107,28 +114,30 @@ export function AdminManager() {
                             <p className="text-sm text-muted-foreground">{admin.email}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant="destructive" className="flex items-center gap-1">
+                            <Badge variant={admin.adminRole === 'main' ? "destructive" : "secondary"} className="flex items-center gap-1">
                                 <ShieldCheck className="h-3 w-3" />
-                                Admin
+                                {admin.adminRole === 'main' ? 'Main Admin' : 'Standard Admin'}
                             </Badge>
-                             <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
-                                        <Trash2 className="h-4 w-4"/>
-                                        <span className="sr-only">Revoke Admin</span>
-                                    </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                        <AlertDialogTitle>Revoke admin rights for {admin.name}?</AlertDialogTitle>
-                                        <AlertDialogDescription>This will revoke all admin privileges for this user. They will become a regular customer.</AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                        <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                        <AlertDialogAction onClick={() => handleRevokeAdmin(admin.id, admin.name)}>Confirm</AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                            </AlertDialog>
+                            {admin.adminRole === 'standard' && admin.id !== currentUser?.uid && (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
+                                            <Trash2 className="h-4 w-4"/>
+                                            <span className="sr-only">Revoke Admin</span>
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>Revoke admin rights for {admin.name}?</AlertDialogTitle>
+                                            <AlertDialogDescription>This will revoke all admin privileges for this user. They will become a regular customer.</AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                            <AlertDialogAction onClick={() => handleRevokeAdmin(admin.id, admin.name)}>Confirm</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            )}
                         </div>
                     </div>
                 ))

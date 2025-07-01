@@ -3,55 +3,53 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check for admin status
-    function isAdmin(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data.isAdmin == true;
+    
+    // Helper function to check for admin role
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole != null;
     }
 
-    // Products can be read by anyone, but only modified by admins.
+    function isMainAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
+    }
+
     match /products/{productId} {
       allow read: if true;
-      allow write: if isAdmin(request.auth.uid);
-
-      // Reviews can be written by any authenticated user, read by anyone.
+      allow write: if isAdmin();
+      
       match /reviews/{reviewId} {
-        allow read: if true;
+      	allow read: if true;
         allow create: if request.auth != null;
-        allow update, delete: if false; // Reviews are immutable
       }
     }
-    
-    // Categories can be read by anyone, but only modified by admins.
+
     match /categories/{categoryId} {
       allow read: if true;
-      allow write: if isAdmin(request.auth.uid);
+      allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (request.auth.uid == resource.data.userId || isAdmin());
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.userId;
+      allow update: if isAdmin();
+    }
+
+    match /settings/{settingId} {
+    	allow read: if true;
+      allow write: if isMainAdmin();
     }
     
-    // Orders can be created by any authenticated user for themselves.
-    // They can be read/updated by the user who owns it, or any admin.
-    match /orders/{orderId} {
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow read, update: if request.auth.uid == resource.data.userId || isAdmin(request.auth.uid);
-      allow delete: if isAdmin(request.auth.uid);
-    }
-
-    // User profiles can be created by anyone during signup.
-    // A user can read/write to their own profile. Admins can read/write any profile.
-    match /users/{userId} {
-      allow create: if request.auth.uid == userId;
-      allow read, write: if request.auth.uid == userId || isAdmin(request.auth.uid);
-    }
-
-    // Settings can only be read/written by admins.
-    match /settings/{docId} {
-        allow read, write: if isAdmin(request.auth.uid);
-    }
-
-    // Promo codes can be read by any authenticated user, but only managed by admins.
     match /promocodes/{codeId} {
-        allow read: if request.auth != null;
-        allow write: if isAdmin(request.auth.uid);
+    	allow read: if true;
+      allow write: if isMainAdmin();
+    }
+    
+    match /users/{userId} {
+      allow read: if request.auth.uid == userId || isMainAdmin();
+      allow create: if request.auth.uid == userId;
+      // A user can update their own profile. A main admin can update other users' roles, but cannot make them a main admin.
+      allow update: if request.auth.uid == userId ||
+      							 (isMainAdmin() && request.resource.data.adminRole != 'main');
     }
   }
 }
