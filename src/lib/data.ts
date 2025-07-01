@@ -6,7 +6,7 @@ import type { Product, Category, Order, Address, Review, DeliverySettings, Promo
 // == Helper Functions ==
 
 // Hardcoded list of admin emails
-const ADMIN_EMAILS = ['admin@example.com', 'admin@grocerease.com'];
+const ADMIN_EMAILS = ['admin@gmail.com'];
 
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     const data = doc.data()!;
