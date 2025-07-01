@@ -1,6 +1,8 @@
 "use client";
 
 import { useFormStatus } from "react-dom";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -26,6 +28,12 @@ function SubmitButton({ isEditing }: { isEditing: boolean }) {
 export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
   const isEditing = !!category;
   const { toast } = useToast();
+  const [previewUrl, setPreviewUrl] = useState<string | null>(category?.imageUrl || null);
+
+  useEffect(() => {
+    setPreviewUrl(category?.imageUrl || null);
+  }, [category]);
+
 
   const formAction = async (formData: FormData) => {
     const action = isEditing ? updateCategory : addCategory;
@@ -60,8 +68,29 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
       </div>
        <div className="space-y-2">
         <Label htmlFor="imageUrl">Image URL</Label>
-        <Input id="imageUrl" name="imageUrl" defaultValue={category?.imageUrl || 'https://placehold.co/100x100.png'} required />
+        <Input 
+          id="imageUrl" 
+          name="imageUrl" 
+          defaultValue={category?.imageUrl || 'https://placehold.co/100x100.png'} 
+          onChange={(e) => setPreviewUrl(e.target.value)}
+          required 
+        />
       </div>
+      {previewUrl && (
+        <div className="space-y-2">
+            <Label>Image Preview</Label>
+            <div className="relative h-24 w-24 rounded-md overflow-hidden border bg-muted">
+                <Image
+                    src={previewUrl}
+                    alt="Category preview"
+                    fill
+                    className="object-cover"
+                    onError={() => setPreviewUrl('https://placehold.co/100x100.png')}
+                    data-ai-hint="category image"
+                />
+            </div>
+        </div>
+      )}
       <SubmitButton isEditing={isEditing} />
     </form>
   );
