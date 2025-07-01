@@ -10,7 +10,7 @@ import { AuthGuard } from "@/components/common/AuthGuard";
 import { useAuth } from "@/context/AuthProvider";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getDeliverySettings, getPromoCodeByCode } from "@/lib/data";
+import { getDeliverySettings, getPromoCodeByCode, hasUserUsedPromo } from "@/lib/data";
 import type { DeliverySettings, PromoCode } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +23,7 @@ function CheckoutView() {
   const { cartItems, cartTotal } = useCart();
   const router = useRouter();
   const { toast } = useToast();
+  const { user } = useAuth();
   
   const [deliverySettings, setDeliverySettings] = useState<DeliverySettings>({ fee: 0, freeDeliveryThreshold: 0 });
   const [isLoading, setIsLoading] = useState(true);
@@ -50,8 +51,23 @@ function CheckoutView() {
 
   const handleApplyPromo = async () => {
     if (!promoInput) return;
+    if (!user) {
+        toast({ variant: "destructive", title: "Error", description: "You must be signed in to use a promo code." });
+        return;
+    }
+
     setIsApplyingPromo(true);
-    const promo = await getPromoCodeByCode(promoInput.toUpperCase());
+
+    const code = promoInput.toUpperCase();
+
+    const alreadyUsed = await hasUserUsedPromo(user.uid, code);
+    if (alreadyUsed) {
+        toast({ variant: "destructive", title: "Promo Code Error", description: "You have already used this promo code." });
+        setIsApplyingPromo(false);
+        return;
+    }
+
+    const promo = await getPromoCodeByCode(code);
     if (promo) {
       setAppliedPromo(promo);
       const discount = (cartTotal * promo.discountPercentage) / 100;

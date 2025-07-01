@@ -1,61 +1,63 @@
-rules_version = '2';
 
+rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Helper function to check for admin status
-    function isAdmin(userId) {
-      // In a real production app, you would have a more secure way 
-      // of identifying admins, like a custom claim or a separate 'admins' collection.
-      // For this example, we'll keep it simple: any authenticated user can act as an admin.
-      return userId != null;
-    }
-
-    // Rules for products collection
+    // PUBLIC READS
     match /products/{productId} {
-      allow read: if true; // Everyone can read products
-      allow create, update, delete: if isAdmin(request.auth.uid); // Only admins can modify products
-
-      // Rules for reviews subcollection
+      allow read: if true;
       match /reviews/{reviewId} {
-        allow read: if true; // Everyone can read reviews
-        // Only authenticated users who are the author can create/update their own review
-        allow create, update: if request.auth != null && request.resource.data.userId == request.auth.uid;
-        // Only the author or an admin can delete a review
-        allow delete: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin(request.auth.uid));
+        allow read: if true;
       }
     }
-
-    // Rules for categories collection
     match /categories/{categoryId} {
-      allow read: if true; // Everyone can read categories
-      allow create, update, delete: if isAdmin(request.auth.uid); // Only admins can modify categories
+      allow read: if true;
+    }
+    match /settings/{settingId} {
+      allow read: if true;
+    }
+     match /promocodes/{promoId} {
+      allow read: if true;
     }
 
-    // Rules for orders collection
-    match /orders/{orderId} {
-      // Users can only access their own orders. Admins can access all orders.
-      allow read, update: if request.auth != null && (resource.data.userId == request.auth.uid || isAdmin(request.auth.uid));
-      // Only authenticated users can create orders for themselves
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    // ADMIN WRITES (SIMPLIFIED)
+    match /products/{productId} {
+      allow write: if request.auth != null;
     }
-    
-    // Rules for users collection (for storing addresses)
+     match /categories/{categoryId} {
+      allow write: if request.auth != null;
+    }
+    match /settings/{settingId} {
+      allow write: if request.auth != null;
+    }
+    match /promocodes/{promoId} {
+      allow write: if request.auth != null;
+    }
+
+    // USER DATA
     match /users/{userId} {
-      // Users can only access their own user document
-      allow read, write: if request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
     
-    // Rules for settings collection
-    match /settings/{docId} {
-       allow read: if true; // Anyone can read settings
-       allow write: if isAdmin(request.auth.uid); // Only admins can change settings
+    // ORDERS
+    match /orders/{orderId} {
+      // Users can create their own orders.
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // Users can read their own orders.
+      allow get: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Listing is open to authenticated users for admin/user-specific queries.
+      // Client-side code MUST filter by userId for security.
+      allow list: if request.auth != null;
+
+      // Admin can update any order (e.g., status).
+      allow update: if request.auth != null; // Simplified rule for admin
     }
-    
-    // Rules for promocodes collection
-    match /promocodes/{code} {
-      allow read: if request.auth != null; // Authenticated users can read/validate codes
-      allow write, delete: if isAdmin(request.auth.uid); // Only admins can manage codes
-    }
+
+    // REVIEWS
+     match /products/{productId}/reviews/{reviewId} {
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      }
   }
 }

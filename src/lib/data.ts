@@ -373,3 +373,22 @@ export async function deletePromoCode(codeId: string): Promise<void> {
     throw error;
   }
 }
+
+export async function hasUserUsedPromo(userId: string, promoCode: string): Promise<boolean> {
+  if (!userId || !promoCode) return false;
+  try {
+    const ordersCol = collection(db, 'orders');
+    const q = query(
+      ordersCol, 
+      where('userId', '==', userId), 
+      where('promoCode', '==', promoCode), 
+      limit(1)
+    );
+    const snapshot = await getDocs(q);
+    return !snapshot.empty;
+  } catch (error) {
+    console.error("Error checking promo code usage:", error);
+    // Fail safe: if there's an error, assume they haven't used it to not block a valid user.
+    return false;
+  }
+}
