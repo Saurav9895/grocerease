@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings } from './types';
 
 // == Helper Functions ==
 function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
@@ -32,13 +32,19 @@ function docToCategory(doc: DocumentSnapshot<DocumentData>): Category {
 
 function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
     const data = doc.data()!;
+    const total = data.total;
+    const deliveryFee = data.deliveryFee || 0;
+    const subtotal = data.subtotal === undefined ? total - deliveryFee : data.subtotal;
+    
     return {
         id: doc.id,
         userId: data.userId,
         customerName: data.customerName,
         address: data.address,
         items: data.items,
-        total: data.total,
+        subtotal: subtotal,
+        deliveryFee: deliveryFee,
+        total: total,
         paymentMethod: data.paymentMethod,
         status: data.status,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
@@ -279,5 +285,29 @@ export async function addReviewAndUpdateProduct(
   } catch (error) {
     console.error("Transaction failed: ", error);
     throw new Error("Failed to submit review.");
+  }
+}
+
+export async function getDeliverySettings(): Promise<DeliverySettings> {
+  try {
+    const settingsRef = doc(db, 'settings', 'delivery');
+    const docSnap = await getDoc(settingsRef);
+    if (docSnap.exists()) {
+        return docSnap.data() as DeliverySettings;
+    }
+    return { fee: 0 }; // Default fee
+  } catch (error) {
+    console.error("Error fetching delivery settings:", error);
+    return { fee: 0 };
+  }
+}
+
+export async function updateDeliverySettings(settings: DeliverySettings): Promise<void> {
+  try {
+    const settingsRef = doc(db, 'settings', 'delivery');
+    await setDoc(settingsRef, settings);
+  } catch (error) {
+    console.error("Error updating delivery settings:", error);
+    throw error;
   }
 }

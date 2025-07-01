@@ -1,4 +1,5 @@
 
+
 export interface Product {
   id: string;
   name: string;
@@ -40,6 +41,8 @@ export interface Order {
   customerName: string;
   address: Address;
   items: CartItem[];
+  subtotal: number;
+  deliveryFee: number;
   total: number;
   paymentMethod: 'COD' | 'Online';
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
@@ -54,4 +57,8 @@ export interface Review {
   rating: number;
   comment: string;
   createdAt: Date;
+}
+
+export interface DeliverySettings {
+  fee: number;
 }

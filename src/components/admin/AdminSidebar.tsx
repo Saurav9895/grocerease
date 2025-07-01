@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -12,7 +13,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home } from "lucide-react";
+import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home, Settings } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -93,6 +94,18 @@ export function AdminSidebar() {
               <Link href="/admin/orders">
                 <ShoppingCart />
                 <span>Orders</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/admin/settings")}
+              tooltip="Settings"
+            >
+              <Link href="/admin/settings">
+                <Settings />
+                <span>Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

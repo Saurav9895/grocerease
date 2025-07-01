@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -143,6 +144,15 @@ function OrderDetailPageContent() {
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Payment:</span>
                 <span className="font-medium">{order.paymentMethod}</span>
+              </div>
+              <Separator />
+               <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal:</span>
+                <span className="font-medium">${order.subtotal.toFixed(2)}</span>
+              </div>
+               <div className="flex justify-between">
+                <span className="text-muted-foreground">Delivery:</span>
+                <span className="font-medium">${order.deliveryFee.toFixed(2)}</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">

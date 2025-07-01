@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -33,7 +34,11 @@ const initialAddressState: Address = {
   name: '', phone: '', street: '', city: '', state: '', zip: '', country: ''
 };
 
-export function CheckoutForm() {
+interface CheckoutFormProps {
+  deliveryFee: number;
+}
+
+export function CheckoutForm({ deliveryFee }: CheckoutFormProps) {
   const { cartItems, cartTotal, clearCart } = useCart();
   const { toast } = useToast();
   const router = useRouter();
@@ -101,13 +106,15 @@ export function CheckoutForm() {
       if (saveAddress && selectedAddressId === 'new') {
         await saveUserAddress(user.uid, validatedFields.data);
       }
-
+      
       const newOrder = {
         userId: user.uid,
         customerName: validatedFields.data.name,
         address: validatedFields.data,
         items: cartItems.map(({ id, name, price, quantity, imageUrl }) => ({ id, name, price, quantity, imageUrl })),
-        total: cartTotal,
+        subtotal: cartTotal,
+        deliveryFee: deliveryFee,
+        total: cartTotal + deliveryFee,
         paymentMethod: paymentMethod as 'COD' | 'Online',
         status: 'Pending' as const,
         createdAt: serverTimestamp(),

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -18,6 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowLeft, User, Home, CreditCard, Phone } from "lucide-react";
 import { format } from "date-fns";
+import { Separator } from "@/components/ui/separator";
 
 type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 const orderStatuses: OrderStatus[] = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
@@ -165,6 +167,16 @@ export default function OrderDetailPage() {
                 <span>Status:</span>
                 <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
               </div>
+              <Separator />
+               <div className="flex justify-between">
+                <span>Subtotal:</span>
+                <span>${order.subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery:</span>
+                <span>${order.deliveryFee.toFixed(2)}</span>
+              </div>
+              <Separator />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
                 <span>${order.total.toFixed(2)}</span>

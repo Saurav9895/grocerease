@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -8,17 +9,32 @@ import Image from "next/image";
 import { AuthGuard } from "@/components/common/AuthGuard";
 import { useAuth } from "@/context/AuthProvider";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { getDeliverySettings } from "@/lib/data";
+import type { DeliverySettings } from "@/lib/types";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function CheckoutView() {
   const { cartItems, cartTotal } = useCart();
   const router = useRouter();
+  const [deliverySettings, setDeliverySettings] = useState<DeliverySettings>({ fee: 0 });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (cartItems.length === 0) {
       router.replace("/");
     }
   }, [cartItems, router]);
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      setIsLoading(true);
+      const settings = await getDeliverySettings();
+      setDeliverySettings(settings);
+      setIsLoading(false);
+    }
+    fetchSettings();
+  }, []);
 
   if (cartItems.length === 0) {
     return (
@@ -30,13 +46,15 @@ function CheckoutView() {
       </div>
     );
   }
+  
+  const finalTotal = cartTotal + deliverySettings.fee;
 
   return (
     <div className="container py-12">
       <h1 className="text-3xl font-bold text-center mb-8">Checkout</h1>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
         <div>
-          <CheckoutForm />
+          <CheckoutForm deliveryFee={deliverySettings.fee} />
         </div>
         <div className="order-first lg:order-last">
           <Card>
@@ -63,9 +81,18 @@ function CheckoutView() {
                 </div>
               ))}
               <Separator />
+              <div className="flex justify-between text-muted-foreground">
+                <p>Subtotal</p>
+                <p>${cartTotal.toFixed(2)}</p>
+              </div>
+              <div className="flex justify-between text-muted-foreground">
+                <p>Delivery Fee</p>
+                {isLoading ? <Skeleton className="h-5 w-12" /> : <p>${deliverySettings.fee.toFixed(2)}</p>}
+              </div>
+              <Separator />
               <div className="flex justify-between font-semibold text-lg">
                 <p>Total</p>
-                <p>${cartTotal.toFixed(2)}</p>
+                 {isLoading ? <Skeleton className="h-6 w-20" /> : <p>${finalTotal.toFixed(2)}</p>}
               </div>
             </CardContent>
           </Card>
