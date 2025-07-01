@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from 'next/link';
@@ -45,7 +46,7 @@ export function CartSheet({ isOpen, onOpenChange }: CartSheetProps) {
               <div className="w-full space-y-4">
                 <div className="flex justify-between text-lg font-semibold">
                   <span>Subtotal</span>
-                  <span>${cartTotal.toFixed(2)}</span>
+                  <span>Rs{cartTotal.toFixed(2)}</span>
                 </div>
                 <SheetClose asChild>
                   <Button asChild className="w-full">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { Order } from "@/lib/types";
@@ -106,7 +107,7 @@ function UserOrdersPage() {
                                       </Link>
                                     </TableCell>
                                     <TableCell>{format(order.createdAt, 'PP')}</TableCell>
-                                    <TableCell>${order.total.toFixed(2)}</TableCell>
+                                    <TableCell>Rs{order.total.toFixed(2)}</TableCell>
                                     <TableCell>
                                         <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                                     </TableCell>

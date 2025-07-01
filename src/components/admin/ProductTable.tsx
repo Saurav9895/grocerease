@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from "react";
@@ -112,7 +113,7 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
                   </TableCell>
                   <TableCell className="font-medium">{product.name}</TableCell>
                   <TableCell><Badge variant="outline">{categoryMap.get(product.category) || product.category}</Badge></TableCell>
-                  <TableCell className="text-right">${product.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right">Rs{product.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">{product.stock}</TableCell>
                   <TableCell>
                     <DropdownMenu>

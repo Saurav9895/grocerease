@@ -164,7 +164,7 @@ export default function ProductDetailPage() {
             {renderStars(product.rating)}
             <span className="text-muted-foreground text-sm hover:underline">({product.reviewCount} reviews)</span>
           </div>
-          <p className="text-3xl font-semibold text-primary">${product.price.toFixed(2)}</p>
+          <p className="text-3xl font-semibold text-primary">Rs{product.price.toFixed(2)}</p>
           <div className="space-y-2">
             <h2 className="text-lg font-semibold">Description</h2>
             <p className="text-muted-foreground">{product.description}</p>

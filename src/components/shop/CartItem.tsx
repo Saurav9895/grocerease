@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -27,7 +28,7 @@ export function CartItem({ item }: CartItemProps) {
       </div>
       <div className="flex-1">
         <p className="font-medium">{item.name}</p>
-        <p className="text-sm text-muted-foreground">${item.price.toFixed(2)}</p>
+        <p className="text-sm text-muted-foreground">Rs{item.price.toFixed(2)}</p>
       </div>
       <div className="flex items-center space-x-2">
         <Button
@@ -54,7 +55,7 @@ export function CartItem({ item }: CartItemProps) {
         </Button>
       </div>
       <div>
-        <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+        <p className="font-medium">Rs{(item.price * item.quantity).toFixed(2)}</p>
       </div>
       <Button variant="ghost" size="icon" onClick={() => removeFromCart(item.id)}>
         <Trash2 className="h-4 w-4 text-destructive" />

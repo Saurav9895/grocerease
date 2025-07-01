@@ -118,7 +118,7 @@ function OrderDetailPageContent() {
                       </TableCell>
                       <TableCell className="font-medium">{item.name}</TableCell>
                       <TableCell>x{item.quantity}</TableCell>
-                      <TableCell className="text-right">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -148,16 +148,16 @@ function OrderDetailPageContent() {
               <Separator />
                <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">${order.subtotal.toFixed(2)}</span>
+                <span className="font-medium">Rs{order.subtotal.toFixed(2)}</span>
               </div>
                <div className="flex justify-between">
                 <span className="text-muted-foreground">Delivery:</span>
-                <span className="font-medium">${order.deliveryFee.toFixed(2)}</span>
+                <span className="font-medium">Rs{order.deliveryFee.toFixed(2)}</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>${order.total.toFixed(2)}</span>
+                <span>Rs{order.total.toFixed(2)}</span>
               </div>
             </CardContent>
           </Card>

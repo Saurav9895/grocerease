@@ -143,8 +143,8 @@ export default function OrderDetailPage() {
                       </TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell>{item.quantity}</TableCell>
-                      <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${(item.price * item.quantity).toFixed(2)}</TableCell>
+                      <TableCell className="text-right">Rs{item.price.toFixed(2)}</TableCell>
+                      <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -170,16 +170,16 @@ export default function OrderDetailPage() {
               <Separator />
                <div className="flex justify-between">
                 <span>Subtotal:</span>
-                <span>${order.subtotal.toFixed(2)}</span>
+                <span>Rs{order.subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Delivery:</span>
-                <span>${order.deliveryFee.toFixed(2)}</span>
+                <span>Rs{order.deliveryFee.toFixed(2)}</span>
               </div>
               <Separator />
               <div className="flex justify-between font-bold text-lg">
                 <span>Total:</span>
-                <span>${order.total.toFixed(2)}</span>
+                <span>Rs{order.total.toFixed(2)}</span>
               </div>
             </CardContent>
             <CardFooter className="flex flex-col gap-2 items-stretch">

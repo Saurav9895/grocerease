@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -89,7 +90,7 @@ export default function AdminDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">Rs{totalRevenue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">+20.1% (Mock)</p>
           </CardContent>
         </Card>
@@ -150,7 +151,7 @@ export default function AdminDashboardPage() {
                     </TableCell>
                     <TableCell>{order.customerName}</TableCell>
                     <TableCell>{format(order.createdAt, 'PPp')}</TableCell>
-                    <TableCell>${order.total.toFixed(2)}</TableCell>
+                    <TableCell>Rs{order.total.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                     </TableCell>

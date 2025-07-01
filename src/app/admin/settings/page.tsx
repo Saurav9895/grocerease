@@ -147,14 +147,14 @@ export default function AdminSettingsPage() {
                     <div className="grid md:grid-cols-2 gap-8">
                       <FormField control={deliveryForm.control} name="fee" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Standard Delivery Fee ($)</FormLabel>
+                          <FormLabel>Standard Delivery Fee (Rs)</FormLabel>
                           <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                           <FormMessage />
                         </FormItem>
                       )} />
                       <FormField control={deliveryForm.control} name="freeDeliveryThreshold" render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Free Delivery Threshold ($)</FormLabel>
+                          <FormLabel>Free Delivery Threshold (Rs)</FormLabel>
                           <FormControl><Input type="number" step="0.01" {...field} /></FormControl>
                           <FormDescription>Minimum order total for free delivery. Set to 0 to disable.</FormDescription>
                           <FormMessage />

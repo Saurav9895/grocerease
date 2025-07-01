@@ -121,7 +121,7 @@ export default function ProductsPage() {
                 </div>
                 
                 <div className="md:col-span-1 space-y-2">
-                    <Label htmlFor="price-range" className="block mb-4">Price Range: ${priceRange[0]} - ${priceRange[1]}</Label>
+                    <Label htmlFor="price-range" className="block mb-4">Price Range: Rs{priceRange[0]} - Rs{priceRange[1]}</Label>
                     <Slider
                         id="price-range"
                         min={0}

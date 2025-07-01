@@ -114,20 +114,20 @@ function CheckoutView() {
                       <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                     </div>
                   </div>
-                  <p className="font-medium">${(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-medium">Rs{(item.price * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
               <Separator />
-              <div className="flex justify-between text-muted-foreground"><p>Subtotal</p><p>${cartTotal.toFixed(2)}</p></div>
-              <div className="flex justify-between text-muted-foreground"><p>Delivery Fee</p>{isLoading ? <Skeleton className="h-5 w-12" /> : <p>${appliedDeliveryFee.toFixed(2)}</p>}</div>
+              <div className="flex justify-between text-muted-foreground"><p>Subtotal</p><p>Rs{cartTotal.toFixed(2)}</p></div>
+              <div className="flex justify-between text-muted-foreground"><p>Delivery Fee</p>{isLoading ? <Skeleton className="h-5 w-12" /> : <p>Rs{appliedDeliveryFee.toFixed(2)}</p>}</div>
                {appliedDeliveryFee === 0 && deliverySettings.fee > 0 && cartTotal > 0 && (
                 <div className="flex justify-end"><Badge variant="secondary" className="bg-green-100 text-green-800">Free delivery applied!</Badge></div>
               )}
                {appliedPromo && (
-                <div className="flex justify-between text-green-600"><p>Discount ({appliedPromo.id})</p><p>-${discountAmount.toFixed(2)}</p></div>
+                <div className="flex justify-between text-green-600"><p>Discount ({appliedPromo.id})</p><p>-Rs{discountAmount.toFixed(2)}</p></div>
               )}
               <Separator />
-              <div className="flex justify-between font-semibold text-lg"><p>Total</p>{isLoading ? <Skeleton className="h-6 w-20" /> : <p>${finalTotal.toFixed(2)}</p>}</div>
+              <div className="flex justify-between font-semibold text-lg"><p>Total</p>{isLoading ? <Skeleton className="h-6 w-20" /> : <p>Rs{finalTotal.toFixed(2)}</p>}</div>
             </CardContent>
             <CardFooter className="flex-col gap-2 items-start bg-muted/50 p-4">
                 <Label htmlFor="promo" className="text-sm font-medium">Have a promo code?</Label>
