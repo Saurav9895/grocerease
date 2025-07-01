@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { getProducts, getCategories } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -8,8 +9,9 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button, buttonVariants } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Search } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { Input } from '@/components/ui/input';
 
 interface CategoryCardProps {
   category: Category;
@@ -31,6 +33,15 @@ export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?q=${searchQuery.trim()}`);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,7 +62,7 @@ export default function Home() {
   return (
     <div className="container py-8">
       <section className="mb-12">
-        <div className="relative rounded-2xl overflow-hidden bg-gray-100">
+        <div className="relative rounded-2xl overflow-hidden bg-gray-100 h-[400px] md:h-[350px]">
           <Image
             src="https://img.freepik.com/free-vector/grocery-store-sale-banner-template_23-2151089846.jpg"
             alt="Hero background"
@@ -62,15 +73,29 @@ export default function Home() {
             priority
           />
           <div className="absolute inset-0 bg-black/20" />
-          <div className="absolute top-1/2 left-16 -translate-y-1/2">
-            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg max-w-md">
-              <h1 className="text-4xl font-extrabold tracking-tight text-primary font-headline">
+          <div className="absolute top-1/2 left-1/2 w-11/12 -translate-x-1/2 -translate-y-1/2 md:left-16 md:w-auto md:translate-x-0">
+            <div className="bg-white/80 backdrop-blur-sm p-6 rounded-lg max-w-md mx-auto md:mx-0 md:p-8">
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight text-primary font-headline">
                 Fresh Groceries, Delivered Daily
               </h1>
               <p className="mt-2 text-lg text-muted-foreground">
                 Quality ingredients, unbeatable prices. Your one-stop shop for all things fresh.
               </p>
-              <Button asChild size="lg" className="mt-6">
+              
+              <form onSubmit={handleSearchSubmit} className="relative mt-6 md:hidden">
+                <Input 
+                  placeholder="Search products..." 
+                  className="h-12 pr-12 text-base"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+                <Button type="submit" size="icon" className="absolute right-1 top-1 h-10 w-10">
+                  <Search className="h-5 w-5" />
+                  <span className="sr-only">Search</span>
+                </Button>
+              </form>
+
+              <Button asChild size="lg" className="mt-6 hidden md:inline-flex">
                 <Link href="/products">Shop Now</Link>
               </Button>
             </div>

@@ -265,40 +265,6 @@ export function ShopHeader() {
                         <span className="font-bold">GrocerEase</span>
                     </Link>
 
-                    <div className="mb-4">
-                        <form onSubmit={handleSearchSubmit} className="relative w-full">
-                            <div className="relative w-full">
-                                <Input 
-                                    placeholder="Search products..." 
-                                    className="pr-10"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                <button type="submit" className="absolute right-0 top-0 h-full px-3 text-muted-foreground">
-                                  <Search className="h-5 w-5" />
-                                </button>
-                            </div>
-                            {isResultsVisible && (
-                            <div className="absolute top-full mt-2 w-full bg-card border rounded-md shadow-lg z-[51]">
-                                <ul className="py-1">
-                                {searchResults.map(product => (
-                                    <li key={product.id}>
-                                    <Link 
-                                        href={`/product/${product.id}`} 
-                                        className="flex items-center gap-3 px-3 py-2 hover:bg-accent"
-                                        onClick={handleResultClick}
-                                    >
-                                        <Image src={product.imageUrl} alt={product.name} width={32} height={32} className="rounded-sm object-cover" data-ai-hint={`${product.category.replace(/-/g, ' ')}`} />
-                                        <span className="text-sm font-medium">{product.name}</span>
-                                    </Link>
-                                    </li>
-                                ))}
-                                </ul>
-                            </div>
-                            )}
-                        </form>
-                    </div>
-
                     <nav className="flex flex-col space-y-2">
                         {navLinks.map((link) => (
                         (!link.auth || user) && (
