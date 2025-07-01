@@ -36,6 +36,7 @@ export function ShopHeader() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/#categories", label: "Categories" },
+    { href: "/products", label: "Products" },
     { href: "/orders", label: "My Orders", auth: true },
     { href: "/admin", label: "Admin", auth: true },
   ];
@@ -57,11 +58,13 @@ export function ShopHeader() {
   return (
     <>
       <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur-sm">
-        <div className="container flex h-16 items-center">
-          <div className="mr-4 md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+        <div className="container flex h-16 items-center justify-between">
+          
+          {/* Left Part: Mobile Menu + Logo */}
+          <div className="flex items-center gap-2">
+             <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon">
+                 <Button variant="ghost" size="icon" className="md:hidden">
                   <Menu className="h-5 w-5" />
                   <span className="sr-only">Open menu</span>
                 </Button>
@@ -90,22 +93,22 @@ export function ShopHeader() {
                 </nav>
               </SheetContent>
             </Sheet>
+            <Link href="/" className="flex items-center space-x-2">
+              <Leaf className="h-6 w-6 text-primary" />
+              <span className="font-bold text-lg">GrocerEase</span>
+            </Link>
           </div>
 
-          <Link href="/" className="flex items-center space-x-2">
-            <Leaf className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg">GrocerEase</span>
-          </Link>
-
-          <nav className="hidden md:flex items-center space-x-6 text-sm font-medium ml-6">
-            {navLinks.map((link) => (
+          {/* Center Part: Main Navigation */}
+          <nav className="hidden md:flex items-center gap-6 text-sm">
+             {navLinks.map((link) => (
               (!link.auth || user) && (
                 <Link
                   key={link.href}
                   href={link.href}
                   className={cn(
                     "transition-colors hover:text-primary",
-                    pathname === link.href || (link.href.startsWith("/#") && pathname === "/")
+                    (pathname === link.href || (link.href === '/products' && pathname.startsWith('/products')))
                       ? "text-primary font-medium"
                       : "text-muted-foreground"
                   )}
@@ -116,7 +119,8 @@ export function ShopHeader() {
             ))}
           </nav>
 
-          <div className="flex flex-1 items-center justify-end">
+          {/* Right Part: User Actions + Cart */}
+          <div className="flex items-center justify-end">
             <nav className="flex items-center gap-2 md:gap-4">
               {loading ? (
                 <Skeleton className="h-8 w-8 rounded-full" />
