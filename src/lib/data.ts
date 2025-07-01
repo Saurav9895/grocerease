@@ -22,6 +22,8 @@ function docToCategory(doc: QueryDocumentSnapshot<DocumentData>): Category {
     return {
         id: doc.id,
         name: data.name,
+        description: data.description || '',
+        imageUrl: data.imageUrl || 'https://placehold.co/100x100.png',
     };
 }
 

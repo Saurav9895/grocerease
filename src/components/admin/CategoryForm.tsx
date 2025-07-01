@@ -4,6 +4,7 @@ import { useFormStatus } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/lib/types";
 import { addCategory, updateCategory } from "@/lib/actions";
 import { useToast } from "@/hooks/use-toast";
@@ -52,6 +53,14 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
       <div className="space-y-2">
         <Label htmlFor="name">Category Name</Label>
         <Input id="name" name="name" defaultValue={category?.name} required />
+      </div>
+       <div className="space-y-2">
+        <Label htmlFor="description">Description</Label>
+        <Textarea id="description" name="description" defaultValue={category?.description} placeholder="Optional description..." />
+      </div>
+       <div className="space-y-2">
+        <Label htmlFor="imageUrl">Image URL</Label>
+        <Input id="imageUrl" name="imageUrl" defaultValue={category?.imageUrl || 'https://placehold.co/100x100.png'} required />
       </div>
       <SubmitButton isEditing={isEditing} />
     </form>

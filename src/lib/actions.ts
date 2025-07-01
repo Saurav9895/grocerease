@@ -157,7 +157,10 @@ export async function deleteProduct(productId: string) {
 const categorySchema = z.object({
   id: z.string().optional(),
   name: z.string().min(2, "Name must be at least 2 characters."),
+  description: z.string().optional(),
+  imageUrl: z.string().url("Please enter a valid image URL."),
 });
+
 
 export async function addCategory(formData: FormData) {
   const rawFormData = Object.fromEntries(formData.entries());
@@ -173,6 +176,7 @@ export async function addCategory(formData: FormData) {
   try {
     await addDoc(collection(db, "categories"), validatedFields.data);
     revalidatePath("/admin/categories");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error adding category:", error);
@@ -200,6 +204,7 @@ export async function updateCategory(formData: FormData) {
     await updateDoc(categoryRef, categoryData);
     
     revalidatePath("/admin/categories");
+    revalidatePath("/");
 
     return { success: true };
   } catch (error) {
@@ -218,6 +223,7 @@ export async function deleteCategory(categoryId: string) {
   try {
     await deleteDoc(doc(db, "categories", categoryId));
     revalidatePath("/admin/categories");
+    revalidatePath("/");
     return { success: true };
   } catch (error) {
     console.error("Error deleting category:", error);

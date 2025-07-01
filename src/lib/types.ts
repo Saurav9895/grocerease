@@ -12,6 +12,8 @@ export interface Product {
 export interface Category {
   id: string;
   name: string;
+  description: string;
+  imageUrl: string;
 }
 
 export interface CartItem extends Product {
