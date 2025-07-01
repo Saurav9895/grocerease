@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { List, LogOut, Settings, Phone, ShieldCheck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddressManager } from "@/components/shop/AddressManager";
+import { AdminManager } from "@/components/admin/AdminManager";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 import { useEffect, useState } from "react";
@@ -19,20 +20,18 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function ProfilePageContent() {
-    const { user, signOut } = useAuth();
+    const { user, profile, signOut } = useAuth();
     const router = useRouter();
     const { toast } = useToast();
-    const [profile, setProfile] = useState<UserProfile | null>(null);
     const [isLoadingProfile, setIsLoadingProfile] = useState(true);
 
+    // This local profile state is needed if you want to refresh data on this page specifically
+    // but for now, we rely on the global profile from useAuth()
     useEffect(() => {
-        if (user) {
-            setIsLoadingProfile(true);
-            getUserProfile(user.uid)
-                .then(setProfile)
-                .finally(() => setIsLoadingProfile(false));
+        if (!user || profile) {
+            setIsLoadingProfile(false);
         }
-    }, [user]);
+    }, [user, profile]);
 
     const getInitials = (nameOrEmail: string | null | undefined) => {
         if (!nameOrEmail) return "U";
@@ -87,7 +86,7 @@ function ProfilePageContent() {
             <h1 className="text-3xl font-bold mb-8">My Account</h1>
             <div className="grid lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-1 flex flex-col gap-8">
-                    {isLoadingProfile || !user ? <ProfileSkeleton /> : (
+                    {isLoadingProfile || !user || !profile ? <ProfileSkeleton /> : (
                         <Card>
                             <CardHeader className="items-center text-center">
                                 <Avatar className="h-24 w-24 mb-4">
@@ -96,7 +95,12 @@ function ProfilePageContent() {
                                 </Avatar>
                                 <CardTitle className="flex items-center gap-2">
                                     {profile?.name || "Valued Customer"}
-                                    {profile?.isAdmin && <Badge variant="destructive" className="flex items-center gap-1"><ShieldCheck className="h-3 w-3" /> Admin</Badge>}
+                                    {profile?.adminRole && (
+                                      <Badge variant="destructive" className="flex items-center gap-1">
+                                        <ShieldCheck className="h-3 w-3" />
+                                        {profile.adminRole === 'full' ? 'Full Admin' : 'Restricted Admin'}
+                                      </Badge>
+                                    )}
                                 </CardTitle>
                                 <CardDescription>{profile?.email}</CardDescription>
                             </CardHeader>
@@ -152,6 +156,7 @@ function ProfilePageContent() {
                         </CardContent>
                     </Card>
                     <AddressManager />
+                    {profile?.adminRole === 'full' && <AdminManager />}
                 </div>
             </div>
         </div>

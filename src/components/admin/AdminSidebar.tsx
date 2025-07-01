@@ -21,7 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "../ui/avatar";
 
 export function AdminSidebar() {
   const pathname = usePathname();
-  const { user, signOut } = useAuth();
+  const { user, profile, signOut } = useAuth();
   const router = useRouter();
   const { toast } = useToast();
 
@@ -97,18 +97,20 @@ export function AdminSidebar() {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/settings")}
-              tooltip="Settings"
-            >
-              <Link href="/admin/settings">
-                <Settings />
-                <span>Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+           {profile?.adminRole === 'full' && (
+             <SidebarMenuItem>
+              <SidebarMenuButton
+                asChild
+                isActive={pathname.startsWith("/admin/settings")}
+                tooltip="Settings"
+              >
+                <Link href="/admin/settings">
+                  <Settings />
+                  <span>Settings</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+           )}
         </SidebarMenu>
         <SidebarSeparator />
         <SidebarMenu>

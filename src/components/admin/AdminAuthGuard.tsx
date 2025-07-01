@@ -20,15 +20,15 @@ export function AdminAuthGuard({ children }: { children: React.ReactNode }) {
             return;
         }
         
-        // After auth is loaded, if profile is available but user is not admin
-        if (profile && !profile.isAdmin) {
+        // After auth is loaded, if profile is available but user is not an admin
+        if (profile && !profile.adminRole) {
              router.replace('/'); // Redirect non-admins to homepage
         }
 
     }, [user, profile, loading, router]);
 
     // Show skeleton while loading auth or profile, or if the user is not an admin yet (profile is still loading or they are being redirected)
-    if (loading || !profile || !profile.isAdmin) {
+    if (loading || !profile || !profile.adminRole) {
         return (
           <SidebarProvider>
             <div className="flex min-h-screen">

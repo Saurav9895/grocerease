@@ -3,56 +3,59 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ===== Default Deny =====
-    // match /{document=**} {
-    //   allow read, write: if false;
-    // }
-
-    // ===== Admin Access =====
-    // Admins can read and write all documents.
-    match /{document=**} {
-      allow read, write: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
-    }
     
-    // ===== User-specific Rules =====
-    // Users can manage their own profile.
+    // Helper Functions
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole != null;
+    }
+
+    function isFullAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'full';
+    }
+
+    // User Profile Rules
     match /users/{userId} {
-      allow read, update, delete: if request.auth != null && request.auth.uid == userId;
-      allow create: if request.auth != null;
+      // Any authenticated user can create their own profile document
+      allow create: if isOwner(userId);
+      
+      // Users can read their own profile. Full admins can read any profile.
+      allow read: if isOwner(userId) || isFullAdmin();
+
+      // Users can update their own profile (but not change their admin role).
+      // Full admins can update any user's profile (including changing roles).
+      allow update: if (isOwner(userId) && !('adminRole' in request.resource.data)) || isFullAdmin();
     }
 
-    // Users can read their own orders. Admins can read all orders.
+    // Product and Category Rules (Publicly readable, admin writable)
+    match /{collection}/{docId} 
+    where collection in ['products', 'categories', 'settings', 'promocodes'] {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Order Rules
     match /orders/{orderId} {
-      allow read: if request.auth != null && (resource.data.userId == request.auth.uid || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true);
-      allow create: if request.auth != null; // Any authenticated user can create an order.
+      // Users can create their own orders
+      allow create: if isOwner(resource.data.userId);
+      
+      // Users can read their own orders. Admins can read all orders.
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      
+      // Admins can update order status. Users cannot.
+      allow update: if isAdmin();
     }
     
-    // Logged-in users can create reviews.
+    // Review Rules
     match /products/{productId}/reviews/{reviewId} {
-        allow create: if request.auth != null;
-    }
-
-    // ===== Public Read Rules =====
-    // Anyone (including unauthenticated users) can read products, categories, reviews, and settings.
-    match /products/{productId} {
+      // Anyone can read reviews
       allow read: if true;
-    }
 
-    match /products/{productId}/reviews/{reviewId} {
-      allow read: if true;
-    }
-    
-    match /categories/{categoryId} {
-        allow read: if true;
-    }
-    
-    match /settings/{settingId} {
-        allow read: if true;
-    }
-    
-    match /promocodes/{promoId} {
-        allow read: if true;
+      // Only authenticated users can create reviews
+      allow create: if request.auth != null && isOwner(request.resource.data.userId);
     }
   }
 }
