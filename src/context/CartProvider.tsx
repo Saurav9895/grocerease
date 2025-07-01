@@ -17,10 +17,30 @@ export const CartContext = createContext<CartContextType | undefined>(undefined)
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // Load cart from localStorage on initial client-side mount
   useEffect(() => {
-    // In a real app, you might persist cart to localStorage
+    try {
+      const storedCart = localStorage.getItem('cartItems');
+      if (storedCart) {
+        setCartItems(JSON.parse(storedCart));
+      }
+    } catch (error) {
+      console.error("Failed to parse cart items from localStorage", error);
+      // Clear corrupted data
+      localStorage.removeItem('cartItems');
+    } finally {
+        setIsInitialLoad(false);
+    }
   }, []);
+
+  // Save cart to localStorage whenever it changes, but not on initial load
+  useEffect(() => {
+    if (!isInitialLoad) {
+        localStorage.setItem('cartItems', JSON.stringify(cartItems));
+    }
+  }, [cartItems, isInitialLoad]);
 
   const addToCart = (item: CartItem) => {
     setCartItems(prevItems => {
