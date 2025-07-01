@@ -7,6 +7,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { getDeliverySettings, updateDeliverySettings, getPromoCodes, createPromoCode, deletePromoCode } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/context/AuthProvider";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -41,7 +42,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DeliverySettings, PromoCode } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Trash2 } from "lucide-react";
+import { Trash2, AlertTriangle } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 const settingsSchema = z.object({
@@ -55,6 +56,7 @@ const promoCodeSchema = z.object({
 })
 
 export default function AdminSettingsPage() {
+  const { profile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
@@ -88,9 +90,11 @@ export default function AdminSettingsPage() {
   }
 
   useEffect(() => {
-    fetchSettings();
-    fetchPromoCodes();
-  }, []);
+    if (profile?.adminRole === 'main') {
+      fetchSettings();
+      fetchPromoCodes();
+    }
+  }, [profile]);
 
   const onDeliverySubmit = async (values: z.infer<typeof settingsSchema>) => {
     try {
@@ -123,6 +127,26 @@ export default function AdminSettingsPage() {
         console.error("Error deleting promo code:", error);
         toast({ variant: "destructive", title: "Deletion Failed" });
     }
+  }
+  
+  if (profile?.adminRole !== 'main') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Card className="max-w-md text-center p-8">
+          <CardHeader>
+            <CardTitle className="flex items-center justify-center gap-2">
+              <AlertTriangle className="text-destructive" /> Access Denied
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p>You do not have permission to view or manage store settings.</p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Please contact the main administrator if you believe this is an error.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

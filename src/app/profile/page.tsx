@@ -15,6 +15,8 @@ import { auth } from "@/lib/firebase";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AdminManager } from "@/components/admin/AdminManager";
+import { Separator } from "@/components/ui/separator";
 
 function ProfilePageContent() {
     const { user, profile, signOut } = useAuth();
@@ -92,10 +94,10 @@ function ProfilePageContent() {
                                 </Avatar>
                                 <CardTitle className="flex items-center gap-2">
                                     {profile?.name || "Valued Customer"}
-                                    {profile?.isAdmin && (
-                                      <Badge variant="destructive" className="flex items-center gap-1">
+                                    {profile?.adminRole && (
+                                      <Badge variant={profile.adminRole === 'main' ? 'destructive' : 'secondary'} className="flex items-center gap-1">
                                         <ShieldCheck className="h-3 w-3" />
-                                        Admin
+                                        {profile.adminRole === 'main' ? 'Main Admin' : 'Admin'}
                                       </Badge>
                                     )}
                                 </CardTitle>
@@ -153,6 +155,13 @@ function ProfilePageContent() {
                         </CardContent>
                     </Card>
                     <AddressManager />
+
+                    {profile?.adminRole === 'main' && (
+                        <>
+                            <Separator />
+                            <AdminManager />
+                        </>
+                    )}
                 </div>
             </div>
         </div>
