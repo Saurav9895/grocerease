@@ -108,7 +108,7 @@ export default function Home() {
                     <Link href="#products" key={category.id} onClick={() => handleCategoryChange(category.id)} className="cursor-pointer group block text-center">
                         <div className="aspect-square relative rounded-lg overflow-hidden border bg-card shadow-sm transition-all duration-300 hover:shadow-lg">
                             <Image 
-                                src={`https://placehold.co/300x300.png`} 
+                                src={category.imageUrl} 
                                 alt={category.name} 
                                 fill 
                                 className="object-cover transition-transform duration-300 group-hover:scale-105"
