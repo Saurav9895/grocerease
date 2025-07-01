@@ -243,50 +243,6 @@ export function ShopHeader() {
               )}
               <span className="sr-only">Shopping Cart</span>
             </Button>
-            
-            <div className="md:hidden">
-              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
-                   <Button variant="ghost" size="icon">
-                    <Menu className="h-6 w-6" />
-                    <span className="sr-only">Open menu</span>
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[280px] p-0">
-                   <SheetHeader>
-                    <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
-                    <SheetDescription className="sr-only">
-                      Links to navigate the GrocerEase store.
-                    </SheetDescription>
-                  </SheetHeader>
-                  <div className="p-6">
-                    <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center space-x-2 mb-6">
-                        <Leaf className="h-6 w-6 text-primary" />
-                        <span className="font-bold">GrocerEase</span>
-                    </Link>
-
-                    <nav className="flex flex-col space-y-2">
-                        {navLinks.map((link) => (
-                        (!link.auth || user) && (
-                            <SheetClose asChild key={link.href}>
-                            <Link
-                                href={link.href}
-                                className={cn(
-                                "text-muted-foreground transition-colors hover:text-foreground py-2 text-base",
-                                pathname === link.href && "text-foreground font-semibold"
-                                )}
-                            >
-                                {link.label}
-                            </Link>
-                            </SheetClose>
-                        )
-                        ))}
-                    </nav>
-                  </div>
-                </SheetContent>
-              </Sheet>
-            </div>
-
           </div>
         </div>
       </header>
