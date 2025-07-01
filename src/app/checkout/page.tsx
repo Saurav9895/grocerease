@@ -35,7 +35,7 @@ function CheckoutView() {
 
   useEffect(() => {
     if (cartItems.length === 0) {
-      router.replace("/");
+      router.replace("/orders");
     }
   }, [cartItems, router]);
 

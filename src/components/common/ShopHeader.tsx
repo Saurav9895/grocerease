@@ -2,7 +2,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Leaf, User, LogOut, Menu } from "lucide-react";
+import { ShoppingCart, Leaf, User, LogOut, Menu, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "@/components/shop/CartSheet";
 import { useCart } from "@/hooks/use-cart";
@@ -38,7 +38,6 @@ export function ShopHeader() {
     { href: "/#categories", label: "Categories" },
     { href: "/products", label: "Products" },
     { href: "/orders", label: "My Orders", auth: true },
-    { href: "/admin", label: "Admin", auth: true },
   ];
 
   const handleSignOut = async () => {
@@ -163,13 +162,13 @@ export function ShopHeader() {
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => router.push('/admin')}>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Admin Dashboard</span>
+                      </DropdownMenuItem>
                        <DropdownMenuItem onClick={() => router.push('/orders')} className="md:hidden">
                            <ShoppingCart className="mr-2 h-4 w-4" />
                            <span>My Orders</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => router.push("/admin")} className="md:hidden">
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Admin</span>
                       </DropdownMenuItem>
                     </DropdownMenuGroup>
                     <DropdownMenuSeparator />
