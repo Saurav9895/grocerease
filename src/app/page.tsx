@@ -1,7 +1,6 @@
-
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { getProducts, getCategories } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
@@ -9,59 +8,37 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, ChevronRight, ShoppingBasket } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { ArrowRight } from 'lucide-react';
 
+interface CategoryCardProps {
+  category: {
+    id: string;
+    name: string;
+    description: string;
+    imageUrl: string;
+    buttonText: string;
+  };
+  className?: string;
+}
+
+function CategoryCard({ category, className, children }: React.PropsWithChildren<CategoryCardProps>) {
+  return (
+    <Link
+      href={`/category/${category.id}`}
+      className="group relative block overflow-hidden rounded-2xl"
+    >
+      {children}
+    </Link>
+  );
+}
 
 const displayCategories = [
-    { name: 'Grocery', discount: 'upto 15% off', Icon: (props: any) => (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 21.82a2 2 0 0 0 4 0" />
-            <path d="M5.18 5.18A2 2 0 0 0 3.75 7H2.25A2 2 0 0 0 .25 9l1.22 7.32A2 2 0 0 0 3.44 18h17.12a2 2 0 0 0 1.97-1.68L23.75 9a2 2 0 0 0-2-2h-1.5a2 2 0 0 0-1.43-1.82" />
-            <path d="M8 12a2 2 0 1 1-4 0" />
-            <path d="M12 12a2 2 0 1 1-4 0" />
-            <path d="M16 12a2 2 0 1 1-4 0" />
-            <path d="M20 12a2 2 0 1 1-4 0" />
-            <path d="M16 7a2 2 0 1 1-4 0" />
-        </svg>
-    ), bgColor: 'bg-green-100', textColor: 'text-green-800', id: 'vegetables-and-fruits' },
-    { name: 'Vegetables', discount: 'upto 10% off', Icon: (props: any) => (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 15.5c.6-1.1 1.6-2.5 1.6-2.5-2.2-2.7-4-1.5-4-1.5-.2 2.2 1.4 4.5 1.4 4.5.9 1.1 2.3.9 2.3.9z" />
-            <path d="M11 16c-1.8-1.5-2.5-3.1-2.5-3.1-2.8-.2-4.6 1.3-4.6 1.3s1.2 2.9 4.1 3.2c0 0 .9 1.5 2.5 1.5C12.5 19 11 16 11 16z" />
-            <path d="M10 14c-2.3-1.4-2.5-3-2.5-3-3.1.2-4.5 1.6-4.5 1.6s1.6 2.7 4.5 2.6c0 0 1.3 1.5 2.5 1.5s2.5-2.5 2.5-2.5c1.1.8 1.9 1.6 1.9 1.6s.6-1.2-.5-2.4c-1.1-1.2-2.1-1.7-2.1-1.7s-.2 1.9-1.8 3.2z" />
-        </svg>
-    ), bgColor: 'bg-orange-100', textColor: 'text-orange-800', id: 'vegetables-and-fruits' },
-    { name: 'Grocery', discount: 'upto 15% off', Icon: (props: any) => (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 21.82a2 2 0 0 0 4 0" />
-            <path d="M5.18 5.18A2 2 0 0 0 3.75 7H2.25A2 2 0 0 0 .25 9l1.22 7.32A2 2 0 0 0 3.44 18h17.12a2 2 0 0 0 1.97-1.68L23.75 9a2 2 0 0 0-2-2h-1.5a2 2 0 0 0-1.43-1.82" />
-            <path d="M8 12a2 2 0 1 1-4 0" />
-            <path d="M12 12a2 2 0 1 1-4 0" />
-            <path d="M16 12a2 2 0 1 1-4 0" />
-            <path d="M20 12a2 2 0 1 1-4 0" />
-            <path d="M16 7a2 2 0 1 1-4 0" />
-        </svg>
-    ), bgColor: 'bg-blue-100', textColor: 'text-blue-800', id: 'vegetables-and-fruits' },
-    { name: 'Vegetables', discount: 'upto 10% off', Icon: (props: any) => (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M14 15.5c.6-1.1 1.6-2.5 1.6-2.5-2.2-2.7-4-1.5-4-1.5-.2 2.2 1.4 4.5 1.4 4.5.9 1.1 2.3.9 2.3.9z" />
-            <path d="M11 16c-1.8-1.5-2.5-3.1-2.5-3.1-2.8-.2-4.6 1.3-4.6 1.3s1.2 2.9 4.1 3.2c0 0 .9 1.5 2.5 1.5C12.5 19 11 16 11 16z" />
-            <path d="M10 14c-2.3-1.4-2.5-3-2.5-3-3.1.2-4.5 1.6-4.5 1.6s1.6 2.7 4.5 2.6c0 0 1.3 1.5 2.5 1.5s2.5-2.5 2.5-2.5c1.1.8 1.9 1.6 1.9 1.6s.6-1.2-.5-2.4c-1.1-1.2-2.1-1.7-2.1-1.7s-.2 1.9-1.8 3.2z" />
-        </svg>
-    ), bgColor: 'bg-yellow-100', textColor: 'text-yellow-800', id: 'vegetables-and-fruits' },
-     { name: 'Grocery', discount: 'upto 15% off', Icon: (props: any) => (
-        <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M10 21.82a2 2 0 0 0 4 0" />
-            <path d="M5.18 5.18A2 2 0 0 0 3.75 7H2.25A2 2 0 0 0 .25 9l1.22 7.32A2 2 0 0 0 3.44 18h17.12a2 2 0 0 0 1.97-1.68L23.75 9a2 2 0 0 0-2-2h-1.5a2 2 0 0 0-1.43-1.82" />
-            <path d="M8 12a2 2 0 1 1-4 0" />
-            <path d="M12 12a2 2 0 1 1-4 0" />
-            <path d="M16 12a2 2 0 1 1-4 0" />
-            <path d="M20 12a2 2 0 1 1-4 0" />
-            <path d="M16 7a2 2 0 1 1-4 0" />
-        </svg>
-    ), bgColor: 'bg-red-100', textColor: 'text-red-800', id: 'vegetables-and-fruits' },
-]
+    { id: 'vegetables-and-fruits', name: 'Vegetables & Fruits', description: 'Up to 50% Off', imageUrl: 'https://placehold.co/600x400.png', buttonText: 'Shop Now' },
+    { id: 'dairy-and-eggs', name: 'Dairy & Eggs', description: 'Fresh & new', imageUrl: 'https://placehold.co/300x200.png', buttonText: 'Shop Now' },
+    { id: 'beverages', name: 'Beverages', description: 'Fresh & new', imageUrl: 'https://placehold.co/300x200.png', buttonText: 'Shop Now' },
+    { id: 'meat-and-fish', name: 'Meat & Fish', description: 'Fresh & new', imageUrl: 'https://placehold.co/300x200.png', buttonText: 'Shop Now' },
+];
+
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -82,6 +59,7 @@ export default function Home() {
     fetchData();
   }, []);
 
+  const featuredCategories = displayCategories;
 
   return (
     <div className="container py-8">
@@ -100,12 +78,12 @@ export default function Home() {
           <div className="absolute top-1/2 left-16 -translate-y-1/2">
             <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg max-w-md">
               <h1 className="text-4xl font-extrabold tracking-tight text-primary font-headline">
-                InstaGrocer
+                Fresh Groceries, Delivered Daily
               </h1>
               <p className="mt-2 text-lg text-muted-foreground">
-                Sample text to describe 1daycart in simple words
+                Quality ingredients, unbeatable prices. Your one-stop shop for all things fresh.
               </p>
-              <Button asChild size="lg" className="mt-6 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold px-8 py-6 text-base">
+              <Button asChild size="lg" className="mt-6">
                 <Link href="/products">Shop Now</Link>
               </Button>
             </div>
@@ -113,42 +91,42 @@ export default function Home() {
         </div>
       </section>
 
-      <section id="categories" className="mb-12">
-        <div className="flex justify-between items-center mb-6">
-            <h2 className="text-2xl font-bold tracking-tight">
-                Shop by category
-            </h2>
-            <Button variant="ghost" asChild>
-                <Link href="/products" className="text-sm font-medium">
-                    See all <ChevronRight className="h-4 w-4 ml-1" />
-                </Link>
-            </Button>
-        </div>
-        {isLoading ? (
-             <div className="flex space-x-4">
-                {[...Array(5)].map((_, i) => <Skeleton key={i} className="w-48 h-24 rounded-lg" />)}
+      <section className="mb-12">
+        <h2 className="text-2xl font-bold tracking-tight mb-6">Product Categories</h2>
+         {isLoading ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
             </div>
         ) : (
-            <div className="flex space-x-4 overflow-x-auto pb-4 -ml-4 pl-4">
-                {displayCategories.map((category, index) => (
-                    <Link href={`/category/${category.id}`} key={index} className="flex-shrink-0">
-                        <div className={cn("w-48 h-24 rounded-lg p-4 flex justify-between items-center", category.bgColor)}>
-                            <div className={cn("font-semibold", category.textColor)}>
-                                <h3 className="text-base">{category.name}</h3>
-                                <p className="text-xs">{category.discount}</p>
-                            </div>
-                            <category.Icon className={cn("h-12 w-12", category.textColor)} />
-                        </div>
-                    </Link>
-                ))}
+             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                <CategoryCard category={featuredCategories[0]} className="col-span-2 row-span-2">
+                     <Image src={featuredCategories[0].imageUrl} alt={featuredCategories[0].name} width={600} height={400} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="vegetables fruits" />
+                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-6 flex flex-col justify-end">
+                        <h3 className="text-2xl font-bold text-white">{featuredCategories[0].name}</h3>
+                        <p className="text-white/90">{featuredCategories[0].description}</p>
+                        <Button asChild variant="secondary" className="mt-4 self-start">
+                            <Link href={`/category/${featuredCategories[0].id}`}>Shop Now</Link>
+                        </Button>
+                    </div>
+                </CategoryCard>
+                 {featuredCategories.slice(1).map((cat) => (
+                    <CategoryCard key={cat.id} category={cat}>
+                        <Image src={cat.imageUrl} alt={cat.name} width={300} height={200} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={cat.name.toLowerCase()} />
+                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+                            <h3 className="text-lg font-bold text-white">{cat.name}</h3>
+                            <p className="text-sm text-white/90">{cat.description}</p>
+                         </div>
+                    </CategoryCard>
+                 ))}
             </div>
         )}
       </section>
 
+
       <section id="products">
          <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold tracking-tight font-headline">
-                Buy again
+                Featured Products
             </h2>
             <Button variant="ghost" asChild>
                 <Link href="/products" className="text-sm font-medium">
