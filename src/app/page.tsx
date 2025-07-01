@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -9,15 +10,10 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 interface CategoryCardProps {
-  category: {
-    id: string;
-    name: string;
-    description: string;
-    imageUrl: string;
-    buttonText: string;
-  };
+  category: Category;
   className?: string;
 }
 
@@ -25,20 +21,12 @@ function CategoryCard({ category, className, children }: React.PropsWithChildren
   return (
     <Link
       href={`/category/${category.id}`}
-      className="group relative block overflow-hidden rounded-2xl"
+      className={cn("group relative block overflow-hidden rounded-2xl", className)}
     >
       {children}
     </Link>
   );
 }
-
-const displayCategories = [
-    { id: 'vegetables-and-fruits', name: 'Vegetables & Fruits', description: 'Up to 50% Off', imageUrl: 'https://placehold.co/600x400.png', buttonText: 'Shop Now' },
-    { id: 'dairy-and-eggs', name: 'Dairy & Eggs', description: 'Fresh & new', imageUrl: 'https://placehold.co/300x200.png', buttonText: 'Shop Now' },
-    { id: 'beverages', name: 'Beverages', description: 'Fresh & new', imageUrl: 'https://placehold.co/300x200.png', buttonText: 'Shop Now' },
-    { id: 'meat-and-fish', name: 'Meat & Fish', description: 'Fresh & new', imageUrl: 'https://placehold.co/300x200.png', buttonText: 'Shop Now' },
-];
-
 
 export default function Home() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -59,7 +47,7 @@ export default function Home() {
     fetchData();
   }, []);
 
-  const featuredCategories = displayCategories;
+  const featuredCategories = categories.slice(0, 4);
 
   return (
     <div className="container py-8">
@@ -98,27 +86,35 @@ export default function Home() {
                 {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
             </div>
         ) : (
-             <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                <CategoryCard category={featuredCategories[0]} className="col-span-2 row-span-2">
-                     <Image src={featuredCategories[0].imageUrl} alt={featuredCategories[0].name} width={600} height={400} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint="vegetables fruits" />
-                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-6 flex flex-col justify-end">
-                        <h3 className="text-2xl font-bold text-white">{featuredCategories[0].name}</h3>
-                        <p className="text-white/90">{featuredCategories[0].description}</p>
-                        <Button asChild variant="secondary" className="mt-4 self-start">
-                            <Link href={`/category/${featuredCategories[0].id}`}>Shop Now</Link>
-                        </Button>
-                    </div>
-                </CategoryCard>
-                 {featuredCategories.slice(1).map((cat) => (
-                    <CategoryCard key={cat.id} category={cat}>
-                        <Image src={cat.imageUrl} alt={cat.name} width={300} height={200} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={cat.name.toLowerCase()} />
-                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
-                            <h3 className="text-lg font-bold text-white">{cat.name}</h3>
-                            <p className="text-sm text-white/90">{cat.description}</p>
-                         </div>
+            <>
+              {featuredCategories.length > 0 ? (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+                    <CategoryCard category={featuredCategories[0]} className="col-span-2 row-span-2">
+                        <Image src={featuredCategories[0].imageUrl} alt={featuredCategories[0].name} width={600} height={400} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={featuredCategories[0].name.toLowerCase().split(' ').slice(0,2).join(' ')} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-6 flex flex-col justify-end">
+                          <h3 className="text-2xl font-bold text-white">{featuredCategories[0].name}</h3>
+                          <p className="text-white/90 truncate">{featuredCategories[0].description}</p>
+                          <Button asChild variant="secondary" className="mt-4 self-start">
+                              <Link href={`/category/${featuredCategories[0].id}`}>Shop Now</Link>
+                          </Button>
+                      </div>
                     </CategoryCard>
-                 ))}
-            </div>
+                    {featuredCategories.slice(1).map((cat) => (
+                      <CategoryCard key={cat.id} category={cat}>
+                          <Image src={cat.imageUrl} alt={cat.name} width={300} height={200} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={cat.name.toLowerCase().split(' ').slice(0,2).join(' ')} />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">
+                              <h3 className="text-lg font-bold text-white">{cat.name}</h3>
+                              <p className="text-sm text-white/90 truncate">{cat.description}</p>
+                          </div>
+                      </CategoryCard>
+                    ))}
+                </div>
+              ) : (
+                 <div className="text-center py-16 text-muted-foreground bg-card rounded-lg">
+                  <p className="text-lg font-medium">No categories available yet.</p>
+                </div>
+              )}
+            </>
         )}
       </section>
 
