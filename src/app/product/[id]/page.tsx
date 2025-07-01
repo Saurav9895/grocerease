@@ -10,13 +10,15 @@ import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { ArrowLeft, ShoppingCart, Star, StarHalf } from 'lucide-react';
+import { ArrowLeft, ShoppingCart, Star, StarHalf, Minus, Plus } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthProvider';
 import { ReviewList } from '@/components/shop/ReviewList';
 import { ReviewForm } from '@/components/shop/ReviewForm';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 
 const renderStars = (rating: number) => {
@@ -49,6 +51,7 @@ export default function ProductDetailPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
+  const [quantity, setQuantity] = useState(1);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
@@ -93,10 +96,10 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (product) {
-      addToCart({ ...product, quantity: 1 });
+      addToCart({ ...product, quantity: quantity });
       toast({
         title: "Added to cart",
-        description: `${product.name} has been added to your cart.`,
+        description: `${quantity} x ${product.name} has been added to your cart.`,
       });
     }
   };
@@ -166,9 +169,52 @@ export default function ProductDetailPage() {
             <h2 className="text-lg font-semibold">Description</h2>
             <p className="text-muted-foreground">{product.description}</p>
           </div>
-           <div className="space-y-2">
-            <h2 className="text-lg font-semibold">Availability</h2>
-            <p className="text-muted-foreground">{product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}</p>
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-4">
+                <Label htmlFor="quantity" className="text-lg font-semibold shrink-0">Quantity</Label>
+                <div className="flex items-center gap-2">
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        disabled={quantity <= 1 || product.stock === 0}
+                    >
+                        <Minus className="h-4 w-4" />
+                    </Button>
+                    <Input
+                        id="quantity"
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => {
+                            const value = parseInt(e.target.value, 10);
+                            if (!isNaN(value) && value > 0 && value <= product.stock) {
+                                setQuantity(value);
+                            } else if (e.target.value === '') {
+                                setQuantity(1);
+                            }
+                        }}
+                        className="h-9 w-14 text-center"
+                        min="1"
+                        max={product.stock}
+                        disabled={product.stock === 0}
+                    />
+                    <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-9 w-9"
+                        onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
+                        disabled={quantity >= product.stock || product.stock === 0}
+                    >
+                        <Plus className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
+            {product.stock > 0 ? (
+                <p className="text-sm text-muted-foreground">{product.stock} in stock</p>
+            ) : (
+                <p className="text-sm text-destructive font-medium">Out of stock</p>
+            )}
           </div>
           <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
              <ShoppingCart className="mr-2 h-5 w-5" />
