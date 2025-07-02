@@ -77,6 +77,10 @@ export interface DeliverySettings {
   freeDeliveryThreshold: number;
 }
 
+export interface HomepageSettings {
+  featuredProductIds: string[];
+}
+
 export interface PromoCode {
   id: string; // The code itself, e.g. "SUMMER10"
   type: 'percentage' | 'free_delivery';

@@ -1,9 +1,10 @@
 
+
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProducts, getCategories } from '@/lib/data';
+import { getProducts, getCategories, getHomepageSettings, getProductsByIds } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -31,7 +32,8 @@ function CategoryCard({ category, className, children }: React.PropsWithChildren
 }
 
 export default function Home() {
-  const [products, setProducts] = useState<Product[]>([]);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -58,12 +60,23 @@ export default function Home() {
   useEffect(() => {
     const fetchData = async () => {
       setIsLoading(true);
-      const [productsData, categoriesData] = await Promise.all([
+      const [productsData, categoriesData, homepageSettings] = await Promise.all([
         getProducts(),
         getCategories(),
+        getHomepageSettings(),
       ]);
-      setProducts(productsData);
+      setAllProducts(productsData);
       setCategories(categoriesData);
+
+      let featuredData: Product[];
+      if (homepageSettings.featuredProductIds.length > 0) {
+          featuredData = await getProductsByIds(homepageSettings.featuredProductIds);
+      } else {
+          // Fallback to 4 most recent products if none are explicitly featured
+          featuredData = productsData.slice(0, 4);
+      }
+      setFeaturedProducts(featuredData);
+
       setIsLoading(false);
     };
     fetchData();
@@ -76,7 +89,7 @@ export default function Home() {
       return;
     }
 
-    const filtered = products
+    const filtered = allProducts
       .filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
@@ -84,7 +97,7 @@ export default function Home() {
 
     setSearchResults(filtered);
     setIsResultsVisible(filtered.length > 0);
-  }, [searchQuery, products]);
+  }, [searchQuery, allProducts]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -220,14 +233,14 @@ export default function Home() {
             </Button>
         </div>
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {[...Array(10)].map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+            {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-72 w-full" />)}
           </div>
         ) : (
           <>
-            {products.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-                {products.slice(0, 10).map((product) => (
+            {featuredProducts.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {featuredProducts.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}
               </div>

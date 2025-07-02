@@ -1,14 +1,14 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getDeliverySettings, updateDeliverySettings, getPromoCodes, createPromoCode, deletePromoCode } from "@/lib/data";
+import { getDeliverySettings, updateDeliverySettings, getPromoCodes, createPromoCode, deletePromoCode, getHomepageSettings, getProducts, updateHomepageSettings } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
-
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -47,10 +47,13 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { DeliverySettings, PromoCode } from "@/lib/types";
+import type { DeliverySettings, PromoCode, Product } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { Trash2, AlertTriangle, Check, ChevronsUpDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { cn } from "@/lib/utils";
 
 const settingsSchema = z.object({
   fee: z.coerce.number().min(0, "Delivery fee must be a positive number."),
@@ -76,8 +79,17 @@ export default function AdminSettingsPage() {
   const { profile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
+  
+  // Promo codes state
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [isLoadingPromo, setIsLoadingPromo] = useState(true);
+  
+  // Homepage settings state
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
+  const [isLoadingHomepage, setIsLoadingHomepage] = useState(true);
+  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+
 
   const deliveryForm = useForm<z.infer<typeof settingsSchema>>({
     resolver: zodResolver(settingsSchema),
@@ -91,27 +103,31 @@ export default function AdminSettingsPage() {
   
   const promoType = promoForm.watch("type");
 
-  const fetchSettings = async () => {
+  const fetchAllSettings = async () => {
     setIsLoading(true);
-    const settings = await getDeliverySettings();
-    deliveryForm.reset({ 
-      fee: settings.fee,
-      freeDeliveryThreshold: settings.freeDeliveryThreshold
-    });
+    setIsLoadingPromo(true);
+    setIsLoadingHomepage(true);
+
+    const [delivery, promos, homepage, products] = await Promise.all([
+      getDeliverySettings(),
+      getPromoCodes(),
+      getHomepageSettings(),
+      getProducts(),
+    ]);
+
+    deliveryForm.reset({ fee: delivery.fee, freeDeliveryThreshold: delivery.freeDeliveryThreshold });
+    setPromoCodes(promos);
+    setAllProducts(products);
+    setFeaturedProductIds(homepage.featuredProductIds);
+    
     setIsLoading(false);
+    setIsLoadingPromo(false);
+    setIsLoadingHomepage(false);
   };
-  
-  const fetchPromoCodes = async () => {
-      setIsLoadingPromo(true);
-      const codes = await getPromoCodes();
-      setPromoCodes(codes);
-      setIsLoadingPromo(false);
-  }
 
   useEffect(() => {
     if (profile?.adminRole === 'main') {
-      fetchSettings();
-      fetchPromoCodes();
+      fetchAllSettings();
     }
   }, [profile]);
 
@@ -134,7 +150,8 @@ export default function AdminSettingsPage() {
         });
         toast({ title: "Promo Code Created", description: `Code "${values.code}" has been created.` });
         promoForm.reset({ code: "", type: "percentage", discountPercentage: 10 });
-        fetchPromoCodes();
+        const codes = await getPromoCodes();
+        setPromoCodes(codes);
     } catch (error) {
         console.error("Error creating promo code:", error);
         toast({ variant: "destructive", title: "Creation Failed", description: "Could not create the promo code. It might already exist." });
@@ -145,12 +162,23 @@ export default function AdminSettingsPage() {
     try {
         await deletePromoCode(codeId);
         toast({ title: "Promo Code Deleted" });
-        fetchPromoCodes();
+        const codes = await getPromoCodes();
+        setPromoCodes(codes);
     } catch (error) {
         console.error("Error deleting promo code:", error);
         toast({ variant: "destructive", title: "Deletion Failed" });
     }
   }
+
+  const handleFeaturedUpdate = async () => {
+    try {
+      await updateHomepageSettings({ featuredProductIds });
+      toast({ title: "Homepage settings updated successfully!" });
+    } catch (error) {
+       console.error("Error updating homepage settings:", error);
+       toast({ variant: "destructive", title: "Update Failed", description: "Could not update homepage settings." });
+    }
+  };
   
   if (profile?.adminRole !== 'main') {
     return (
@@ -176,7 +204,7 @@ export default function AdminSettingsPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold">Store Settings</h1>
       <div className="grid lg:grid-cols-5 gap-8">
-        <div className="lg:col-span-3">
+        <div className="lg:col-span-3 space-y-8">
           <Card>
             <CardHeader>
               <CardTitle>Delivery Settings</CardTitle>
@@ -215,6 +243,70 @@ export default function AdminSettingsPage() {
                 </Form>
               )}
             </CardContent>
+          </Card>
+
+           <Card>
+            <CardHeader>
+              <CardTitle>Homepage Settings</CardTitle>
+              <CardDescription>Control content displayed on your storefront homepage.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {isLoadingHomepage ? <Skeleton className="h-24 w-full" /> : (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="font-medium">Featured Products</Label>
+                    <p className="text-sm text-muted-foreground">Select up to 4 products to feature prominently on the homepage.</p>
+                  </div>
+                  <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" role="combobox" aria-expanded={isPopoverOpen} className="w-full justify-between">
+                        {featuredProductIds.length > 0 ? `${featuredProductIds.length} selected` : "Select products..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                      <Command>
+                        <CommandInput placeholder="Search products..." />
+                        <CommandList>
+                          <CommandEmpty>No products found.</CommandEmpty>
+                          <CommandGroup>
+                            {allProducts.map((product) => (
+                              <CommandItem
+                                key={product.id}
+                                value={product.name}
+                                onSelect={() => {
+                                  const isSelected = featuredProductIds.includes(product.id);
+                                  if (isSelected) {
+                                    setFeaturedProductIds(featuredProductIds.filter(id => id !== product.id));
+                                  } else {
+                                    if (featuredProductIds.length < 4) {
+                                      setFeaturedProductIds([...featuredProductIds, product.id]);
+                                    } else {
+                                      toast({ variant: "destructive", title: "Limit reached", description: "You can only select up to 4 featured products." });
+                                    }
+                                  }
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    featuredProductIds.includes(product.id) ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {product.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+              )}
+            </CardContent>
+            <CardFooter>
+              <Button onClick={handleFeaturedUpdate} disabled={isLoadingHomepage}>Save Homepage Settings</Button>
+            </CardFooter>
           </Card>
         </div>
         <div className="lg:col-span-2">

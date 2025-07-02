@@ -10,9 +10,10 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings } from './types';
 
 // == Helper Functions ==
 
@@ -149,6 +150,24 @@ export async function getProducts(options: { limit?: number } = {}): Promise<Pro
     return [];
   }
 }
+
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+  if (!ids || ids.length === 0) return [];
+  try {
+    const productPromises = ids.map(id => getProductById(id));
+    const products = await Promise.all(productPromises);
+    const validProducts = products.filter((p): p is Product => p !== null);
+    
+    // Preserve the order of the original IDs array
+    const productMap = new Map(validProducts.map(p => [p.id, p]));
+    return ids.map(id => productMap.get(id)).filter((p): p is Product => p !== undefined);
+
+  } catch (error) {
+    console.error("Error fetching products by IDs:", error);
+    return [];
+  }
+}
+
 
 export async function getProductsByCategory(categoryId: string): Promise<Product[]> {
   try {
@@ -425,6 +444,35 @@ export async function updateDeliverySettings(settings: DeliverySettings): Promis
     await setDoc(settingsRef, settings, { merge: true });
   } catch (error) {
     console.error("Error updating delivery settings:", error);
+    throw error;
+  }
+}
+
+// == Homepage Settings Functions ==
+export async function getHomepageSettings(): Promise<HomepageSettings> {
+  const defaultSettings = { featuredProductIds: [] };
+  try {
+    const settingsRef = doc(db, 'settings', 'homepage');
+    const docSnap = await getDoc(settingsRef);
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+          featuredProductIds: data.featuredProductIds || [],
+        };
+    }
+    return defaultSettings;
+  } catch (error) {
+    console.error("Error fetching homepage settings:", error);
+    return defaultSettings;
+  }
+}
+
+export async function updateHomepageSettings(settings: HomepageSettings): Promise<void> {
+  try {
+    const settingsRef = doc(db, 'settings', 'homepage');
+    await setDoc(settingsRef, settings, { merge: true });
+  } catch (error) {
+    console.error("Error updating homepage settings:", error);
     throw error;
   }
 }
