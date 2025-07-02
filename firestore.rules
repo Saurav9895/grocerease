@@ -1,71 +1,77 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // Helper function to check if the user has any admin role
-    function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole != null;
-    }
-
-    // Helper function to check if the user is a main administrator
-    function isMainAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
-    }
-
-    // Products can be read by anyone, but only created/edited by admins.
-    match /products/{productId} {
-      allow read: if true;
-      allow write: if isAdmin();
-
-      // Reviews can be read by anyone.
-      // Authenticated users can create reviews for a product.
-      // Admins can moderate (delete) reviews.
-      match /reviews/{reviewId} {
-        allow read: if true;
-        allow create: if request.auth != null;
-        allow update, delete: if isAdmin();
-      }
-    }
-
-    // Categories can be read by anyone, but only created/edited by admins.
-    match /categories/{categoryId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Attributes can be read by anyone, but only created/edited by admins.
-    match /attributes/{attributeId} {
-      allow read: if true;
-      allow write: if isAdmin();
-    }
-
-    // Users can create their own profile.
-    // They can only read or update their own data.
-    // Main admins can manage all user profiles.
-    match /users/{userId} {
-      allow create: if request.auth.uid == userId;
-      allow get, update: if request.auth.uid == userId || isMainAdmin();
-      allow list: if isMainAdmin();
-    }
-
-    // Orders can be created by authenticated users.
-    // They can only be read/updated by the user who placed the order or an admin.
-    match /orders/{orderId} {
-      allow create: if request.auth.uid == request.resource.data.userId;
-      allow read, update: if isAdmin() || get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid;
+    
+    // --- Helper Functions ---
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
     
-    // Store settings can only be read/written by a main admin.
-    match /settings/{settingId} {
-      allow read, write: if isMainAdmin();
+    function isAdmin() {
+      // Check for admin role by reading the user's profile
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole in ['main', 'standard'];
+    }
+    
+    function isMainAdmin() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
+    }
+    
+    // --- Collection Rules ---
+
+    match /products/{productId} {
+      allow read: if true; // Products are public
+      allow write: if isAdmin(); // Only admins can create/update/delete products
+
+      match /reviews/{reviewId} {
+        allow read: if true; // Reviews are public
+        allow create: if isOwner(request.resource.data.userId); // Only the user can write their own review
+        allow update, delete: if false; // Reviews cannot be changed for now
+      }
+    }
+    
+    match /categories/{categoryId} {
+      allow read: if true; // Categories are public
+      allow write: if isAdmin(); // Only admins can manage categories
     }
 
-    // Promo codes can be read by anyone (for client-side validation), but only managed by main admins.
-    match /promocodes/{code} {
-      allow read: if true;
+    match /attributes/{attributeId} {
+      // Attributes are only visible and manageable by admins
+      allow read, write: if isAdmin();
+    }
+    
+    match /settings/{docId} {
+      // Homepage and Delivery settings are public to read for the storefront to function
+      allow read: if docId in ['homepage', 'delivery'];
+      // Only main admin can change settings
       allow write: if isMainAdmin();
+    }
+
+    match /promocodes/{code} {
+      // Authenticated users can check a code (e.g., at checkout)
+      allow get: if request.auth != null;
+      // Main admin can view all codes and manage them
+      allow list, write: if isMainAdmin();
+    }
+    
+    match /orders/{orderId} {
+      // An order can only be created by the user it belongs to
+      allow create: if isOwner(request.resource.data.userId);
+      // An order can be read by its owner or any admin
+      allow read: if isOwner(get(/databases/$(database)/documents/orders/$(orderId)).data.userId) || isAdmin();
+      // Only admins can update an order (e.g., change its status)
+      allow update: if isAdmin();
+    }
+
+    match /users/{userId} {
+      // A user can get their own profile, admins can get any profile
+      allow get: if isOwner(userId) || isAdmin();
+      // Admins can list/query users (e.g., for the admin management panel)
+      allow list: if isAdmin();
+      // A user can create their own user document upon signup
+      allow create: if isOwner(userId);
+      // A user can update their own profile (but not their role), or a main admin can update a user's profile
+      allow update: if (isOwner(userId) && request.resource.data.adminRole == resource.data.adminRole) || isMainAdmin();
     }
   }
 }
