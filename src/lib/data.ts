@@ -9,6 +9,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet } from './types';
@@ -175,6 +176,32 @@ export async function getProductById(id: string): Promise<Product | null> {
         console.error("Error fetching product:", error);
         return null;
     }
+}
+
+export async function duplicateProduct(productId: string): Promise<void> {
+  try {
+    const productRef = doc(db, 'products', productId);
+    const productSnap = await getDoc(productRef);
+
+    if (!productSnap.exists()) {
+      throw new Error("Product to duplicate not found.");
+    }
+
+    const originalData = productSnap.data();
+
+    const newProductData = {
+      ...originalData,
+      name: `${originalData.name} (Copy)`,
+      createdAt: serverTimestamp(),
+      rating: 0,
+      reviewCount: 0,
+    };
+
+    await addDoc(collection(db, "products"), newProductData);
+  } catch (error) {
+    console.error("Error duplicating product:", error);
+    throw error;
+  }
 }
 
 export async function getOrders(options: { limit?: number } = {}): Promise<Order[]> {

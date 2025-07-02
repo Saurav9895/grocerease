@@ -16,7 +16,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -27,18 +26,18 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import type { Product, Category } from "@/lib/types";
 import { ProductForm } from "./ProductForm";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { MoreHorizontal, Trash2 } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal, Trash2, Copy, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
 import { Checkbox } from "@/components/ui/checkbox";
+import { duplicateProduct } from "@/lib/data";
 
 interface ProductTableProps {
   products: Product[];
@@ -51,6 +50,10 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
+  
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
   const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
 
@@ -60,17 +63,21 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
   };
 
   const handleDelete = async (productId: string) => {
+    setIsDeleting(true);
     try {
       await deleteDoc(doc(db, "products", productId));
       toast({ title: "Product deleted successfully" });
       onDataChanged();
     } catch (error) {
       console.error("Error deleting product", error);
-      toast({ variant: "destructive", title: "Failed to delete product", description: "An unexpected error occurred." });
+      toast({ variant: "destructive", title: "Failed to delete product" });
+    } finally {
+      setIsDeleting(false);
     }
   };
   
   const handleDeleteSelected = async () => {
+    setIsDeleting(true);
     try {
       await Promise.all(
         selectedIds.map(id => deleteDoc(doc(db, "products", id)))
@@ -86,8 +93,47 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
       toast({
         variant: "destructive",
         title: "Deletion Failed",
-        description: "Could not delete the selected products.",
       });
+    } finally {
+      setIsDeleting(false);
+      setIsDeleteDialogOpen(false);
+    }
+  };
+
+  const handleDuplicate = async (productId: string) => {
+    setIsDuplicating(true);
+    try {
+      await duplicateProduct(productId);
+      toast({ title: "Product duplicated successfully" });
+      onDataChanged();
+    } catch (error) {
+       console.error("Error duplicating product", error);
+       toast({ variant: "destructive", title: "Failed to duplicate product" });
+    } finally {
+        setIsDuplicating(false);
+    }
+  }
+
+  const handleDuplicateSelected = async () => {
+    setIsDuplicating(true);
+    try {
+      await Promise.all(
+        selectedIds.map(id => duplicateProduct(id))
+      );
+      toast({
+        title: "Products Duplicated",
+        description: `${selectedIds.length} product(s) have been duplicated.`,
+      });
+      setSelectedIds([]);
+      onDataChanged();
+    } catch (error) {
+      console.error("Error duplicating selected products:", error);
+      toast({
+        variant: "destructive",
+        title: "Duplication Failed",
+      });
+    } finally {
+      setIsDuplicating(false);
     }
   };
 
@@ -118,28 +164,29 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
       <div className="flex justify-between items-center mb-4">
         <div>
           {selectedIds.length > 0 && (
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button variant="destructive">
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete ({selectedIds.length})
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" disabled={isDeleting || isDuplicating}>
+                  Actions ({selectedIds.length})
+                  <ChevronDown className="ml-2 h-4 w-4" />
                 </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This action cannot be undone. This will permanently delete {selectedIds.length} product(s).
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteSelected}>
-                    Continue
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={handleDuplicateSelected} disabled={isDuplicating}>
+                  <Copy className="mr-2 h-4 w-4" />
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive focus:text-destructive"
+                  onSelect={() => setIsDeleteDialogOpen(true)}
+                  disabled={isDeleting}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
         </div>
         
@@ -158,6 +205,24 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
           </DialogContent>
         </Dialog>
       </div>
+
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete {selectedIds.length} product(s).
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteSelected}>
+              Continue
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="border rounded-md">
         <Table>
           <TableHeader>
@@ -198,7 +263,7 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
+                        <Button variant="ghost" className="h-8 w-8 p-0" disabled={isDeleting || isDuplicating}>
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
@@ -206,14 +271,16 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => handleEdit(product)}>Edit</DropdownMenuItem>
-                         <AlertDialog>
+                        <DropdownMenuItem onClick={() => handleDuplicate(product.id)}>Duplicate</DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <AlertDialog>
                             <AlertDialogTrigger asChild>
-                                <DropdownMenuItem onSelect={(e) => e.preventDefault()}>Delete</DropdownMenuItem>
+                                <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive focus:text-destructive">Delete</DropdownMenuItem>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
                                 <AlertDialogHeader>
                                     <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                                    <AlertDialogDescription>This action cannot be undone. This will permanently delete the product from the database.</AlertDialogDescription>
+                                    <AlertDialogDescription>This will permanently delete "{product.name}".</AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
                                     <AlertDialogCancel>Cancel</AlertDialogCancel>
