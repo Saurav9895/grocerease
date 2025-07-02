@@ -17,7 +17,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Pencil, Trash2 } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { deleteAttribute } from "@/lib/data";
-import { Badge } from "@/components/ui/badge";
 
 interface AttributeTableProps {
   attributes: AttributeSet[];
@@ -43,23 +42,19 @@ export function AttributeTable({ attributes, onEdit, onDataChanged }: AttributeT
     <Card>
       <CardHeader>
         <CardTitle>Attribute List</CardTitle>
-        <CardDescription>View, edit, or delete reusable product attributes.</CardDescription>
+        <CardDescription>View, edit, or delete reusable product attribute names.</CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="hidden md:grid grid-cols-[1fr_2fr_150px] items-center gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
+        <div className="hidden md:grid grid-cols-[1fr_150px] items-center gap-4 px-4 py-2 text-sm font-medium text-muted-foreground border-b">
           <span>Name</span>
-          <span>Values</span>
           <span className="text-right">Actions</span>
         </div>
         
         <div className="divide-y divide-border">
           {attributes.length > 0 ? (
             attributes.map((attr) => (
-              <div key={attr.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_2fr_150px] items-center gap-4 px-4 py-3">
+              <div key={attr.id} className="grid grid-cols-[1fr_auto] md:grid-cols-[1fr_150px] items-center gap-4 px-4 py-3">
                 <div className="font-medium truncate" title={attr.name}>{attr.name}</div>
-                <div className="flex flex-wrap gap-1">
-                    {attr.values.map(val => <Badge key={val} variant="outline">{val}</Badge>)}
-                </div>
                 <div className="flex justify-end items-center gap-2">
                   <Button variant="outline" size="sm" onClick={() => onEdit(attr)}>
                     <Pencil className="h-3 w-3 sm:mr-2" />
@@ -75,7 +70,7 @@ export function AttributeTable({ attributes, onEdit, onDataChanged }: AttributeT
                     <AlertDialogContent>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                        <AlertDialogDescription>This action cannot be undone. This will permanently delete the attribute.</AlertDialogDescription>
+                        <AlertDialogDescription>This action cannot be undone. This will permanently delete the attribute name.</AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>

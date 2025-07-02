@@ -8,6 +8,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet } from './types';
@@ -102,7 +103,6 @@ function docToAttributeSet(doc: DocumentSnapshot<DocumentData>): AttributeSet {
     return {
         id: doc.id,
         name: data.name,
-        values: data.values || [],
     };
 }
 
@@ -530,7 +530,7 @@ export async function getAttributes(): Promise<AttributeSet[]> {
   }
 }
 
-export async function createAttribute(data: Omit<AttributeSet, 'id'>): Promise<void> {
+export async function createAttribute(data: { name: string }): Promise<void> {
   try {
     await addDoc(collection(db, 'attributes'), data);
   } catch (error) {
@@ -539,7 +539,7 @@ export async function createAttribute(data: Omit<AttributeSet, 'id'>): Promise<v
   }
 }
 
-export async function updateAttribute(id: string, data: Partial<Omit<AttributeSet, 'id'>>): Promise<void> {
+export async function updateAttribute(id: string, data: Partial<{ name: string }>): Promise<void> {
   try {
     const attributeRef = doc(db, 'attributes', id);
     await updateDoc(attributeRef, data);
