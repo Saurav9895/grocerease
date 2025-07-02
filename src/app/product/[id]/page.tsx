@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getProductById, getCategories, getProductsByCategory, getReviewsForProduct } from '@/lib/data';
-import type { Product, Category, Review } from '@/lib/types';
+import type { Product, Category, Review, CartItem } from '@/lib/types';
 import { useCart } from '@/hooks/use-cart';
 import { useToast } from '@/hooks/use-toast';
 import { Button } from '@/components/ui/button';
@@ -111,7 +111,7 @@ export default function ProductDetailPage() {
           return;
         }
         const variantData = product.variants[selectedVariant];
-        const variantCartItem = {
+        const variantCartItem: CartItem = {
           ...product,
           id: `${product.id}-${selectedVariant}`, // Unique ID for cart
           name: `${product.name} (${selectedVariant})`,
@@ -121,7 +121,9 @@ export default function ProductDetailPage() {
           imageUrl: variantData.imageUrl,
           isVariant: false, // Treat as a simple product in cart
           variants: {},
-          attributes: product.attributes
+          attributes: product.attributes,
+          productId: product.id,
+          variantValue: selectedVariant,
         };
         addToCart({ ...variantCartItem, quantity });
         toast({

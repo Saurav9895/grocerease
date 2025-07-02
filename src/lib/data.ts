@@ -12,9 +12,10 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, CartItem } from './types';
 
 // == Helper Functions ==
 
@@ -437,6 +438,68 @@ export async function addReviewAndUpdateProduct(
   } catch (error) {
     console.error("Transaction failed: ", error);
     throw new Error("Failed to submit review.");
+  }
+}
+
+export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> {
+  try {
+    const newOrderRef = await runTransaction(db, async (transaction) => {
+      // 1. Update stock for each item
+      for (const item of orderData.items) {
+        const productId = item.productId || item.id;
+        const variantValue = item.variantValue;
+        
+        const productRef = doc(db, 'products', productId);
+        const productDoc = await transaction.get(productRef);
+
+        if (!productDoc.exists()) {
+          throw new Error(`Product with ID ${productId} not found.`);
+        }
+        
+        const productData = productDoc.data() as Product;
+
+        if (variantValue) {
+          const variantData = productData.variants?.[variantValue];
+          if (!variantData) {
+            throw new Error(`Variant ${variantValue} for product ${productId} not found.`);
+          }
+          const currentStock = variantData.stock;
+          if (currentStock < item.quantity) {
+            throw new Error(`Not enough stock for ${item.name}. Only ${currentStock} left.`);
+          }
+          const newStock = currentStock - item.quantity;
+          transaction.update(productRef, { [`variants.${variantValue}.stock`]: newStock });
+        } else {
+          const currentStock = productData.stock;
+          if (currentStock < item.quantity) {
+            throw new Error(`Not enough stock for ${item.name}. Only ${currentStock} left.`);
+          }
+          const newStock = currentStock - item.quantity;
+          transaction.update(productRef, { stock: newStock });
+        }
+      }
+
+      // 2. Create the order document with slimmed down items
+      const slimmedItems = orderData.items.map(({ id, name, price, quantity, imageUrl }) => ({ 
+        id, name, price, quantity, imageUrl 
+      }));
+
+      const finalOrderData = {
+        ...orderData,
+        items: slimmedItems,
+        createdAt: serverTimestamp(),
+      };
+
+      const tempOrderRef = doc(collection(db, "orders"));
+      transaction.set(tempOrderRef, finalOrderData);
+      
+      return tempOrderRef;
+    });
+
+    return newOrderRef.id;
+  } catch (error) {
+    console.error("Order creation and stock update transaction failed:", error);
+    throw error;
   }
 }
 

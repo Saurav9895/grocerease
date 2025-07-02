@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -14,10 +15,8 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthProvider";
 import { useState, useEffect } from "react";
 import { z } from "zod";
-import { db } from "@/lib/firebase";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import type { Address } from "@/lib/types";
-import { getUserAddresses, saveUserAddress } from "@/lib/data";
+import type { Address, Order } from "@/lib/types";
+import { getUserAddresses, saveUserAddress, createOrderAndDecreaseStock } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
 
 const addressSchema = z.object({
@@ -114,11 +113,11 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
         await saveUserAddress(user.uid, validatedFields.data);
       }
       
-      const newOrder = {
+      const newOrderPayload: Omit<Order, 'id' | 'createdAt'> = {
         userId: user.uid,
         customerName: validatedFields.data.name,
         address: validatedFields.data,
-        items: cartItems.map(({ id, name, price, quantity, imageUrl }) => ({ id, name, price, quantity, imageUrl })),
+        items: cartItems,
         subtotal: cartTotal,
         deliveryFee: deliveryFee,
         discountAmount: discountAmount || 0,
@@ -126,18 +125,17 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
         total: total,
         paymentMethod: paymentMethod as 'COD' | 'Online',
         status: 'Pending' as const,
-        createdAt: serverTimestamp(),
       };
       
-      const orderDocRef = await addDoc(collection(db, "orders"), newOrder);
+      const orderId = await createOrderAndDecreaseStock(newOrderPayload);
 
       toast({ title: "Order Placed!", description: "Your order has been successfully placed." });
       clearCart();
-      router.push(`/orders/${orderDocRef.id}`);
+      router.push(`/orders/${orderId}`);
 
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error placing order:", error);
-      toast({ variant: "destructive", title: "Order Failed", description: "An unexpected error occurred." });
+      toast({ variant: "destructive", title: "Order Failed", description: error.message || "An unexpected error occurred." });
     } finally {
       setIsLoading(false);
     }

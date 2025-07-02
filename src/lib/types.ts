@@ -34,6 +34,8 @@ export interface Category {
 
 export interface CartItem extends Product {
   quantity: number;
+  productId?: string;
+  variantValue?: string;
 }
 
 export interface Address {
