@@ -11,6 +11,7 @@ export interface Product {
   createdAt: Date;
   rating: number;
   reviewCount: number;
+  attributes?: Record<string, string>;
 }
 
 export interface Category {

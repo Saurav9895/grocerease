@@ -169,6 +169,23 @@ export default function ProductDetailPage() {
             <h2 className="text-lg font-semibold">Description</h2>
             <p className="text-muted-foreground">{product.description}</p>
           </div>
+
+          {product.attributes && Object.keys(product.attributes).length > 0 && (
+            <div className="space-y-4 pt-2">
+                <h2 className="text-lg font-semibold">Details</h2>
+                <div className="rounded-md border bg-muted/50">
+                    <ul className="divide-y divide-border">
+                        {Object.entries(product.attributes).map(([key, value]) => (
+                            <li key={key} className="flex justify-between items-center p-3">
+                                <span className="text-muted-foreground">{key}</span>
+                                <span className="font-medium text-right">{value}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            </div>
+          )}
+
           <div className="space-y-4 pt-2">
             <div className="flex items-center gap-4">
                 <Label htmlFor="quantity" className="text-lg font-semibold shrink-0">Quantity</Label>
