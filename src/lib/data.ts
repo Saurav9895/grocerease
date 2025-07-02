@@ -6,6 +6,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet } from './types';
@@ -26,6 +27,9 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         rating: data.rating || 0,
         reviewCount: data.reviewCount || 0,
         attributes: data.attributes || {},
+        isVariant: data.isVariant || false,
+        variantAttributeId: data.variantAttributeId,
+        variants: data.variants || {},
     };
 }
 

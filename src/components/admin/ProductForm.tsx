@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -6,8 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getCategories } from "@/lib/data";
-import type { Product, Category } from "@/lib/types";
+import { getCategories, getAttributes } from "@/lib/data";
+import type { Product, Category, AttributeSet } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -16,6 +17,7 @@ import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/fi
 import Image from "next/image";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "../ui/separator";
+import { Checkbox } from "../ui/checkbox";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -38,33 +40,67 @@ type Attribute = {
   value: string;
 };
 
+type VariantData = Record<string, {
+    price: string;
+    stock: string;
+    imageUrl: string;
+}>
+
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
   const { toast } = useToast();
+  
+  // Base product state
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || 'https://placehold.co/600x400.png');
   const [attributes, setAttributes] = useState<Attribute[]>([]);
 
+  // Variant state
+  const [isVariant, setIsVariant] = useState(false);
+  const [allAttributes, setAllAttributes] = useState<AttributeSet[]>([]);
+  const [selectedAttributeId, setSelectedAttributeId] = useState<string | undefined>();
+  const [variants, setVariants] = useState<VariantData>({});
+
+
   useEffect(() => {
-    const fetchCategories = async () => {
-      const fetchedCategories = await getCategories();
+    const fetchInitialData = async () => {
+      const [fetchedCategories, fetchedAttributes] = await Promise.all([
+        getCategories(),
+        getAttributes()
+      ]);
       setCategories(fetchedCategories);
+      setAllAttributes(fetchedAttributes);
     };
-    fetchCategories();
+    fetchInitialData();
   }, []);
 
   useEffect(() => {
     if (product) {
       setImageUrl(product.imageUrl);
-      if (product.attributes) {
-        setAttributes(Object.entries(product.attributes).map(([key, value], index) => ({ id: index, key, value })));
-      } else {
-        setAttributes([]);
+      setAttributes(product.attributes ? Object.entries(product.attributes).map(([key, value], index) => ({ id: index, key, value })) : []);
+      
+      setIsVariant(product.isVariant || false);
+      setSelectedAttributeId(product.variantAttributeId);
+      if(product.variants){
+         const initialVariantsState: VariantData = {};
+         for (const [key, value] of Object.entries(product.variants)) {
+            initialVariantsState[key] = {
+                price: String(value.price),
+                stock: String(value.stock),
+                imageUrl: value.imageUrl,
+            };
+         }
+         setVariants(initialVariantsState);
       }
+
     } else {
+      // Reset form for new product
       setImageUrl('https://placehold.co/600x400.png');
       setAttributes([]);
+      setIsVariant(false);
+      setSelectedAttributeId(undefined);
+      setVariants({});
     }
   }, [product]);
 
@@ -78,6 +114,16 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   const handleRemoveAttribute = (id: number) => {
     setAttributes(prev => prev.filter(attr => attr.id !== id));
+  };
+
+  const handleVariantDataChange = (value: string, field: 'price' | 'stock' | 'imageUrl', fieldValue: string) => {
+    setVariants(prev => ({
+      ...prev,
+      [value]: {
+        ...(prev[value] || { price: '', stock: '', imageUrl: '' }),
+        [field]: fieldValue,
+      },
+    }));
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -107,9 +153,50 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
           return acc;
       }, {} as Record<string, string>);
 
-    try {
-      const dataToSave = { ...validatedFields.data, attributes: attributesToSave };
+    let dataToSave: any = { 
+        ...validatedFields.data, 
+        attributes: attributesToSave,
+        isVariant: isVariant,
+    };
 
+    if (isVariant) {
+        if (!selectedAttributeId) {
+            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please select a variant attribute.' });
+            setIsLoading(false);
+            return;
+        }
+
+        const variantsToSave: Product['variants'] = {};
+        const selectedAttr = allAttributes.find(a => a.id === selectedAttributeId);
+
+        for (const value of selectedAttr?.values || []) {
+            const variantData = variants[value];
+            if (!variantData || !variantData.price || !variantData.stock || !variantData.imageUrl) {
+                toast({ variant: 'destructive', title: 'Variant Error', description: `Please fill all fields for variant "${value}".` });
+                setIsLoading(false);
+                return;
+            }
+            variantsToSave[value] = {
+                price: parseFloat(variantData.price),
+                stock: parseInt(variantData.stock, 10),
+                imageUrl: variantData.imageUrl,
+            };
+        }
+        
+        dataToSave = {
+            ...dataToSave,
+            variantAttributeId: selectedAttributeId,
+            variants: variantsToSave,
+        };
+    } else {
+        dataToSave = {
+            ...dataToSave,
+            variantAttributeId: null,
+            variants: {},
+        };
+    }
+
+    try {
       if (isEditing && product) {
         const productRef = doc(db, "products", product.id);
         await updateDoc(productRef, dataToSave);
@@ -147,7 +234,9 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     } catch {
       return false;
     }
-  }
+  };
+  
+  const selectedAttribute = allAttributes.find(attr => attr.id === selectedAttributeId);
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -170,11 +259,11 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
           <Card className="p-6">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="price">Price</Label>
+                <Label htmlFor="price">{isVariant ? 'Base Price' : 'Price'}</Label>
                 <Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="stock">Stock</Label>
+                <Label htmlFor="stock">{isVariant ? 'Base Stock' : 'Stock'}</Label>
                 <Input id="stock" name="stock" type="number" defaultValue={product?.stock} required />
               </div>
             </div>
@@ -198,7 +287,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         <div className="space-y-6">
             <Card className="p-6">
               <div className="space-y-2">
-                <Label htmlFor="imageUrl">Image URL</Label>
+                <Label htmlFor="imageUrl">{isVariant ? 'Base Image URL' : 'Image URL'}</Label>
                 <Input 
                     id="imageUrl" 
                     name="imageUrl" 
@@ -226,9 +315,71 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         </div>
       </div>
       
+      <Card className="p-6">
+        <div className="flex items-center space-x-2">
+          <Checkbox id="isVariant" checked={isVariant} onCheckedChange={(checked) => setIsVariant(!!checked)} />
+          <Label htmlFor="isVariant" className="text-base font-medium">This product has variants</Label>
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">Check this if the product comes in different versions like weight or color, each with its own price, stock, and image.</p>
+      </Card>
+      
+      {isVariant && (
+        <Card className="p-6">
+            <h3 className="text-lg font-medium">Variant Configuration</h3>
+            <p className="text-sm text-muted-foreground mb-4">Select an attribute and define the properties for each variant.</p>
+            <Separator className="my-4" />
+            <div className="space-y-4">
+                <Label htmlFor="variant-attribute">Variant Attribute</Label>
+                <Select onValueChange={setSelectedAttributeId} value={selectedAttributeId}>
+                    <SelectTrigger id="variant-attribute">
+                        <SelectValue placeholder="Select an attribute (e.g., Weight)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {allAttributes.map(attr => (
+                            <SelectItem key={attr.id} value={attr.id}>{attr.name}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+
+                {selectedAttribute && (
+                    <div className="space-y-6 pt-4">
+                        {selectedAttribute.values.map(value => (
+                            <div key={value} className="p-4 border rounded-md">
+                                <h4 className="font-semibold text-primary">{value}</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`variant-price-${value}`}>Price</Label>
+                                        <Input id={`variant-price-${value}`} type="number" step="0.01" placeholder="Variant price"
+                                            value={variants[value]?.price || ''}
+                                            onChange={(e) => handleVariantDataChange(value, 'price', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`variant-stock-${value}`}>Stock</Label>
+                                        <Input id={`variant-stock-${value}`} type="number" placeholder="Variant stock"
+                                            value={variants[value]?.stock || ''}
+                                            onChange={(e) => handleVariantDataChange(value, 'stock', e.target.value)}
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor={`variant-image-${value}`}>Image URL</Label>
+                                        <Input id={`variant-image-${value}`} placeholder="Variant image URL"
+                                            value={variants[value]?.imageUrl || ''}
+                                            onChange={(e) => handleVariantDataChange(value, 'imageUrl', e.target.value)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        </Card>
+      )}
+
        <Card className="p-6">
-          <Label className="text-base font-medium">Product Attributes</Label>
-          <p className="text-sm text-muted-foreground mb-4">Add custom details like brand, origin, etc.</p>
+          <Label className="text-base font-medium">Additional Details</Label>
+          <p className="text-sm text-muted-foreground mb-4">Add non-variant details like brand, origin, etc.</p>
           <div className="space-y-4">
             {attributes.map((attr, index) => (
               <div key={attr.id} className="flex items-end gap-2">
@@ -258,7 +409,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
           </div>
           <Button type="button" variant="outline" size="sm" className="mt-4" onClick={handleAddAttribute}>
             <PlusCircle className="mr-2 h-4 w-4"/>
-            Add Attribute
+            Add Detail
           </Button>
       </Card>
       

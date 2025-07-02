@@ -12,6 +12,15 @@ export interface Product {
   rating: number;
   reviewCount: number;
   attributes?: Record<string, string>;
+  
+  // New variant fields
+  isVariant?: boolean;
+  variantAttributeId?: string; // ID of the AttributeSet used for variants
+  variants?: Record<string, { // The key is the attribute value (e.g., "500gm")
+    price: number;
+    stock: number;
+    imageUrl: string;
+  }>;
 }
 
 export interface Category {
@@ -79,6 +88,7 @@ export interface UserProfile {
     email: string;
     phone: string;
     adminRole: 'main' | 'standard' | null;
+    avatarUrl?: string;
 }
 
 export interface AttributeSet {
