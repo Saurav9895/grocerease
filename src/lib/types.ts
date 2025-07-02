@@ -80,3 +80,9 @@ export interface UserProfile {
     phone: string;
     adminRole: 'main' | 'standard' | null;
 }
+
+export interface AttributeSet {
+  id: string;
+  name: string; // e.g., "Weight", "Volume", "Brand"
+  values: string[]; // e.g., ["500gm", "1kg", "2kg"]
+}

@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home, Settings } from "lucide-react";
+import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home, Settings, ClipboardList } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -83,6 +83,18 @@ export function AdminSidebar() {
               <Link href="/admin/categories">
                 <LayoutList />
                 <span>Categories</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/admin/attributes")}
+              tooltip="Attributes"
+            >
+              <Link href="/admin/attributes">
+                <ClipboardList />
+                <span>Attributes</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

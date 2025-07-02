@@ -5,9 +5,10 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet } from './types';
 
 // == Helper Functions ==
 
@@ -87,6 +88,15 @@ function docToUserProfile(doc: DocumentSnapshot<DocumentData>): UserProfile {
         email: data.email || '',
         phone: data.phone || '',
         adminRole: data.adminRole || null,
+    };
+}
+
+function docToAttributeSet(doc: DocumentSnapshot<DocumentData>): AttributeSet {
+    const data = doc.data()!;
+    return {
+        id: doc.id,
+        name: data.name,
+        values: data.values || [],
     };
 }
 
@@ -497,5 +507,47 @@ export async function getAdminUsers(): Promise<UserProfile[]> {
   } catch (error) {
     console.error("Error fetching admin users:", error);
     return [];
+  }
+}
+
+// == Attribute Management Functions ==
+
+export async function getAttributes(): Promise<AttributeSet[]> {
+  try {
+    const attributesCol = collection(db, 'attributes');
+    const q = query(attributesCol, orderBy('name'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToAttributeSet);
+  } catch (error) {
+    console.error("Error fetching attributes:", error);
+    return [];
+  }
+}
+
+export async function createAttribute(data: Omit<AttributeSet, 'id'>): Promise<void> {
+  try {
+    await addDoc(collection(db, 'attributes'), data);
+  } catch (error) {
+    console.error("Error creating attribute:", error);
+    throw error;
+  }
+}
+
+export async function updateAttribute(id: string, data: Partial<Omit<AttributeSet, 'id'>>): Promise<void> {
+  try {
+    const attributeRef = doc(db, 'attributes', id);
+    await updateDoc(attributeRef, data);
+  } catch (error) {
+    console.error("Error updating attribute:", error);
+    throw error;
+  }
+}
+
+export async function deleteAttribute(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "attributes", id));
+  } catch (error) {
+    console.error("Error deleting attribute:", error);
+    throw error;
   }
 }
