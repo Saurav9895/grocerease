@@ -10,10 +10,21 @@ export default {
   theme: {
     container: {
       center: true,
-      padding: '100px',
+      padding: {
+        DEFAULT: '0px',
+        mobile: '80px',
+      },
       screens: {
         "2xl": "1400px",
       },
+    },
+    screens: {
+      'mobile': '500px',
+      'sm': '640px',
+      'md': '768px',
+      'lg': '1024px',
+      'xl': '1280px',
+      '2xl': '1400px',
     },
     extend: {
       fontFamily: {
