@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -50,11 +51,10 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import type { DeliverySettings, PromoCode, Product } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, AlertTriangle, Check, ChevronsUpDown } from "lucide-react";
+import { Trash2, AlertTriangle, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 
 const settingsSchema = z.object({
   fee: z.coerce.number().min(0, "Delivery fee must be a positive number."),
@@ -181,6 +181,24 @@ export default function AdminSettingsPage() {
     }
   };
   
+  const featuredProductsDetails = featuredProductIds
+    .map(id => allProducts.find(p => p.id === id))
+    .filter((p): p is Product => Boolean(p));
+
+  const handleMove = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...featuredProductIds];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    if (targetIndex < 0 || targetIndex >= newOrder.length) return;
+
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setFeaturedProductIds(newOrder);
+  };
+
+  const handleRemoveFeatured = (id: string) => {
+    setFeaturedProductIds(featuredProductIds.filter(pid => pid !== id));
+  };
+  
   if (profile?.adminRole !== 'main') {
     return (
       <div className="flex items-center justify-center h-full">
@@ -261,7 +279,7 @@ export default function AdminSettingsPage() {
                   <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
                     <PopoverTrigger asChild>
                       <Button variant="outline" role="combobox" aria-expanded={isPopoverOpen} className="w-full justify-between">
-                        {featuredProductIds.length > 0 ? `${featuredProductIds.length} selected` : "Select products..."}
+                        Add a product...
                         <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -275,25 +293,16 @@ export default function AdminSettingsPage() {
                               <CommandItem
                                 key={product.id}
                                 value={product.name}
+                                disabled={featuredProductIds.includes(product.id)}
                                 onSelect={() => {
-                                  const isSelected = featuredProductIds.includes(product.id);
-                                  if (isSelected) {
-                                    setFeaturedProductIds(featuredProductIds.filter(id => id !== product.id));
-                                  } else {
-                                    if (featuredProductIds.length < 4) {
-                                      setFeaturedProductIds([...featuredProductIds, product.id]);
-                                    } else {
-                                      toast({ variant: "destructive", title: "Limit reached", description: "You can only select up to 4 featured products." });
-                                    }
+                                  if (featuredProductIds.length >= 4) {
+                                    toast({ variant: "destructive", title: "Limit reached", description: "You can only select up to 4 featured products." });
+                                    setIsPopoverOpen(false)
+                                    return;
                                   }
+                                  setFeaturedProductIds([...featuredProductIds, product.id]);
                                 }}
                               >
-                                <Check
-                                  className={cn(
-                                    "mr-2 h-4 w-4",
-                                    featuredProductIds.includes(product.id) ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
                                 {product.name}
                               </CommandItem>
                             ))}
@@ -302,6 +311,33 @@ export default function AdminSettingsPage() {
                       </Command>
                     </PopoverContent>
                   </Popover>
+                  
+                  <div className="mt-4 space-y-2">
+                    <Label>Selected Products (Order represents display order)</Label>
+                    {featuredProductsDetails.length > 0 ? (
+                      <div className="space-y-2 rounded-md border p-2">
+                        {featuredProductsDetails.map((product, index) => (
+                          <div key={product.id} className="flex items-center justify-between rounded-md bg-muted/50 p-2">
+                            <div className="flex items-center gap-3 font-medium">
+                                <span className="text-muted-foreground">#{index + 1}</span>
+                                <Image src={product.imageUrl} alt={product.name} width={24} height={24} className="rounded-sm object-cover" />
+                                <span className="truncate">{product.name}</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMove(index, 'up')} disabled={index === 0}> <ArrowUp className="h-4 w-4" /> </Button>
+                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMove(index, 'down')} disabled={index === featuredProductsDetails.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoveFeatured(product.id)}><Trash2 className="h-4 w-4" /></Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-center text-muted-foreground py-4 border border-dashed rounded-md">
+                        No products selected. Add some to feature them on the homepage.
+                      </div>
+                    )}
+                  </div>
+
                 </div>
               )}
             </CardContent>
