@@ -79,6 +79,7 @@ export interface DeliverySettings {
 
 export interface HomepageSettings {
   featuredProductIds: string[];
+  featuredCategoryIds: string[];
 }
 
 export interface PromoCode {

@@ -7,7 +7,7 @@ import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { getDeliverySettings, updateDeliverySettings, getPromoCodes, createPromoCode, deletePromoCode, getHomepageSettings, getProducts, updateHomepageSettings } from "@/lib/data";
+import { getDeliverySettings, updateDeliverySettings, getPromoCodes, createPromoCode, deletePromoCode, getHomepageSettings, getProducts, updateHomepageSettings, getCategories } from "@/lib/data";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
 import { Button } from "@/components/ui/button";
@@ -49,7 +49,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import type { DeliverySettings, PromoCode, Product } from "@/lib/types";
+import type { DeliverySettings, PromoCode, Product, Category } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
 import { Trash2, AlertTriangle, ChevronsUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
@@ -87,9 +87,12 @@ export default function AdminSettingsPage() {
   
   // Homepage settings state
   const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [featuredProductIds, setFeaturedProductIds] = useState<string[]>([]);
+  const [featuredCategoryIds, setFeaturedCategoryIds] = useState<string[]>([]);
   const [isLoadingHomepage, setIsLoadingHomepage] = useState(true);
-  const [isPopoverOpen, setIsPopoverOpen] = useState(false);
+  const [isProductPopoverOpen, setIsProductPopoverOpen] = useState(false);
+  const [isCategoryPopoverOpen, setIsCategoryPopoverOpen] = useState(false);
 
 
   const deliveryForm = useForm<z.infer<typeof settingsSchema>>({
@@ -109,17 +112,20 @@ export default function AdminSettingsPage() {
     setIsLoadingPromo(true);
     setIsLoadingHomepage(true);
 
-    const [delivery, promos, homepage, products] = await Promise.all([
+    const [delivery, promos, homepage, products, categories] = await Promise.all([
       getDeliverySettings(),
       getPromoCodes(),
       getHomepageSettings(),
       getProducts(),
+      getCategories(),
     ]);
 
     deliveryForm.reset({ fee: delivery.fee, freeDeliveryThreshold: delivery.freeDeliveryThreshold });
     setPromoCodes(promos);
     setAllProducts(products);
+    setAllCategories(categories);
     setFeaturedProductIds(homepage.featuredProductIds);
+    setFeaturedCategoryIds(homepage.featuredCategoryIds || []);
     
     setIsLoading(false);
     setIsLoadingPromo(false);
@@ -171,9 +177,9 @@ export default function AdminSettingsPage() {
     }
   }
 
-  const handleFeaturedUpdate = async () => {
+  const handleHomepageUpdate = async () => {
     try {
-      await updateHomepageSettings({ featuredProductIds });
+      await updateHomepageSettings({ featuredProductIds, featuredCategoryIds });
       toast({ title: "Homepage settings updated successfully!" });
     } catch (error) {
        console.error("Error updating homepage settings:", error);
@@ -184,19 +190,33 @@ export default function AdminSettingsPage() {
   const featuredProductsDetails = featuredProductIds
     .map(id => allProducts.find(p => p.id === id))
     .filter((p): p is Product => Boolean(p));
+    
+  const featuredCategoriesDetails = featuredCategoryIds
+    .map(id => allCategories.find(c => c.id === id))
+    .filter((c): c is Category => Boolean(c));
 
-  const handleMove = (index: number, direction: 'up' | 'down') => {
+  const handleMoveProduct = (index: number, direction: 'up' | 'down') => {
     const newOrder = [...featuredProductIds];
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-
     if (targetIndex < 0 || targetIndex >= newOrder.length) return;
-
     [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
     setFeaturedProductIds(newOrder);
   };
 
-  const handleRemoveFeatured = (id: string) => {
+  const handleRemoveFeaturedProduct = (id: string) => {
     setFeaturedProductIds(featuredProductIds.filter(pid => pid !== id));
+  };
+
+  const handleMoveCategory = (index: number, direction: 'up' | 'down') => {
+    const newOrder = [...featuredCategoryIds];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= newOrder.length) return;
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+    setFeaturedCategoryIds(newOrder);
+  };
+
+  const handleRemoveFeaturedCategory = (id: string) => {
+    setFeaturedCategoryIds(featuredCategoryIds.filter(cid => cid !== id));
   };
   
   if (profile?.adminRole !== 'main') {
@@ -270,79 +290,124 @@ export default function AdminSettingsPage() {
               <CardDescription>Control content displayed on your storefront homepage.</CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoadingHomepage ? <Skeleton className="h-24 w-full" /> : (
-                <div className="space-y-4">
-                  <div>
-                    <Label className="font-medium">Featured Products</Label>
-                    <p className="text-sm text-muted-foreground">Select up to 4 products to feature prominently on the homepage.</p>
-                  </div>
-                  <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" role="combobox" aria-expanded={isPopoverOpen} className="w-full justify-between">
-                        Add a product...
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
-                      <Command>
-                        <CommandInput placeholder="Search products..." />
-                        <CommandList>
-                          <CommandEmpty>No products found.</CommandEmpty>
-                          <CommandGroup>
-                            {allProducts.map((product) => (
-                              <CommandItem
-                                key={product.id}
-                                value={product.name}
-                                disabled={featuredProductIds.includes(product.id)}
-                                onSelect={() => {
+              {isLoadingHomepage ? <Skeleton className="h-48 w-full" /> : (
+                <div className="space-y-6">
+                  {/* Featured Products */}
+                  <div className="space-y-4 p-4 border rounded-md">
+                    <div>
+                      <Label className="font-medium">Featured Products</Label>
+                      <p className="text-sm text-muted-foreground">Select up to 4 products to feature prominently.</p>
+                    </div>
+                    <Popover open={isProductPopoverOpen} onOpenChange={setIsProductPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={isProductPopoverOpen} className="w-full justify-between">
+                          Add a product...
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search products..." />
+                          <CommandList>
+                            <CommandEmpty>No products found.</CommandEmpty>
+                            <CommandGroup>
+                              {allProducts.map((product) => (
+                                <CommandItem key={product.id} value={product.name} disabled={featuredProductIds.includes(product.id)} onSelect={() => {
                                   if (featuredProductIds.length >= 4) {
                                     toast({ variant: "destructive", title: "Limit reached", description: "You can only select up to 4 featured products." });
-                                    setIsPopoverOpen(false)
-                                    return;
+                                    setIsProductPopoverOpen(false); return;
                                   }
                                   setFeaturedProductIds([...featuredProductIds, product.id]);
-                                }}
-                              >
-                                {product.name}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                  
-                  <div className="mt-4 space-y-2">
-                    <Label>Selected Products (Order represents display order)</Label>
-                    {featuredProductsDetails.length > 0 ? (
-                      <div className="space-y-2 rounded-md border p-2">
-                        {featuredProductsDetails.map((product, index) => (
-                          <div key={product.id} className="flex items-center justify-between rounded-md bg-muted/50 p-2">
-                            <div className="flex items-center gap-3 font-medium">
-                                <span className="text-muted-foreground">#{index + 1}</span>
-                                <Image src={product.imageUrl} alt={product.name} width={24} height={24} className="rounded-sm object-cover" />
-                                <span className="truncate">{product.name}</span>
+                                }}>{product.name}</CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="space-y-2">
+                      <Label>Selected Products (Order represents display order)</Label>
+                      {featuredProductsDetails.length > 0 ? (
+                        <div className="space-y-2 rounded-md border p-2">
+                          {featuredProductsDetails.map((product, index) => (
+                            <div key={product.id} className="flex items-center justify-between rounded-md bg-muted/50 p-2">
+                              <div className="flex items-center gap-3 font-medium">
+                                  <span className="text-muted-foreground">#{index + 1}</span>
+                                  <Image src={product.imageUrl} alt={product.name} width={24} height={24} className="rounded-sm object-cover" />
+                                  <span className="truncate">{product.name}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveProduct(index, 'up')} disabled={index === 0}> <ArrowUp className="h-4 w-4" /> </Button>
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveProduct(index, 'down')} disabled={index === featuredProductsDetails.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoveFeaturedProduct(product.id)}><Trash2 className="h-4 w-4" /></Button>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-1">
-                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMove(index, 'up')} disabled={index === 0}> <ArrowUp className="h-4 w-4" /> </Button>
-                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMove(index, 'down')} disabled={index === featuredProductsDetails.length - 1}><ArrowDown className="h-4 w-4" /></Button>
-                                <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoveFeatured(product.id)}><Trash2 className="h-4 w-4" /></Button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-center text-muted-foreground py-4 border border-dashed rounded-md">
-                        No products selected. Add some to feature them on the homepage.
-                      </div>
-                    )}
+                          ))}
+                        </div>
+                      ) : <div className="text-sm text-center text-muted-foreground py-4 border border-dashed rounded-md">No products selected.</div>}
+                    </div>
                   </div>
 
+                  {/* Featured Categories */}
+                   <div className="space-y-4 p-4 border rounded-md">
+                    <div>
+                      <Label className="font-medium">Featured Categories</Label>
+                      <p className="text-sm text-muted-foreground">Select up to 5 categories for the homepage grid.</p>
+                    </div>
+                    <Popover open={isCategoryPopoverOpen} onOpenChange={setIsCategoryPopoverOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" role="combobox" aria-expanded={isCategoryPopoverOpen} className="w-full justify-between">
+                          Add a category...
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+                        <Command>
+                          <CommandInput placeholder="Search categories..." />
+                          <CommandList>
+                            <CommandEmpty>No categories found.</CommandEmpty>
+                            <CommandGroup>
+                              {allCategories.map((category) => (
+                                <CommandItem key={category.id} value={category.name} disabled={featuredCategoryIds.includes(category.id)} onSelect={() => {
+                                  if (featuredCategoryIds.length >= 5) {
+                                    toast({ variant: "destructive", title: "Limit reached", description: "You can only select up to 5 featured categories." });
+                                    setIsCategoryPopoverOpen(false); return;
+                                  }
+                                  setFeaturedCategoryIds([...featuredCategoryIds, category.id]);
+                                }}>{category.name}</CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                    <div className="space-y-2">
+                      <Label>Selected Categories (Order represents display order)</Label>
+                      {featuredCategoriesDetails.length > 0 ? (
+                        <div className="space-y-2 rounded-md border p-2">
+                          {featuredCategoriesDetails.map((category, index) => (
+                            <div key={category.id} className="flex items-center justify-between rounded-md bg-muted/50 p-2">
+                              <div className="flex items-center gap-3 font-medium">
+                                  <span className="text-muted-foreground">#{index + 1}</span>
+                                  <Image src={category.imageUrl} alt={category.name} width={24} height={24} className="rounded-sm object-cover" />
+                                  <span className="truncate">{category.name}</span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveCategory(index, 'up')} disabled={index === 0}> <ArrowUp className="h-4 w-4" /> </Button>
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => handleMoveCategory(index, 'down')} disabled={index === featuredCategoriesDetails.length - 1}><ArrowDown className="h-4 w-4" /></Button>
+                                  <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={() => handleRemoveFeaturedCategory(category.id)}><Trash2 className="h-4 w-4" /></Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      ) : <div className="text-sm text-center text-muted-foreground py-4 border border-dashed rounded-md">No categories selected.</div>}
+                    </div>
+                  </div>
                 </div>
               )}
             </CardContent>
             <CardFooter>
-              <Button onClick={handleFeaturedUpdate} disabled={isLoadingHomepage}>Save Homepage Settings</Button>
+              <Button onClick={handleHomepageUpdate} disabled={isLoadingHomepage}>Save Homepage Settings</Button>
             </CardFooter>
           </Card>
         </div>

@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { getProducts, getCategories, getHomepageSettings, getProductsByIds } from '@/lib/data';
+import { getProducts, getCategories, getHomepageSettings, getProductsByIds, getCategoriesByIds } from '@/lib/data';
 import type { Product, Category } from '@/lib/types';
 import { ProductCard } from '@/components/shop/ProductCard';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -66,16 +66,22 @@ export default function Home() {
         getHomepageSettings(),
       ]);
       setAllProducts(productsData);
-      setCategories(categoriesData);
-
+      
       let featuredData: Product[];
-      if (homepageSettings.featuredProductIds.length > 0) {
+      if (homepageSettings.featuredProductIds && homepageSettings.featuredProductIds.length > 0) {
           featuredData = await getProductsByIds(homepageSettings.featuredProductIds);
       } else {
-          // Fallback to 4 most recent products if none are explicitly featured
           featuredData = productsData.slice(0, 4);
       }
       setFeaturedProducts(featuredData);
+
+      let featuredCategoriesData: Category[];
+      if (homepageSettings.featuredCategoryIds && homepageSettings.featuredCategoryIds.length > 0) {
+        featuredCategoriesData = await getCategoriesByIds(homepageSettings.featuredCategoryIds);
+      } else {
+        featuredCategoriesData = categoriesData.slice(0, 5);
+      }
+      setCategories(featuredCategoriesData);
 
       setIsLoading(false);
     };
@@ -110,9 +116,6 @@ export default function Home() {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
-
-
-  const featuredCategories = categories.slice(0, 4);
 
   return (
     <div className="container py-8">
@@ -185,23 +188,23 @@ export default function Home() {
         <h2 className="text-2xl font-bold tracking-tight mb-6">Product Categories</h2>
          {isLoading ? (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
+                {[...Array(5)].map((_, i) => <Skeleton key={i} className="h-48 rounded-lg" />)}
             </div>
         ) : (
             <>
-              {featuredCategories.length > 0 ? (
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-                    <CategoryCard category={featuredCategories[0]} className="col-span-2 row-span-2">
-                        <Image src={featuredCategories[0].imageUrl} alt={featuredCategories[0].name} width={600} height={400} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={featuredCategories[0].name.toLowerCase().split(' ').slice(0,2).join(' ')} />
+              {categories.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                    <CategoryCard category={categories[0]} className="col-span-2 row-span-2">
+                        <Image src={categories[0].imageUrl} alt={categories[0].name} width={600} height={400} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={categories[0].name.toLowerCase().split(' ').slice(0,2).join(' ')} />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-6 flex flex-col justify-end">
-                          <h3 className="text-2xl font-bold text-white">{featuredCategories[0].name}</h3>
-                          <p className="text-white/90 truncate">{featuredCategories[0].description}</p>
+                          <h3 className="text-2xl font-bold text-white">{categories[0].name}</h3>
+                          <p className="text-white/90 truncate">{categories[0].description}</p>
                           <div className={cn(buttonVariants({ variant: 'secondary' }), "mt-4 self-start")}>
                               Shop Now
                           </div>
                       </div>
                     </CategoryCard>
-                    {featuredCategories.slice(1).map((cat) => (
+                    {categories.slice(1).map((cat) => (
                       <CategoryCard key={cat.id} category={cat}>
                           <Image src={cat.imageUrl} alt={cat.name} width={300} height={200} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" data-ai-hint={cat.name.toLowerCase().split(' ').slice(0,2).join(' ')} />
                           <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent p-4 flex flex-col justify-end">

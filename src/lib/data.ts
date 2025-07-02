@@ -11,6 +11,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings } from './types';
@@ -135,6 +136,26 @@ export async function getCategoryById(id: string): Promise<Category | null> {
         console.error("Error fetching category:", error);
         return null;
     }
+}
+
+export async function getCategoriesByIds(ids: string[]): Promise<Category[]> {
+  if (!ids || ids.length === 0) return [];
+  try {
+    const categoryPromises = ids.map(id => getCategoryById(id));
+    const categories = await Promise.all(categoryPromises);
+    const validCategories = categories.filter((c): c is Category => c !== null);
+    
+    // Preserve the order of the original IDs array
+    const categoryMap = new Map(validCategories.map(c => [c.id, c.name]));
+    return ids.map(id => {
+      const category = validCategories.find(c => c.id === id);
+      return category ? category : null;
+    }).filter((c): c is Category => c !== null);
+
+  } catch (error) {
+    console.error("Error fetching categories by IDs:", error);
+    return [];
+  }
 }
 
 export async function getProducts(options: { limit?: number } = {}): Promise<Product[]> {
@@ -450,7 +471,7 @@ export async function updateDeliverySettings(settings: DeliverySettings): Promis
 
 // == Homepage Settings Functions ==
 export async function getHomepageSettings(): Promise<HomepageSettings> {
-  const defaultSettings = { featuredProductIds: [] };
+  const defaultSettings = { featuredProductIds: [], featuredCategoryIds: [] };
   try {
     const settingsRef = doc(db, 'settings', 'homepage');
     const docSnap = await getDoc(settingsRef);
@@ -458,6 +479,7 @@ export async function getHomepageSettings(): Promise<HomepageSettings> {
         const data = docSnap.data();
         return {
           featuredProductIds: data.featuredProductIds || [],
+          featuredCategoryIds: data.featuredCategoryIds || [],
         };
     }
     return defaultSettings;
