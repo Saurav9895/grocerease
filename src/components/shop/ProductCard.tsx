@@ -16,7 +16,7 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link href={`/product/${product.id}`} className="group block h-full">
       <Card className="relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
-        <CardContent className="p-4 pt-8 text-center flex flex-col flex-grow">
+        <CardContent className="p-4 pt-8 flex flex-col flex-grow">
             <div className="relative mx-auto h-32 w-32 mb-4 shrink-0">
                 <Image
                     src={product.imageUrl}
@@ -27,11 +27,11 @@ export function ProductCard({ product }: ProductCardProps) {
                 />
             </div>
 
-            <div className="flex-grow flex flex-col justify-center">
+            <div className="flex-grow flex flex-col justify-center text-left">
               <h3 className="text-lg font-bold leading-tight">{product.name}</h3>
             </div>
 
-            <div className="flex justify-between items-center text-left mt-auto">
+            <div className="flex justify-between items-center text-left mt-auto pt-4">
                 <p className="text-lg font-bold text-primary">
                     {isVariant ? 'From ' : ''}Rs{product.price.toFixed(2)}
                 </p>
