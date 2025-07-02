@@ -7,6 +7,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet } from './types';
@@ -20,6 +21,7 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         name: data.name,
         description: data.description,
         price: data.price,
+        originalPrice: data.originalPrice,
         imageUrl: data.imageUrl,
         category: data.category,
         stock: data.stock,
@@ -28,7 +30,7 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         reviewCount: data.reviewCount || 0,
         attributes: data.attributes || {},
         isVariant: data.isVariant || false,
-        variantAttributeId: data.variantAttributeId,
+        variantAttributeName: data.variantAttributeName,
         variants: data.variants || {},
     };
 }

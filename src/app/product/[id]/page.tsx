@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useState } from 'react';
@@ -115,6 +116,7 @@ export default function ProductDetailPage() {
           id: `${product.id}-${selectedVariant}`, // Unique ID for cart
           name: `${product.name} (${selectedVariant})`,
           price: variantData.price,
+          originalPrice: variantData.originalPrice,
           stock: variantData.stock,
           imageUrl: variantData.imageUrl,
           isVariant: false, // Treat as a simple product in cart
@@ -146,12 +148,14 @@ export default function ProductDetailPage() {
       const variant = product.variants[selectedVariant];
       return {
         price: variant.price,
+        originalPrice: variant.originalPrice,
         imageUrl: variant.imageUrl,
         stock: variant.stock,
       };
     }
     return {
       price: product.price,
+      originalPrice: product.originalPrice,
       imageUrl: product.imageUrl,
       stock: product.stock,
     };
@@ -218,7 +222,16 @@ export default function ProductDetailPage() {
             {renderStars(product.rating)}
             <span className="text-muted-foreground text-sm hover:underline">({product.reviewCount} reviews)</span>
           </div>
-          {displayableProduct && <p className="text-3xl font-semibold text-primary">Rs{displayableProduct.price.toFixed(2)}</p>}
+          {displayableProduct && (
+            <div className="flex items-baseline gap-3">
+              <p className="text-3xl font-semibold text-primary">Rs{displayableProduct.price.toFixed(2)}</p>
+              {displayableProduct.originalPrice && displayableProduct.originalPrice > displayableProduct.price && (
+                  <p className="text-xl text-muted-foreground line-through">
+                      Rs{displayableProduct.originalPrice.toFixed(2)}
+                  </p>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold">Description</h2>
             <p className="text-muted-foreground">{product.description}</p>
@@ -226,7 +239,7 @@ export default function ProductDetailPage() {
           
           {product.isVariant && product.variants && (
              <div className="space-y-4">
-                <Label className="text-lg font-semibold">Options</Label>
+                <Label className="text-lg font-semibold">{product.variantAttributeName || 'Options'}</Label>
                 <RadioGroup value={selectedVariant || ''} onValueChange={setSelectedVariant} className="flex flex-wrap gap-2">
                     {Object.keys(product.variants).map((value) => (
                         <RadioGroupItem key={value} value={value} id={`variant-${value}`} className="sr-only" />

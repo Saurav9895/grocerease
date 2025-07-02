@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from 'next/image';
@@ -9,7 +10,6 @@ import { useCart } from '@/hooks/use-cart';
 import type { Product } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { ArrowRight, MoreHorizontal } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -55,11 +55,18 @@ export function ProductCard({ product }: ProductCardProps) {
 
         <CardContent className="p-4 flex flex-col flex-grow">
             <Link href={`/product/${product.id}`}>
-                <div className="flex justify-between items-start mb-1">
-                    <h3 className="text-base font-bold leading-tight hover:underline">{product.name}</h3>
-                    <p className="text-base font-bold text-foreground shrink-0 ml-2">
-                        {isVariant && 'From '}Rs{product.price.toFixed(2)}
-                    </p>
+                <div className="flex justify-between items-start gap-2 mb-1">
+                    <h3 className="text-base font-bold leading-tight hover:underline flex-grow">{product.name}</h3>
+                    <div className="flex items-baseline gap-2 shrink-0">
+                        {product.originalPrice && product.originalPrice > product.price && (
+                            <span className="text-sm text-muted-foreground line-through">
+                            Rs{product.originalPrice.toFixed(2)}
+                            </span>
+                        )}
+                        <p className="text-base font-bold text-foreground">
+                            {isVariant && 'From '}Rs{product.price.toFixed(2)}
+                        </p>
+                    </div>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2 flex-grow mb-4">
                 {product.description}

@@ -4,7 +4,8 @@ export interface Product {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number; // This is the sale price
+  originalPrice?: number; // The M.R.P. or strikethrough price
   imageUrl: string;
   category: string;
   stock: number;
@@ -13,11 +14,12 @@ export interface Product {
   reviewCount: number;
   attributes?: Record<string, string>;
   
-  // New variant fields
+  // Variant fields
   isVariant?: boolean;
-  variantAttributeId?: string; // ID of the AttributeSet used for variants
+  variantAttributeName?: string; // e.g., "Weight", "Size"
   variants?: Record<string, { // The key is the attribute value (e.g., "500gm")
     price: number;
+    originalPrice?: number;
     stock: number;
     imageUrl: string;
   }>;
@@ -88,7 +90,6 @@ export interface UserProfile {
     email: string;
     phone: string;
     adminRole: 'main' | 'standard' | null;
-    avatarUrl?: string;
 }
 
 export interface AttributeSet {
