@@ -1,94 +1,65 @@
 
-
 "use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { useCart } from '@/hooks/use-cart';
+import { Card, CardContent } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
-import { toast } from '@/hooks/use-toast';
-import { ArrowRight, MoreHorizontal } from 'lucide-react';
+import { Heart, Star } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const { addToCart } = useCart();
   const isVariant = product.isVariant && product.variants && Object.keys(product.variants).length > 0;
 
-  const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (product.stock > 0 && !isVariant) {
-      addToCart({ ...product, quantity: 1 });
-      toast({
-        title: "Added to cart",
-        description: `${product.name} has been added to your cart.`,
-      });
-    }
-  };
-
   return (
-    <Card className="flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg group w-full">
-        <div className="relative">
-            <Link href={`/product/${product.id}`} className="block w-full">
-                <div className="relative aspect-square w-full overflow-hidden">
-                    <Image
-                        src={product.imageUrl}
-                        alt={product.name}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                        data-ai-hint={`${product.category.replace(/-/g, ' ')} food`}
-                    />
-                </div>
-            </Link>
-            <div className="absolute top-2 right-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full bg-black/20 text-white hover:bg-black/40 hover:text-white">
-                    <MoreHorizontal className="h-4 w-4" />
-                    <span className="sr-only">More options</span>
-                </Button>
-            </div>
+    <Link href={`/product/${product.id}`} className="group block h-full">
+      <Card className="relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
+        {/* Favorite button */}
+        <div 
+          role="button"
+          aria-label="Add to favorites"
+          className="absolute top-0 right-0 h-10 w-10 z-10 bg-primary text-primary-foreground hover:bg-primary/90 flex items-center justify-center rounded-bl-2xl rounded-tr-lg cursor-pointer"
+          onClick={(e) => {
+            e.preventDefault();
+            // In a real app, you would dispatch an action here to update favorites.
+            console.log(`Toggled favorite for ${product.name}`);
+          }}
+        >
+          <Heart className="h-5 w-5" />
         </div>
 
-        <CardContent className="p-4 flex flex-col flex-grow">
-            <Link href={`/product/${product.id}`}>
-                <div className="flex justify-between items-start gap-2 mb-1">
-                    <h3 className="text-base font-bold leading-tight hover:underline flex-grow">{product.name}</h3>
-                    <div className="flex items-baseline gap-2 shrink-0">
-                        {product.originalPrice && product.originalPrice > product.price && (
-                            <span className="text-sm text-muted-foreground line-through">
-                            Rs{product.originalPrice.toFixed(2)}
-                            </span>
-                        )}
-                        <p className="text-base font-bold text-foreground">
-                            {isVariant && 'From '}Rs{product.price.toFixed(2)}
-                        </p>
-                    </div>
-                </div>
-                <p className="text-sm text-muted-foreground line-clamp-2 flex-grow mb-4">
-                {product.description}
-                </p>
-            </Link>
-        </CardContent>
+        <CardContent className="p-4 pt-8 text-center flex flex-col flex-grow">
+            <div className="relative mx-auto h-32 w-32 mb-4 shrink-0">
+                <Image
+                    src={product.imageUrl}
+                    alt={product.name}
+                    fill
+                    className="object-cover rounded-full transition-transform duration-300 group-hover:scale-105"
+                    data-ai-hint={product.category.replace(/-/g, ' ')}
+                />
+            </div>
 
-        <CardFooter className="p-4 pt-0 mt-auto">
-            {isVariant ? (
-                <Button size="sm" className="w-full" asChild>
-                    <Link href={`/product/${product.id}`}>
-                      View Options
-                      <ArrowRight className="ml-2 h-4 w-4" />
-                    </Link>
-                </Button>
-            ) : (
-                <Button size="sm" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
-                    {product.stock > 0 ? 'Order Now' : 'Out of Stock'}
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            )}
-        </CardFooter>
-    </Card>
+            <div className="flex-grow">
+              <h3 className="text-lg font-bold leading-tight">{product.name}</h3>
+              <p className="text-sm text-muted-foreground mt-1 mb-4 h-10 line-clamp-2">
+                {product.description}
+              </p>
+            </div>
+
+            <div className="flex justify-between items-center text-left mt-auto">
+                <p className="text-lg font-bold text-primary">
+                    {isVariant ? 'From ' : ''}Rs{product.price.toFixed(2)}
+                </p>
+                <div className="flex items-center gap-1">
+                    <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
+                    <span className="font-medium text-sm">{product.rating.toFixed(1)}</span>
+                </div>
+            </div>
+        </CardContent>
+      </Card>
+    </Link>
   );
 }
