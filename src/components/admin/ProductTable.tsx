@@ -34,10 +34,11 @@ import type { Product, Category } from "@/lib/types";
 import { ProductForm } from "./ProductForm";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Trash2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { db } from "@/lib/firebase";
 import { deleteDoc, doc } from "firebase/firestore";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ProductTableProps {
   products: Product[];
@@ -48,6 +49,7 @@ interface ProductTableProps {
 export function ProductTable({ products, categories, onDataChanged }: ProductTableProps) {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const { toast } = useToast();
 
   const categoryMap = new Map(categories.map(cat => [cat.id, cat.name]));
@@ -67,6 +69,27 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
       toast({ variant: "destructive", title: "Failed to delete product", description: "An unexpected error occurred." });
     }
   };
+  
+  const handleDeleteSelected = async () => {
+    try {
+      await Promise.all(
+        selectedIds.map(id => deleteDoc(doc(db, "products", id)))
+      );
+      toast({
+        title: "Products Deleted",
+        description: `${selectedIds.length} product(s) have been deleted.`,
+      });
+      setSelectedIds([]);
+      onDataChanged();
+    } catch (error) {
+      console.error("Error deleting selected products:", error);
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: "Could not delete the selected products.",
+      });
+    }
+  };
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
@@ -74,9 +97,52 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
     onDataChanged();
   };
   
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      setSelectedIds(products.map(p => p.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const handleSelect = (productId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedIds(prev => [...prev, productId]);
+    } else {
+      setSelectedIds(prev => prev.filter(id => id !== productId));
+    }
+  };
+
   return (
     <>
-      <div className="flex justify-end mb-4">
+      <div className="flex justify-between items-center mb-4">
+        <div>
+          {selectedIds.length > 0 && (
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive">
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Delete ({selectedIds.length})
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete {selectedIds.length} product(s).
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteSelected}>
+                    Continue
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          )}
+        </div>
+        
         <Dialog open={isFormOpen} onOpenChange={(open) => {
           setIsFormOpen(open);
           if (!open) setSelectedProduct(null);
@@ -96,6 +162,13 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]">
+                <Checkbox
+                  checked={products.length > 0 && selectedIds.length === products.length}
+                  onCheckedChange={(checked) => handleSelectAll(!!checked)}
+                  aria-label="Select all"
+                />
+              </TableHead>
               <TableHead className="w-[80px]">Image</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
@@ -107,7 +180,14 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
           <TableBody>
             {products.length > 0 ? (
               products.map((product) => (
-                <TableRow key={product.id}>
+                <TableRow key={product.id} data-state={selectedIds.includes(product.id) && "selected"}>
+                  <TableCell>
+                    <Checkbox
+                      checked={selectedIds.includes(product.id)}
+                      onCheckedChange={(checked) => handleSelect(product.id, !!checked)}
+                      aria-label={`Select product ${product.name}`}
+                    />
+                  </TableCell>
                   <TableCell>
                     <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
                   </TableCell>
@@ -148,7 +228,7 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24">
+                <TableCell colSpan={7} className="text-center h-24">
                   No products found. Add one to get started!
                 </TableCell>
               </TableRow>
