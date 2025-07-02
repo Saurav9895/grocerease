@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Leaf, User, LogOut, Menu, LayoutDashboard, Search, X } from "lucide-react";
+import { ShoppingCart, Leaf, User, LogOut, LayoutDashboard, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "@/components/shop/CartSheet";
 import { useCart } from "@/hooks/use-cart";
@@ -19,20 +19,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "../ui/avatar";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "../ui/skeleton";
-import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-  SheetClose,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
 import { Input } from "@/components/ui/input";
-import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/types";
 import { getProducts } from "@/lib/data";
 import Image from "next/image";
@@ -42,9 +32,7 @@ export function ShopHeader() {
   const { cartCount } = useCart();
   const { user, profile, signOut, loading } = useAuth();
   const [isCartOpen, setIsCartOpen] = useState(false);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const router = useRouter();
-  const pathname = usePathname();
   const { toast } = useToast();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -72,7 +60,7 @@ export function ShopHeader() {
       .filter(product =>
         product.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
-      .slice(0, 5); // Limit results for performance
+      .slice(0, 5); 
 
     setSearchResults(filtered);
     setIsResultsVisible(filtered.length > 0);
@@ -96,25 +84,13 @@ export function ShopHeader() {
     if (searchQuery.trim()) {
       router.push(`/products?q=${searchQuery.trim()}`);
       setIsResultsVisible(false);
-      if(isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
-      }
     }
   };
   
   const handleResultClick = () => {
     setSearchQuery('');
     setIsResultsVisible(false);
-    if (isMobileMenuOpen) {
-      setIsMobileMenuOpen(false);
-    }
   };
-
-  const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/products", label: "All Products" },
-    { href: "/orders", label: "My Orders", auth: true },
-  ];
 
   const handleSignOut = async () => {
     await signOut();
