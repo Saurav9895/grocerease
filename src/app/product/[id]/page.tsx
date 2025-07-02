@@ -19,6 +19,8 @@ import { ReviewList } from '@/components/shop/ReviewList';
 import { ReviewForm } from '@/components/shop/ReviewForm';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { cn } from '@/lib/utils';
 
 
 const renderStars = (rating: number) => {
@@ -52,6 +54,7 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
+  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
@@ -75,6 +78,11 @@ export default function ProductDetailPage() {
     setIsLoadingReviews(false);
 
     if (fetchedProduct) {
+        if (fetchedProduct.isVariant && fetchedProduct.variants) {
+          const firstVariantKey = Object.keys(fetchedProduct.variants)[0];
+          setSelectedVariant(firstVariantKey || null);
+        }
+
         const related = await getProductsByCategory(fetchedProduct.category);
         setRelatedProducts(related.filter(p => p.id !== fetchedProduct.id).slice(0, 4));
     }
@@ -96,17 +104,58 @@ export default function ProductDetailPage() {
 
   const handleAddToCart = () => {
     if (product) {
-      addToCart({ ...product, quantity: quantity });
-      toast({
-        title: "Added to cart",
-        description: `${quantity} x ${product.name} has been added to your cart.`,
-      });
+      if (product.isVariant) {
+        if (!selectedVariant || !product.variants?.[selectedVariant]) {
+          toast({ variant: "destructive", title: "Please select an option" });
+          return;
+        }
+        const variantData = product.variants[selectedVariant];
+        const variantCartItem = {
+          ...product,
+          id: `${product.id}-${selectedVariant}`, // Unique ID for cart
+          name: `${product.name} (${selectedVariant})`,
+          price: variantData.price,
+          stock: variantData.stock,
+          imageUrl: variantData.imageUrl,
+          isVariant: false, // Treat as a simple product in cart
+          variants: {},
+          attributes: product.attributes
+        };
+        addToCart({ ...variantCartItem, quantity });
+        toast({
+            title: "Added to cart",
+            description: `${quantity} x ${variantCartItem.name} has been added to your cart.`,
+        });
+      } else {
+        addToCart({ ...product, quantity: quantity });
+        toast({
+          title: "Added to cart",
+          description: `${quantity} x ${product.name} has been added to your cart.`,
+        });
+      }
     }
   };
   
   const getCategoryName = (categoryId: string) => {
     return categories.find(c => c.id === categoryId)?.name || categoryId;
   }
+  
+  const displayableProduct = (() => {
+    if (!product) return null;
+    if (product.isVariant && selectedVariant && product.variants?.[selectedVariant]) {
+      const variant = product.variants[selectedVariant];
+      return {
+        price: variant.price,
+        imageUrl: variant.imageUrl,
+        stock: variant.stock,
+      };
+    }
+    return {
+      price: product.price,
+      imageUrl: product.imageUrl,
+      stock: product.stock,
+    };
+  })();
 
   if (isLoading) {
     return (
@@ -139,6 +188,8 @@ export default function ProductDetailPage() {
     );
   }
 
+  const isAddToCartDisabled = (product.isVariant && !selectedVariant) || displayableProduct?.stock === 0;
+
   return (
     <div className="container py-12">
       <Button variant="outline" onClick={() => router.back()} className="mb-8">
@@ -147,13 +198,16 @@ export default function ProductDetailPage() {
       </Button>
       <div className="grid md:grid-cols-2 gap-12 items-start">
         <div className="relative aspect-square rounded-lg overflow-hidden border bg-card">
-          <Image
-            src={product.imageUrl}
-            alt={product.name}
-            fill
-            className="object-cover"
-            data-ai-hint="product image"
-          />
+          {displayableProduct && (
+            <Image
+              src={displayableProduct.imageUrl}
+              alt={product.name}
+              fill
+              className="object-cover"
+              data-ai-hint="product image"
+              key={displayableProduct.imageUrl} // force re-render on image change
+            />
+          )}
         </div>
         <div className="space-y-6">
           <div>
@@ -164,11 +218,34 @@ export default function ProductDetailPage() {
             {renderStars(product.rating)}
             <span className="text-muted-foreground text-sm hover:underline">({product.reviewCount} reviews)</span>
           </div>
-          <p className="text-3xl font-semibold text-primary">Rs{product.price.toFixed(2)}</p>
+          {displayableProduct && <p className="text-3xl font-semibold text-primary">Rs{displayableProduct.price.toFixed(2)}</p>}
           <div className="space-y-2">
             <h2 className="text-lg font-semibold">Description</h2>
             <p className="text-muted-foreground">{product.description}</p>
           </div>
+          
+          {product.isVariant && product.variants && (
+             <div className="space-y-4">
+                <Label className="text-lg font-semibold">Options</Label>
+                <RadioGroup value={selectedVariant || ''} onValueChange={setSelectedVariant} className="flex flex-wrap gap-2">
+                    {Object.keys(product.variants).map((value) => (
+                        <RadioGroupItem key={value} value={value} id={`variant-${value}`} className="sr-only" />
+                    ))}
+                    {Object.keys(product.variants).map((value) => (
+                         <Label
+                            key={value}
+                            htmlFor={`variant-${value}`}
+                            className={cn(
+                                "cursor-pointer rounded-md border-2 border-muted bg-popover px-4 py-2 hover:bg-accent hover:text-accent-foreground",
+                                selectedVariant === value && "border-primary"
+                            )}
+                        >
+                            {value}
+                        </Label>
+                    ))}
+                </RadioGroup>
+            </div>
+          )}
 
           {product.attributes && Object.keys(product.attributes).length > 0 && (
             <div className="space-y-4 pt-2">
@@ -195,7 +272,7 @@ export default function ProductDetailPage() {
                         size="icon"
                         className="h-9 w-9"
                         onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1 || product.stock === 0}
+                        disabled={quantity <= 1 || displayableProduct?.stock === 0}
                     >
                         <Minus className="h-4 w-4" />
                     </Button>
@@ -205,7 +282,8 @@ export default function ProductDetailPage() {
                         value={quantity}
                         onChange={(e) => {
                             const value = parseInt(e.target.value, 10);
-                            if (!isNaN(value) && value > 0 && value <= product.stock) {
+                            const stock = displayableProduct?.stock ?? 0;
+                            if (!isNaN(value) && value > 0 && value <= stock) {
                                 setQuantity(value);
                             } else if (e.target.value === '') {
                                 setQuantity(1);
@@ -213,29 +291,29 @@ export default function ProductDetailPage() {
                         }}
                         className="h-9 w-14 text-center"
                         min="1"
-                        max={product.stock}
-                        disabled={product.stock === 0}
+                        max={displayableProduct?.stock}
+                        disabled={displayableProduct?.stock === 0}
                     />
                     <Button
                         variant="outline"
                         size="icon"
                         className="h-9 w-9"
-                        onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                        disabled={quantity >= product.stock || product.stock === 0}
+                        onClick={() => setQuantity(Math.min(displayableProduct?.stock ?? 0, quantity + 1))}
+                        disabled={quantity >= (displayableProduct?.stock ?? 0) || displayableProduct?.stock === 0}
                     >
                         <Plus className="h-4 w-4" />
                     </Button>
                 </div>
             </div>
-            {product.stock > 0 ? (
-                <p className="text-sm text-muted-foreground">{product.stock} in stock</p>
+            {displayableProduct && displayableProduct.stock > 0 ? (
+                <p className="text-sm text-muted-foreground">{displayableProduct.stock} in stock</p>
             ) : (
                 <p className="text-sm text-destructive font-medium">Out of stock</p>
             )}
           </div>
-          <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+          <Button size="lg" className="w-full" onClick={handleAddToCart} disabled={isAddToCartDisabled}>
              <ShoppingCart className="mr-2 h-5 w-5" />
-            {product.stock > 0 ? 'Add to Cart' : 'Out of Stock'}
+            {displayableProduct?.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
           </Button>
         </div>
       </div>

@@ -9,6 +9,7 @@ import { useCart } from '@/hooks/use-cart';
 import type { Product } from '@/lib/types';
 import { toast } from '@/hooks/use-toast';
 import { ArrowRight, MoreHorizontal } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface ProductCardProps {
   product: Product;
@@ -16,11 +17,12 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart();
+  const isVariant = product.isVariant && product.variants && Object.keys(product.variants).length > 0;
 
   const handleAddToCart = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     e.stopPropagation();
-    if (product.stock > 0) {
+    if (product.stock > 0 && !isVariant) {
       addToCart({ ...product, quantity: 1 });
       toast({
         title: "Added to cart",
@@ -55,7 +57,9 @@ export function ProductCard({ product }: ProductCardProps) {
             <Link href={`/product/${product.id}`}>
                 <div className="flex justify-between items-start mb-1">
                     <h3 className="text-base font-bold leading-tight hover:underline">{product.name}</h3>
-                    <p className="text-base font-bold text-foreground shrink-0 ml-2">Rs{product.price.toFixed(2)}</p>
+                    <p className="text-base font-bold text-foreground shrink-0 ml-2">
+                        {isVariant && 'From '}Rs{product.price.toFixed(2)}
+                    </p>
                 </div>
                 <p className="text-sm text-muted-foreground line-clamp-2 flex-grow mb-4">
                 {product.description}
@@ -64,10 +68,19 @@ export function ProductCard({ product }: ProductCardProps) {
         </CardContent>
 
         <CardFooter className="p-4 pt-0 mt-auto">
-            <Button size="sm" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
-                {product.stock > 0 ? 'Order Now' : 'Out of Stock'}
-                <ArrowRight className="ml-2 h-4 w-4" />
-            </Button>
+            {isVariant ? (
+                <Button size="sm" className="w-full" asChild>
+                    <Link href={`/product/${product.id}`}>
+                      View Options
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                </Button>
+            ) : (
+                <Button size="sm" className="w-full" onClick={handleAddToCart} disabled={product.stock === 0}>
+                    {product.stock > 0 ? 'Order Now' : 'Out of Stock'}
+                    <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            )}
         </CardFooter>
     </Card>
   );
