@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from 'next/link';
@@ -37,7 +38,7 @@ export function CartSheet({ isOpen, onOpenChange }: CartSheetProps) {
             <ScrollArea className="flex-1">
               <div className="px-6">
                 {cartItems.map((item) => (
-                  <CartItem key={item.id} item={item} />
+                  <CartItem key={item.id} item={item} onOpenChange={onOpenChange} />
                 ))}
               </div>
             </ScrollArea>

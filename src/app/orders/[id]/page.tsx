@@ -1,9 +1,11 @@
 
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { getOrderById } from "@/lib/data";
 import type { Order } from "@/lib/types";
 import { useAuth } from "@/context/AuthProvider";
@@ -116,7 +118,11 @@ function OrderDetailPageContent() {
                       <TableCell className="hidden sm:table-cell">
                          <Image src={item.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
                       </TableCell>
-                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell className="font-medium">
+                        <Link href={`/product/${item.productId}`} className="hover:underline">
+                          {item.name}
+                        </Link>
+                      </TableCell>
                       <TableCell>x{item.quantity}</TableCell>
                       <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>
                     </TableRow>

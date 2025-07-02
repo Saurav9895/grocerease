@@ -49,12 +49,22 @@ export interface Address {
   country: string;
 }
 
+export interface OrderItem {
+  id: string; // This might be a composite ID for variants
+  productId: string;
+  name: string;
+  price: number;
+  quantity: number;
+  imageUrl: string;
+  variantValue?: string;
+}
+
 export interface Order {
   id: string;
   userId: string;
   customerName: string;
   address: Address;
-  items: CartItem[];
+  items: OrderItem[];
   subtotal: number;
   deliveryFee: number;
   discountAmount: number;

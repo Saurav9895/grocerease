@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -6,6 +7,7 @@ import { CheckoutForm } from "@/components/shop/CheckoutForm";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import Image from "next/image";
+import Link from "next/link";
 import { AuthGuard } from "@/components/common/AuthGuard";
 import { useAuth } from "@/context/AuthProvider";
 import { useRouter } from "next/navigation";
@@ -18,9 +20,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Label } from "@/components/ui/label";
+import { Minus, Plus } from "lucide-react";
 
 function CheckoutView() {
-  const { cartItems, cartTotal } = useCart();
+  const { cartItems, cartTotal, updateQuantity, clearCart } = useCart();
   const router = useRouter();
   const { toast } = useToast();
   const { user } = useAuth();
@@ -126,18 +129,33 @@ function CheckoutView() {
         <div className="order-first lg:order-last">
           <Card>
             <CardHeader>
-              <CardTitle>Order Summary</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>Order Summary</CardTitle>
+                <Button asChild variant="outline" size="sm">
+                    <Link href="/products">Continue Shopping</Link>
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-4">
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between items-center">
                   <div className="flex items-center gap-4">
-                    <div className="relative h-12 w-12 rounded-md overflow-hidden">
+                    <div className="relative h-16 w-16 rounded-md overflow-hidden">
                        <Image src={item.imageUrl} alt={item.name} fill className="object-cover" data-ai-hint="product image"/>
                     </div>
                     <div>
-                      <p className="font-medium">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
+                      <Link href={`/product/${item.productId || item.id}`} className="font-medium hover:underline">
+                          {item.name}
+                      </Link>
+                      <div className="flex items-center gap-2 mt-1">
+                          <Button type="button" variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>
+                              <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="text-sm w-4 text-center tabular-nums">{item.quantity}</span>
+                          <Button type="button" variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>
+                              <Plus className="h-3 w-3" />
+                          </Button>
+                      </div>
                     </div>
                   </div>
                   <p className="font-medium">Rs{(item.price * item.quantity).toFixed(2)}</p>

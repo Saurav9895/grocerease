@@ -1,7 +1,9 @@
 
+
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   Table,
   TableBody,
@@ -258,7 +260,11 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
                   <TableCell>
                     <Image src={product.imageUrl} alt={product.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
                   </TableCell>
-                  <TableCell className="font-medium">{product.name}</TableCell>
+                  <TableCell className="font-medium">
+                    <Link href={`/product/${product.id}`} target="_blank" className="hover:underline">
+                      {product.name}
+                    </Link>
+                  </TableCell>
                   <TableCell><Badge variant="outline">{categoryMap.get(product.category) || product.category}</Badge></TableCell>
                   <TableCell className="text-right">Rs{product.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">{product.stock}</TableCell>

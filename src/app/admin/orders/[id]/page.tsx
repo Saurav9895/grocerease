@@ -1,9 +1,11 @@
 
+
 "use client";
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import { getOrderById } from "@/lib/data";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
@@ -151,7 +153,11 @@ export default function OrderDetailPage() {
                         <TableCell>
                            <Image src={item.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
                         </TableCell>
-                        <TableCell>{item.name}</TableCell>
+                        <TableCell>
+                          <Link href={`/product/${item.productId}`} target="_blank" className="font-medium hover:underline text-primary">
+                            {item.name}
+                          </Link>
+                        </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell className="text-right">Rs{item.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>

@@ -1,7 +1,9 @@
 
+
 "use client";
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useCart } from '@/hooks/use-cart';
@@ -10,9 +12,10 @@ import { Minus, Plus, Trash2 } from 'lucide-react';
 
 interface CartItemProps {
   item: CartItem;
+  onOpenChange?: (isOpen: boolean) => void;
 }
 
-export function CartItem({ item }: CartItemProps) {
+export function CartItem({ item, onOpenChange }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCart();
 
   return (
@@ -27,7 +30,9 @@ export function CartItem({ item }: CartItemProps) {
         />
       </div>
       <div className="flex-1">
-        <p className="font-medium">{item.name}</p>
+        <Link href={`/product/${item.productId || item.id}`} className="font-medium hover:underline" onClick={() => onOpenChange?.(false)}>
+          {item.name}
+        </Link>
         <p className="text-sm text-muted-foreground">Rs{item.price.toFixed(2)}</p>
       </div>
       <div className="flex items-center space-x-2">

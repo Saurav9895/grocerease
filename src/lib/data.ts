@@ -1,7 +1,7 @@
 
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, CartItem } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem } from './types';
 
 // == Helper Functions ==
 
@@ -430,10 +430,11 @@ export async function addReviewAndUpdateProduct(
 export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> {
   try {
     const newOrderRef = await runTransaction(db, async (transaction) => {
+      // 1. Read all product documents first.
       const productRefs = orderData.items.map(item => doc(db, 'products', item.productId || item.id));
       const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
 
-      // Validation Phase
+      // 2. Validate stock availability.
       for (let i = 0; i < orderData.items.length; i++) {
         const item = orderData.items[i];
         const productDoc = productDocs[i];
@@ -445,8 +446,8 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         const productData = productDoc.data() as Product;
         let currentStock: number;
         
-        if (item.variantValue) {
-          const variantData = productData.variants?.[item.variantValue];
+        if (item.variantValue && productData.variants) {
+          const variantData = productData.variants[item.variantValue];
           if (!variantData) {
             throw new Error(`Variant ${item.variantValue} for product ${productData.name} not found.`);
           }
@@ -460,14 +461,14 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         }
       }
 
-      // Write Phase
+      // 3. Perform all writes.
       for (let i = 0; i < orderData.items.length; i++) {
         const item = orderData.items[i];
         const productRef = productRefs[i];
         const productData = productDocs[i].data() as Product;
         
-        if (item.variantValue) {
-          const newStock = productData.variants![item.variantValue].stock - item.quantity;
+        if (item.variantValue && productData.variants) {
+          const newStock = productData.variants[item.variantValue].stock - item.quantity;
           transaction.update(productRef, { [`variants.${item.variantValue}.stock`]: newStock });
         } else {
           const newStock = productData.stock - item.quantity;
@@ -475,13 +476,19 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         }
       }
 
-      const slimmedItems = orderData.items.map(({ id, name, price, quantity, imageUrl }) => ({ 
-        id, name, price, quantity, imageUrl 
+      const itemsForDb: OrderItem[] = orderData.items.map(item => ({
+        id: item.id,
+        productId: item.productId || item.id,
+        name: item.name,
+        price: item.price,
+        quantity: item.quantity,
+        imageUrl: item.imageUrl,
+        variantValue: item.variantValue,
       }));
 
       const finalOrderData = {
         ...orderData,
-        items: slimmedItems,
+        items: itemsForDb,
         createdAt: serverTimestamp(),
       };
 
