@@ -8,8 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getCategories } from "@/lib/data";
-import type { Product, Category } from "@/lib/types";
+import { getCategories, getAttributes } from "@/lib/data";
+import type { Product, Category, AttributeSet } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { z } from "zod";
@@ -53,6 +53,7 @@ type VariantRow = {
 
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [allAttributeSets, setAllAttributeSets] = useState<AttributeSet[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
   const { toast } = useToast();
@@ -69,8 +70,12 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   useEffect(() => {
     const fetchInitialData = async () => {
-      const fetchedCategories = await getCategories();
+      const [fetchedCategories, fetchedAttributes] = await Promise.all([
+        getCategories(),
+        getAttributes(),
+      ]);
       setCategories(fetchedCategories);
+      setAllAttributeSets(fetchedAttributes);
     };
     fetchInitialData();
   }, []);
@@ -172,7 +177,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
     if (isVariant) {
         if (!variantAttributeName.trim()) {
-            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please provide a name for the variant attribute (e.g., Weight, Size).' });
+            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please select a variant attribute.' });
             setIsLoading(false);
             return;
         }
@@ -353,8 +358,22 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
             <Separator className="my-4" />
             <div className="space-y-6">
                 <div className="space-y-2">
-                    <Label htmlFor="variant-attribute-name">Variant Attribute Name</Label>
-                    <Input id="variant-attribute-name" placeholder="e.g., Weight, Size, Color" value={variantAttributeName} onChange={(e) => setVariantAttributeName(e.target.value)}/>
+                    <Label htmlFor="variant-attribute-name">Variant Attribute</Label>
+                    <Select
+                      value={variantAttributeName}
+                      onValueChange={setVariantAttributeName}
+                    >
+                      <SelectTrigger id="variant-attribute-name">
+                        <SelectValue placeholder="Select an attribute for variants" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {allAttributeSets.map(attr => (
+                          <SelectItem key={attr.id} value={attr.name}>
+                            {attr.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                 </div>
                 
                 {variants.map((variant, index) => (
