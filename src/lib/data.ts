@@ -1,18 +1,4 @@
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, CartItem } from './types';
@@ -444,42 +430,51 @@ export async function addReviewAndUpdateProduct(
 export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> {
   try {
     const newOrderRef = await runTransaction(db, async (transaction) => {
-      // 1. Update stock for each item
-      for (const item of orderData.items) {
-        const productId = item.productId || item.id;
-        const variantValue = item.variantValue;
-        
-        const productRef = doc(db, 'products', productId);
-        const productDoc = await transaction.get(productRef);
+      const productRefs = orderData.items.map(item => doc(db, 'products', item.productId || item.id));
+      const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+
+      // Validation Phase
+      for (let i = 0; i < orderData.items.length; i++) {
+        const item = orderData.items[i];
+        const productDoc = productDocs[i];
 
         if (!productDoc.exists()) {
-          throw new Error(`Product with ID ${productId} not found.`);
+          throw new Error(`Product with ID ${item.productId || item.id} not found.`);
         }
         
         const productData = productDoc.data() as Product;
-
-        if (variantValue) {
-          const variantData = productData.variants?.[variantValue];
+        let currentStock: number;
+        
+        if (item.variantValue) {
+          const variantData = productData.variants?.[item.variantValue];
           if (!variantData) {
-            throw new Error(`Variant ${variantValue} for product ${productId} not found.`);
+            throw new Error(`Variant ${item.variantValue} for product ${productData.name} not found.`);
           }
-          const currentStock = variantData.stock;
-          if (currentStock < item.quantity) {
-            throw new Error(`Not enough stock for ${item.name}. Only ${currentStock} left.`);
-          }
-          const newStock = currentStock - item.quantity;
-          transaction.update(productRef, { [`variants.${variantValue}.stock`]: newStock });
+          currentStock = variantData.stock;
         } else {
-          const currentStock = productData.stock;
-          if (currentStock < item.quantity) {
-            throw new Error(`Not enough stock for ${item.name}. Only ${currentStock} left.`);
-          }
-          const newStock = currentStock - item.quantity;
+          currentStock = productData.stock;
+        }
+
+        if (currentStock < item.quantity) {
+          throw new Error(`Not enough stock for ${item.name}. Only ${currentStock} left.`);
+        }
+      }
+
+      // Write Phase
+      for (let i = 0; i < orderData.items.length; i++) {
+        const item = orderData.items[i];
+        const productRef = productRefs[i];
+        const productData = productDocs[i].data() as Product;
+        
+        if (item.variantValue) {
+          const newStock = productData.variants![item.variantValue].stock - item.quantity;
+          transaction.update(productRef, { [`variants.${item.variantValue}.stock`]: newStock });
+        } else {
+          const newStock = productData.stock - item.quantity;
           transaction.update(productRef, { stock: newStock });
         }
       }
 
-      // 2. Create the order document with slimmed down items
       const slimmedItems = orderData.items.map(({ id, name, price, quantity, imageUrl }) => ({ 
         id, name, price, quantity, imageUrl 
       }));
@@ -502,6 +497,7 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
     throw error;
   }
 }
+
 
 export async function getDeliverySettings(): Promise<DeliverySettings> {
   const defaultSettings = { fee: 0, freeDeliveryThreshold: 0 };
