@@ -130,7 +130,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             description: 'Could not get your location. Please check your browser permissions.',
           });
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
       toast({
@@ -152,21 +152,31 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
     geocoder.geocode({ location: markerPosition }, (results, status) => {
         if (status === 'OK' && results?.[0]) {
             const resultAddress = results[0];
+            const addressComponents = resultAddress.address_components;
             const parsedAddress: Partial<Address> = {};
             
-            let streetNumber = '';
-            let route = '';
+            const get = (type: string, useShortName = false): string => {
+              const component = addressComponents.find(c => c.types.includes(type));
+              return component ? (useShortName ? component.short_name : component.long_name) : '';
+            };
 
-            resultAddress.address_components.forEach(component => {
-                const types = component.types;
-                if (types.includes('street_number')) streetNumber = component.long_name;
-                if (types.includes('route')) route = component.long_name;
-                if (types.includes('locality')) parsedAddress.city = component.long_name;
-                if (types.includes('administrative_area_level_1')) parsedAddress.state = component.short_name;
-                if (types.includes('country')) parsedAddress.country = component.long_name;
-                if (types.includes('postal_code')) parsedAddress.zip = component.long_name;
-            });
-            parsedAddress.street = `${streetNumber} ${route}`.trim();
+            const streetNumber = get('street_number');
+            const route = get('route');
+            const neighborhood = get('neighborhood');
+            const sublocality = get('sublocality_level_1');
+
+            const streetParts = [streetNumber, route, neighborhood, sublocality].filter(Boolean);
+            let street = streetParts.join(', ');
+            
+            if (!street && resultAddress.formatted_address) {
+                street = resultAddress.formatted_address.split(',')[0];
+            }
+
+            parsedAddress.street = street;
+            parsedAddress.city = get('locality');
+            parsedAddress.state = get('administrative_area_level_1', true);
+            parsedAddress.zip = get('postal_code');
+            parsedAddress.country = get('country');
             
             onConfirm(parsedAddress);
             onClose();
@@ -187,7 +197,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={defaultCenter}
-        zoom={13}
+        zoom={17}
         onLoad={onLoad}
         onUnmount={onUnmount}
         onClick={handleMapClick}
@@ -209,6 +219,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       </div>
     </div>
   ) : (
-    <Skeleton className="h-[400px] w-full" />
+    <Skeleton className="h-[448px] w-full" />
   );
 }
