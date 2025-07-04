@@ -16,8 +16,8 @@ L.Icon.Default.mergeOptions({
 });
 
 interface LocationMarkerProps {
-    position: LatLng | null;
-    setPosition: React.Dispatch<React.SetStateAction<LatLng | null>>;
+  position: LatLng | null;
+  setPosition: React.Dispatch<React.SetStateAction<LatLng | null>>;
 }
 
 function LocationMarker({ position, setPosition }: LocationMarkerProps) {
@@ -39,43 +39,47 @@ function LocationMarker({ position, setPosition }: LocationMarkerProps) {
 
   return position === null ? null : (
     <Marker
-        position={position}
-        draggable={true}
-        eventHandlers={{
-            dragend: (e) => setPosition(e.target.getLatLng())
-        }}
+      position={position}
+      draggable={true}
+      eventHandlers={{
+        dragend: (e) => setPosition(e.target.getLatLng())
+      }}
     />
   );
 }
 
 export interface MapPickerProps {
-    onConfirm: (position: LatLng) => void;
+  onConfirm: (position: LatLng) => void;
 }
 
 export function MapPicker({ onConfirm }: MapPickerProps) {
   const [position, setPosition] = React.useState<LatLng | null>(null);
 
+  // Use a dynamic key to force MapContainer remount if needed
+  const mapKey = position ? `${position.lat}-${position.lng}` : 'default';
+
   return (
     <div className="space-y-4">
-        <MapContainer
-            center={[27.7172, 85.3240]} // Default to Kathmandu
-            zoom={13}
-            scrollWheelZoom={true}
-            className="h-[400px] w-full rounded-md border"
-        >
-            <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            />
-            <LocationMarker position={position} setPosition={setPosition} />
-        </MapContainer>
-        <Button
-            onClick={() => position && onConfirm(position)}
-            disabled={!position}
-            className="w-full"
-        >
-            Confirm Location
-        </Button>
+      <MapContainer
+        key={mapKey} // ensure remounting and cleanup
+        center={[27.7172, 85.3240]}
+        zoom={13}
+        scrollWheelZoom={true}
+        className="h-[400px] w-full rounded-md border z-0"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <LocationMarker position={position} setPosition={setPosition} />
+      </MapContainer>
+      <Button
+        onClick={() => position && onConfirm(position)}
+        disabled={!position}
+        className="w-full"
+      >
+        Confirm Location
+      </Button>
     </div>
   );
 }

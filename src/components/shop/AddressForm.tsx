@@ -10,16 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthProvider";
 import { saveUserAddress, updateUserAddress } from "@/lib/data";
-import { MapPin } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import dynamic from "next/dynamic";
-import type { LatLng } from "leaflet";
-import { Skeleton } from "../ui/skeleton";
-
-const MapPicker = dynamic(() => import('@/components/common/MapPicker').then(mod => mod.MapPicker), { 
-    ssr: false,
-    loading: () => <Skeleton className="h-[400px] w-full bg-muted" />
-});
 
 interface AddressFormProps {
   address?: Address | null;
@@ -47,9 +37,6 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState(initialAddressState);
   
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [isGeocoding, setIsGeocoding] = useState(false);
-
   useEffect(() => {
     if (address) {
         const { id, ...addressData } = address;
@@ -62,31 +49,6 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleLocationConfirm = async (position: LatLng) => {
-    setIsGeocoding(true);
-    try {
-        const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.lat}&lon=${position.lng}`);
-        const data = await response.json();
-        const address = data.address;
-        
-        setFormData(prev => ({
-            ...prev,
-            street: `${address.road || ''} ${address.house_number || ''}`.trim(),
-            city: address.city || address.town || address.village || '',
-            state: address.state || '',
-            zip: address.postcode || '',
-            country: address.country || '',
-        }));
-
-        toast({ title: "Address updated from map." });
-    } catch (error) {
-        toast({ variant: "destructive", title: "Could not fetch address", description: "Please try again or enter manually." });
-    } finally {
-        setIsMapOpen(false);
-        setIsGeocoding(false);
-    }
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -150,27 +112,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
         </div>
         <div className="space-y-2">
             <Label htmlFor="street">Street Address</Label>
-             <div className="flex gap-2">
-                <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required className="flex-grow" />
-                <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
-                  <DialogTrigger asChild>
-                    <Button type="button" variant="outline" className="flex-shrink-0">
-                      <MapPin className="mr-2 h-4 w-4" />
-                      Map
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="sm:max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Select Location</DialogTitle>
-                      <DialogDescription>Click on the map to set a pin or drag it to your address. We'll auto-fill the form for you.</DialogDescription>
-                    </DialogHeader>
-                    <div className="relative">
-                      {isMapOpen && <MapPicker onConfirm={handleLocationConfirm} />}
-                      {isGeocoding && <div className="absolute inset-0 bg-white/80 flex items-center justify-center"><p>Fetching address...</p></div>}
-                    </div>
-                  </DialogContent>
-                </Dialog>
-              </div>
+            <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
