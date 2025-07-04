@@ -151,23 +151,22 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   }, []);
 
   const onPlaceChanged = React.useCallback(() => {
-    if (autocomplete !== null) {
-      const place = autocomplete.getPlace();
-      if (place.geometry && place.geometry.location) {
-        const newPos = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        };
-        if (mapRef.current) {
-          mapRef.current.panTo(newPos);
-          mapRef.current.setZoom(17);
-        }
-        setMarkerPosition(newPos);
-      } else {
-         toast({ variant: 'destructive', title: 'Invalid location', description: 'Please select a valid location from the list.' });
+    if (autocomplete === null) {
+      return;
+    }
+    const place = autocomplete.getPlace();
+    if (place.geometry && place.geometry.location) {
+      const newPos = {
+        lat: place.geometry.location.lat(),
+        lng: place.geometry.location.lng(),
+      };
+      if (mapRef.current) {
+        mapRef.current.panTo(newPos);
+        mapRef.current.setZoom(17);
       }
+      setMarkerPosition(newPos);
     } else {
-      console.error('Autocomplete is not loaded yet!');
+        toast({ variant: 'destructive', title: 'Invalid location', description: 'Please select a valid location from the list.' });
     }
   }, [autocomplete, toast]);
 
