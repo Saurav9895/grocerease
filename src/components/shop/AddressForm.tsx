@@ -121,7 +121,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form onSubmit={handleSubmit} className="space-y-4">
         <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
             <DialogTrigger asChild>
                 <Button type="button" variant="outline" className="w-full">
