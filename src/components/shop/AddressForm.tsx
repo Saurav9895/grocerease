@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,24 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthProvider";
 import { saveUserAddress, updateUserAddress } from "@/lib/data";
-import { MapPin } from "lucide-react";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import dynamic from "next/dynamic";
-import type { LatLng } from 'leaflet';
-import { Skeleton } from "../ui/skeleton";
-
-
-const MapPicker = dynamic(() => import("../common/MapPicker").then(mod => mod.MapPicker), { 
-    ssr: false,
-    loading: () => <Skeleton className="h-[468px] w-full" />
-});
 
 interface AddressFormProps {
   address?: Address | null;
@@ -53,10 +35,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const { user } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [formData, setFormData] = useState(initialAddressState);
-  const [isMapOpen, setIsMapOpen] = useState(false);
-  const [mapRenderKey, setMapRenderKey] = useState(Date.now());
   
   useEffect(() => {
     if (address) {
@@ -71,32 +50,6 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-
-  const handleLocationConfirm = useCallback(async (position: LatLng) => {
-    setIsFetchingLocation(true);
-    setIsMapOpen(false);
-    try {
-      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.lat}&lon=${position.lng}`);
-      if (!response.ok) throw new Error("Failed to fetch address.");
-      
-      const data = await response.json();
-      const addr = data.address;
-
-      setFormData(prev => ({
-        ...prev,
-        street: addr.road || '',
-        city: addr.city || addr.town || addr.village || '',
-        state: addr.state || '',
-        zip: addr.postcode || '',
-        country: addr.country || '',
-      }));
-      toast({ title: "Address populated successfully!" });
-    } catch (error) {
-      toast({ variant: "destructive", title: "Could not fetch address", description: "Please enter your address manually." });
-    } finally {
-      setIsFetchingLocation(false);
-    }
-  }, [toast]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,31 +100,6 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-        <Dialog open={isMapOpen} onOpenChange={(open) => {
-              setIsMapOpen(open);
-              if (open) {
-                setMapRenderKey(Date.now());
-              }
-          }}>
-          <DialogTrigger asChild>
-            <Button
-              type="button" 
-              variant="outline" 
-              className="w-full"
-              disabled={isFetchingLocation}
-            >
-              <MapPin className="mr-2 h-4 w-4" />
-              {isFetchingLocation ? 'Getting Location...' : 'Select from Map'}
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-xl">
-            <DialogHeader>
-              <DialogTitle>Select Delivery Location</DialogTitle>
-              <DialogDescription>Click on the map to set a marker, or drag it, then confirm.</DialogDescription>
-            </DialogHeader>
-            <MapPicker key={mapRenderKey} onConfirm={handleLocationConfirm} />
-          </DialogContent>
-        </Dialog>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
@@ -206,7 +134,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
                 <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required />
             </div>
         </div>
-        <Button type="submit" disabled={isLoading || isFetchingLocation} className="w-full">
+        <Button type="submit" disabled={isLoading} className="w-full">
             {isLoading ? 'Saving...' : 'Save Address'}
         </Button>
     </form>
