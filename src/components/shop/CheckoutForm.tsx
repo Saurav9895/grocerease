@@ -74,6 +74,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapRenderKey, setMapRenderKey] = useState(Date.now());
 
 
   useEffect(() => {
@@ -134,8 +135,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     } finally {
       setIsFetchingLocation(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -217,7 +217,12 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
             )}
           </div>
 
-          <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+          <Dialog open={isMapOpen} onOpenChange={(open) => {
+              setIsMapOpen(open);
+              if (open) {
+                setMapRenderKey(Date.now());
+              }
+          }}>
             <DialogTrigger asChild>
               <Button
                 type="button" 
@@ -234,7 +239,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                 <DialogTitle>Select Delivery Location</DialogTitle>
                 <DialogDescription>Click on the map to set a marker, or drag it, then confirm.</DialogDescription>
               </DialogHeader>
-              <MapPicker onConfirm={handleLocationConfirm} />
+              <MapPicker key={mapRenderKey} onConfirm={handleLocationConfirm} />
             </DialogContent>
           </Dialog>
 

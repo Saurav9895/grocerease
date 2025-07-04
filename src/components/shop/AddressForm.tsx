@@ -56,6 +56,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const [isFetchingLocation, setIsFetchingLocation] = useState(false);
   const [formData, setFormData] = useState(initialAddressState);
   const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapRenderKey, setMapRenderKey] = useState(Date.now());
   
   useEffect(() => {
     if (address) {
@@ -95,8 +96,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
     } finally {
       setIsFetchingLocation(false);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [toast]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -147,7 +147,12 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-        <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+        <Dialog open={isMapOpen} onOpenChange={(open) => {
+              setIsMapOpen(open);
+              if (open) {
+                setMapRenderKey(Date.now());
+              }
+          }}>
           <DialogTrigger asChild>
             <Button
               type="button" 
@@ -164,7 +169,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
               <DialogTitle>Select Delivery Location</DialogTitle>
               <DialogDescription>Click on the map to set a marker, or drag it, then confirm.</DialogDescription>
             </DialogHeader>
-            <MapPicker onConfirm={handleLocationConfirm} />
+            <MapPicker key={mapRenderKey} onConfirm={handleLocationConfirm} />
           </DialogContent>
         </Dialog>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
