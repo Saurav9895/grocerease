@@ -17,6 +17,14 @@ import { z } from "zod";
 import type { Address, Order } from "@/lib/types";
 import { getUserAddresses, saveUserAddress, createOrderAndDecreaseStock } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
+import { MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import dynamic from 'next/dynamic';
+
+const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
+    ssr: false,
+    loading: () => <Skeleton className="h-[400px] w-full" />
+});
 
 const addressSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -54,6 +62,8 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
   
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+  
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -82,6 +92,15 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
       }
     }
   }, [selectedAddressId, savedAddresses]);
+  
+  const handleMapConfirm = (addressFromMap: Partial<Address>) => {
+    setFormData(prev => ({
+        ...prev,
+        ...addressFromMap,
+        name: prev.name,
+        phone: prev.phone,
+    }));
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -143,7 +162,26 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     <form onSubmit={handleSubmit} className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Shipping Address</CardTitle>
+          <div className="flex justify-between items-center">
+            <CardTitle>Shipping Address</CardTitle>
+            <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                <DialogTrigger asChild>
+                    <Button type="button" variant="outline">
+                        <MapPin className="mr-2 h-4 w-4" />
+                        Select on Map
+                    </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-2xl">
+                    <DialogHeader>
+                        <DialogTitle>Select Delivery Location</DialogTitle>
+                        <DialogDescription>
+                            Click on the map or drag the marker to set your address.
+                        </DialogDescription>
+                    </DialogHeader>
+                    {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
+                </DialogContent>
+            </Dialog>
+          </div>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">

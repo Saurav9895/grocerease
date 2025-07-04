@@ -10,6 +10,15 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthProvider";
 import { saveUserAddress, updateUserAddress } from "@/lib/data";
+import { MapPin } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import dynamic from 'next/dynamic';
+import { Skeleton } from "../ui/skeleton";
+
+const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
+    ssr: false,
+    loading: () => <Skeleton className="h-[400px] w-full" />
+});
 
 interface AddressFormProps {
   address?: Address | null;
@@ -36,6 +45,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState(initialAddressState);
+  const [isMapOpen, setIsMapOpen] = useState(false);
   
   useEffect(() => {
     if (address) {
@@ -49,6 +59,15 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleMapConfirm = (addressFromMap: Partial<Address>) => {
+    setFormData(prev => ({
+        ...prev,
+        ...addressFromMap,
+        name: prev.name,
+        phone: prev.phone,
+    }));
   };
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
@@ -100,6 +119,24 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+        <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+            <DialogTrigger asChild>
+                <Button type="button" variant="outline" className="w-full">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Select Address on Map
+                </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-2xl">
+                <DialogHeader>
+                    <DialogTitle>Select Delivery Location</DialogTitle>
+                    <DialogDescription>
+                        Click on the map or drag the marker to set your address.
+                    </DialogDescription>
+                </DialogHeader>
+                {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
+            </DialogContent>
+        </Dialog>
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
