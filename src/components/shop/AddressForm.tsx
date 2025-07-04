@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,6 +10,10 @@ import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthProvider";
 import { saveUserAddress, updateUserAddress } from "@/lib/data";
+import { MapPin } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { MapPicker } from '@/components/common/MapPicker';
+import type { LatLng } from "leaflet";
 
 interface AddressFormProps {
   address?: Address | null;
@@ -37,6 +41,10 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState(initialAddressState);
   
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [mapPickerKey, setMapPickerKey] = useState(Date.now());
+
+
   useEffect(() => {
     if (address) {
         const { id, ...addressData } = address;
@@ -50,6 +58,33 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
+
+  const handleMapConfirm = useCallback(async (position: LatLng) => {
+    setIsLoading(true);
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.lat}&lon=${position.lng}`);
+      const data = await response.json();
+      if (data && data.address) {
+        setFormData(prev => ({
+          ...prev,
+          street: data.address.road || data.address.suburb || '',
+          city: data.address.city || data.address.town || data.address.village || '',
+          state: data.address.state || '',
+          zip: data.address.postcode || '',
+          country: data.address.country || '',
+        }));
+        toast({ title: "Address Updated", description: "Address fields have been filled from map." });
+      } else {
+        toast({ variant: "destructive", title: "Could not find address", description: "Please try a different location." });
+      }
+    } catch (error) {
+      toast({ variant: "destructive", title: "Reverse Geocoding Failed" });
+    } finally {
+      setIsLoading(false);
+      setIsMapOpen(false);
+    }
+  }, [toast]);
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -100,6 +135,26 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="flex justify-end">
+          <Dialog open={isMapOpen} onOpenChange={(open) => {
+            if (open) setMapPickerKey(Date.now());
+            setIsMapOpen(open);
+          }}>
+            <DialogTrigger asChild>
+              <Button type="button" variant="outline">
+                <MapPin className="mr-2 h-4 w-4" />
+                Select on Map
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-3xl">
+              <DialogHeader>
+                <DialogTitle>Select Delivery Location</DialogTitle>
+                <DialogDescription>Click on the map to place a pin or drag it to your exact location.</DialogDescription>
+              </DialogHeader>
+              <MapPicker key={mapPickerKey} onConfirm={handleMapConfirm} />
+            </DialogContent>
+          </Dialog>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
