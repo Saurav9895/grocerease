@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -18,7 +19,7 @@ import type { Address, Order } from "@/lib/types";
 import { getUserAddresses, saveUserAddress, createOrderAndDecreaseStock } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
 import { MapPin } from 'lucide-react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from '@/components/ui/dialog';
 import type { MapPickerProps } from '@/components/common/MapPicker';
 import type { LatLng } from "leaflet";
 
@@ -221,7 +222,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                 <DialogContent className="sm:max-w-3xl">
                   <DialogHeader>
                     <DialogTitle>Select Delivery Location</DialogTitle>
-                    <CardDescription>Click on the map to place a pin or drag it to your exact location.</CardDescription>
+                    <DialogDescription>Click on the map to place a pin or drag it to your exact location.</DialogDescription>
                   </DialogHeader>
                   <MapPicker key={mapPickerKey} onConfirm={handleMapConfirm} />
                 </DialogContent>
@@ -295,3 +296,5 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     </form>
   );
 }
+
+    
