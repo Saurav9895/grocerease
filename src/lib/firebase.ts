@@ -3,13 +3,13 @@ import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBKoHPdQZbj4p15h78nb21B3ZPm0rzzFA4",
-  authDomain: "grocerease-6bd75.firebaseapp.com",
-  projectId: "grocerease-6bd75",
-  storageBucket: "grocerease-6bd75.appspot.com",
-  messagingSenderId: "622451094597",
-  appId: "1:622451094597:web:0a3c4e80fc998e2ba51f2c",
-  measurementId: "G-QRE33VK0BY"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
+  measurementId: process.env.NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase
