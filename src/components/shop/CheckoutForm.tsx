@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -14,14 +12,20 @@ import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthProvider";
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { z } from "zod";
 import type { Address, Order } from "@/lib/types";
 import { getUserAddresses, saveUserAddress, createOrderAndDecreaseStock } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
 import { MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { MapPicker } from '@/components/common/MapPicker';
+import type { MapPickerProps } from '@/components/common/MapPicker';
 import type { LatLng } from "leaflet";
+
+const MapPicker = dynamic<MapPickerProps>(() => import('@/components/common/MapPicker').then(mod => mod.MapPicker), {
+    loading: () => <div className="h-[400px] w-full rounded-md border bg-muted animate-pulse" />,
+    ssr: false,
+});
 
 const addressSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),

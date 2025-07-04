@@ -1,7 +1,7 @@
-
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,8 +12,14 @@ import { useAuth } from "@/context/AuthProvider";
 import { saveUserAddress, updateUserAddress } from "@/lib/data";
 import { MapPin } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { MapPicker } from '@/components/common/MapPicker';
+import type { MapPickerProps } from '@/components/common/MapPicker';
 import type { LatLng } from "leaflet";
+
+const MapPicker = dynamic<MapPickerProps>(() => import('@/components/common/MapPicker').then(mod => mod.MapPicker), {
+    loading: () => <div className="h-[400px] w-full rounded-md border bg-muted animate-pulse" />,
+    ssr: false,
+});
+
 
 interface AddressFormProps {
   address?: Address | null;
