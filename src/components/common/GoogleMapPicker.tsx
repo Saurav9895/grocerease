@@ -85,6 +85,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             lng: position.coords.longitude,
           };
           map.setCenter(pos);
+          map.setZoom(17);
           setMarkerPosition(pos);
           setCurrentLocation(pos);
         },
@@ -92,7 +93,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
           // Error or permission denied, use default center
            map.setCenter(defaultCenter);
            setMarkerPosition(defaultCenter);
-        }
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
       // Browser doesn't support Geolocation
@@ -115,7 +117,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
           };
           if (mapRef.current) {
             mapRef.current.panTo(pos);
-            mapRef.current.setZoom(15);
+            mapRef.current.setZoom(17);
           }
           setMarkerPosition(pos);
           setCurrentLocation(pos);
@@ -127,7 +129,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             title: 'Geolocation failed',
             description: 'Could not get your location. Please check your browser permissions.',
           });
-        }
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
       );
     } else {
       toast({
