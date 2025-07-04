@@ -13,7 +13,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthProvider";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { z } from "zod";
 import type { Address, Order } from "@/lib/types";
 import { getUserAddresses, saveUserAddress, createOrderAndDecreaseStock } from "@/lib/data";
@@ -109,7 +109,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLocationConfirm = async (position: LatLng) => {
+  const handleLocationConfirm = useCallback(async (position: LatLng) => {
     setIsFetchingLocation(true);
     setIsMapOpen(false);
     setSelectedAddressId('new'); // Switch to new address mode
@@ -134,7 +134,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     } finally {
       setIsFetchingLocation(false);
     }
-  };
+  }, [toast]);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

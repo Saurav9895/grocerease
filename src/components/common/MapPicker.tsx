@@ -1,3 +1,4 @@
+
 'use client';
 
 import type { LatLng } from 'leaflet';
@@ -52,7 +53,7 @@ export interface MapPickerProps {
     onConfirm: (position: LatLng) => void;
 }
 
-export function MapPicker({ onConfirm }: MapPickerProps) {
+function MapPickerComponent({ onConfirm }: MapPickerProps) {
   const [position, setPosition] = React.useState<LatLng | null>(null);
 
   return (
@@ -79,3 +80,5 @@ export function MapPicker({ onConfirm }: MapPickerProps) {
     </div>
   );
 }
+
+export const MapPicker = React.memo(MapPickerComponent);

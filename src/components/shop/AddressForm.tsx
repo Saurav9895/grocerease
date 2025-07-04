@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -71,7 +71,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleLocationConfirm = async (position: LatLng) => {
+  const handleLocationConfirm = useCallback(async (position: LatLng) => {
     setIsFetchingLocation(true);
     setIsMapOpen(false);
     try {
@@ -95,7 +95,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
     } finally {
       setIsFetchingLocation(false);
     }
-  };
+  }, [toast]);
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
