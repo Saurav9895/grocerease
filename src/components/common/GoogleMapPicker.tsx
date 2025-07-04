@@ -10,6 +10,7 @@ import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { Address } from '@/lib/types';
+import { LocateFixed } from 'lucide-react';
 
 const containerStyle = {
   width: '100%',
@@ -62,7 +63,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
 
   const onLoad = React.useCallback(function callback(map: google.maps.Map) {
     mapRef.current = map;
-    // Try to get user's current location
+    // Try to get user's current location on load
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -89,6 +90,38 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
     mapRef.current = null;
   }, []);
+
+  const handleUseCurrentLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const pos = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          if (mapRef.current) {
+            mapRef.current.panTo(pos);
+            mapRef.current.setZoom(15);
+          }
+          setMarkerPosition(pos);
+          toast({ title: 'Location updated', description: 'Marker moved to your current location.' });
+        },
+        () => {
+          toast({
+            variant: 'destructive',
+            title: 'Geolocation failed',
+            description: 'Could not get your location. Please check your browser permissions.',
+          });
+        }
+      );
+    } else {
+      toast({
+        variant: 'destructive',
+        title: 'Geolocation not supported',
+        description: 'Your browser does not support geolocation.',
+      });
+    }
+  };
 
   const handleConfirm = () => {
     if (!markerPosition) {
@@ -144,9 +177,15 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       >
         {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} />}
       </GoogleMap>
-      <Button onClick={handleConfirm} disabled={!markerPosition || isGeocoding} className="w-full">
-        {isGeocoding ? "Finding Address..." : "Confirm Location"}
-      </Button>
+       <div className="grid grid-cols-2 gap-2">
+        <Button variant="outline" onClick={handleUseCurrentLocation}>
+          <LocateFixed className="mr-2 h-4 w-4" />
+          Use My Location
+        </Button>
+        <Button onClick={handleConfirm} disabled={!markerPosition || isGeocoding}>
+          {isGeocoding ? "Finding Address..." : "Confirm Location"}
+        </Button>
+      </div>
     </div>
   ) : (
     <Skeleton className="h-[400px] w-full" />
