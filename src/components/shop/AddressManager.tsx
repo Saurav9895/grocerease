@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -130,7 +131,7 @@ export function AddressManager() {
         setIsFormOpen(open);
         if (!open) setSelectedAddress(null);
       }}>
-        <DialogContent className="sm:max-w-2xl">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>{selectedAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
           </DialogHeader>
