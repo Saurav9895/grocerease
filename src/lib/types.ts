@@ -42,12 +42,13 @@ export interface Address {
   id?: string;
   name: string;
   phone: string;
-  apartment?: string;
+  apartment: string;
   street: string;
   city: string;
   state: string;
   zip: string;
   country: string;
+  googleMapsUrl?: string;
 }
 
 export interface OrderItem {

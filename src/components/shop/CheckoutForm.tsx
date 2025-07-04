@@ -29,16 +29,17 @@ const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicke
 const addressSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
   phone: z.string().min(10, "Please enter a valid phone number.").max(15),
-  apartment: z.string().optional(),
+  apartment: z.string().min(1, "Apartment/suite is required."),
   street: z.string().min(5, "Street address is too short."),
   city: z.string().min(2, "City is too short."),
   state: z.string().min(2, "State/Province is too short."),
   zip: z.string().min(4, "Invalid ZIP/Postal code."),
   country: z.string().min(2, "Country is too short."),
+  googleMapsUrl: z.string().url().optional(),
 });
 
 const initialAddressState: Address = {
-  name: '', phone: '', apartment: '', street: '', city: '', state: '', zip: '', country: ''
+  name: '', phone: '', apartment: '', street: '', city: '', state: '', zip: '', country: '', googleMapsUrl: ''
 };
 
 interface CheckoutFormProps {
@@ -218,8 +219,8 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="apartment">Apartment, suite, etc. (optional)</Label>
-            <Input id="apartment" name="apartment" value={formData.apartment || ''} onChange={handleInputChange} disabled={isLoadingAddresses}/>
+            <Label htmlFor="apartment">Apartment, suite, etc.</Label>
+            <Input id="apartment" name="apartment" value={formData.apartment || ''} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
           </div>
           <div className="space-y-2">
             <Label htmlFor="street">Street Address</Label>

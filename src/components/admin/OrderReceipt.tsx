@@ -25,11 +25,14 @@ export const OrderReceipt = ({ order }: { order: Order }) => {
       <div className="mt-6">
         <h3 className="text-lg font-semibold underline">Shipping To:</h3>
         <p className="font-bold">{order.customerName}</p>
-        {order.address.apartment && <p>{order.address.apartment}</p>}
+        <p>{order.address.apartment}</p>
         <p>{order.address.street}</p>
         <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
         <p>{order.address.country}</p>
         <p>Phone: {order.address.phone}</p>
+         {order.address.googleMapsUrl && (
+            <p className="text-xs">Map Link: <a href={order.address.googleMapsUrl} className="text-blue-600 underline break-all">{order.address.googleMapsUrl}</a></p>
+        )}
       </div>
       
       <div className="mt-8">

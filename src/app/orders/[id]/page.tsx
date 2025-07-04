@@ -16,7 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, Phone } from "lucide-react";
+import { ArrowLeft, User, Home, Phone, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderTracker } from "@/components/shop/OrderTracker";
@@ -184,10 +184,16 @@ function OrderDetailPageContent() {
                 <div className="flex items-start gap-3">
                     <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />
                     <div className="text-muted-foreground">
-                        {order.address.apartment && <p>{order.address.apartment}</p>}
+                        <p>{order.address.apartment}</p>
                         <p>{order.address.street}</p>
                         <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
                         <p>{order.address.country}</p>
+                        {order.address.googleMapsUrl && (
+                          <a href={order.address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center gap-1 mt-2">
+                            <MapPin className="h-4 w-4" />
+                            View on Map
+                          </a>
+                        )}
                     </div>
                 </div>
             </CardContent>

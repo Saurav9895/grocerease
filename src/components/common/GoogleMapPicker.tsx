@@ -178,6 +178,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             parsedAddress.state = get('administrative_area_level_1', true);
             parsedAddress.zip = get('postal_code');
             parsedAddress.country = get('country');
+            parsedAddress.googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${markerPosition.lat},${markerPosition.lng}`;
             
             onConfirm(parsedAddress);
             onClose();

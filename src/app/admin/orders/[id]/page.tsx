@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, CreditCard, Phone, Printer } from "lucide-react";
+import { ArrowLeft, User, Home, CreditCard, Phone, Printer, MapPin } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderReceipt } from "@/components/admin/OrderReceipt";
@@ -231,10 +231,16 @@ export default function OrderDetailPage() {
                   <div className="flex items-start gap-2">
                       <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />
                       <div className="text-muted-foreground">
-                          {order.address.apartment && <p>{order.address.apartment}</p>}
+                          <p>{order.address.apartment}</p>
                           <p>{order.address.street}</p>
                           <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
                           <p>{order.address.country}</p>
+                           {order.address.googleMapsUrl && (
+                            <a href={order.address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center gap-1 mt-2">
+                                <MapPin className="w-4 h-4" />
+                                View on Map
+                            </a>
+                           )}
                       </div>
                   </div>
                    <div className="flex items-center gap-2">

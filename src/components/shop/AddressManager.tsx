@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { AddressForm } from "./AddressForm";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PlusCircle, Home, Pencil, Trash2 } from "lucide-react";
+import { PlusCircle, Home, Pencil, Trash2, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export function AddressManager() {
@@ -85,9 +85,15 @@ export function AddressManager() {
                 <Home className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
                 <div className="text-sm">
                   <p className="font-semibold">{address.name}</p>
-                  <p className="text-muted-foreground">{address.apartment && `${address.apartment}, `}{address.street}, {address.city}, {address.state} {address.zip}</p>
+                  <p className="text-muted-foreground">{address.apartment}, {address.street}, {address.city}, {address.state} {address.zip}</p>
                   <p className="text-muted-foreground">{address.country}</p>
                   <p className="text-muted-foreground">Phone: {address.phone}</p>
+                   {address.googleMapsUrl && (
+                    <a href={address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center gap-1 mt-1">
+                      <MapPin className="h-3 w-3" />
+                      View on Map
+                    </a>
+                  )}
                 </div>
               </div>
               <div className="flex gap-2 flex-shrink-0 ml-4">
