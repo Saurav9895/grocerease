@@ -15,7 +15,7 @@ import { LocateFixed } from 'lucide-react';
 
 const containerStyle = {
   width: '100%',
-  height: '400px',
+  height: '300px',
   borderRadius: '0.5rem',
 };
 
@@ -36,7 +36,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
 
   if (!apiKey) {
     return (
-        <div className="flex flex-col items-center justify-center h-[400px] text-center p-4 bg-muted rounded-md">
+        <div className="flex flex-col items-center justify-center h-[300px] text-center p-4 bg-muted rounded-md">
             <h3 className="text-lg font-semibold text-destructive">Google Maps API Key Missing</h3>
             <p className="text-sm text-muted-foreground mt-2">Please provide a valid NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file to use this feature.</p>
         </div>
@@ -223,6 +223,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       </div>
     </div>
   ) : (
-    <Skeleton className="h-[468px] w-full" />
+    <Skeleton className="h-[368px] w-full" />
   );
 }

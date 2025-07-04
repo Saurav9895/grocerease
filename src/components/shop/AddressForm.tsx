@@ -17,7 +17,7 @@ import { Skeleton } from "../ui/skeleton";
 
 const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
     ssr: false,
-    loading: () => <Skeleton className="h-[400px] w-full" />
+    loading: () => <Skeleton className="h-[300px] w-full" />
 });
 
 interface AddressFormProps {
