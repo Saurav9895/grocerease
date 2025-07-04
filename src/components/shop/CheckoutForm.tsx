@@ -19,6 +19,22 @@ import type { Address, Order } from "@/lib/types";
 import { getUserAddresses, saveUserAddress, createOrderAndDecreaseStock } from "@/lib/data";
 import { Skeleton } from "../ui/skeleton";
 import { MapPin } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import dynamic from "next/dynamic";
+import type { LatLng } from 'leaflet';
+
+
+const MapPicker = dynamic(() => import("../common/MapPicker").then(mod => mod.MapPicker), { 
+    ssr: false,
+    loading: () => <Skeleton className="h-[468px] w-full" />
+});
 
 const addressSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
@@ -54,9 +70,11 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
   const [formData, setFormData] = useState<Address>(initialAddressState);
   const [paymentMethod, setPaymentMethod] = useState("COD");
   const [saveAddress, setSaveAddress] = useState(true);
-
+  
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
+  const [isMapOpen, setIsMapOpen] = useState(false);
+
 
   useEffect(() => {
     if (user) {
@@ -64,7 +82,6 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
       getUserAddresses(user.uid)
         .then(addresses => {
           setSavedAddresses(addresses);
-          // Pre-select the first address if available
           if (addresses.length > 0) {
             setSelectedAddressId(addresses[0].id!);
           }
@@ -92,46 +109,33 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleUseCurrentLocation = () => {
+  const handleLocationConfirm = async (position: LatLng) => {
     setIsFetchingLocation(true);
+    setIsMapOpen(false);
     setSelectedAddressId('new'); // Switch to new address mode
-    if (!navigator.geolocation) {
-      toast({ variant: "destructive", title: "Geolocation is not supported by your browser." });
+    try {
+      const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${position.lat}&lon=${position.lng}`);
+      if (!response.ok) throw new Error("Failed to fetch address.");
+      
+      const data = await response.json();
+      const addr = data.address;
+
+      setFormData(prev => ({
+        ...prev,
+        street: addr.road || '',
+        city: addr.city || addr.town || addr.village || '',
+        state: addr.state || '',
+        zip: addr.postcode || '',
+        country: addr.country || '',
+      }));
+      toast({ title: "Address populated successfully!" });
+    } catch (error) {
+      toast({ variant: "destructive", title: "Could not fetch address", description: "Please enter your address manually." });
+    } finally {
       setIsFetchingLocation(false);
-      return;
     }
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        try {
-          const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
-          if (!response.ok) throw new Error("Failed to fetch address.");
-          
-          const data = await response.json();
-          const addr = data.address;
-
-          setFormData(prev => ({
-            ...prev,
-            street: addr.road || '',
-            city: addr.city || addr.town || addr.village || '',
-            state: addr.state || '',
-            zip: addr.postcode || '',
-            country: addr.country || '',
-          }));
-          toast({ title: "Address populated successfully!" });
-        } catch (error) {
-          toast({ variant: "destructive", title: "Could not fetch address", description: "Please enter your address manually." });
-        } finally {
-          setIsFetchingLocation(false);
-        }
-      },
-      (error) => {
-        toast({ variant: "destructive", title: "Could not get location", description: error.message });
-        setIsFetchingLocation(false);
-      }
-    );
   };
+
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -211,48 +215,60 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
               </Select>
             )}
           </div>
-          <Button 
-            type="button" 
-            variant="outline" 
-            className="w-full" 
-            onClick={handleUseCurrentLocation}
-            disabled={isFetchingLocation || isLoadingAddresses}
-          >
-            <MapPin className="mr-2 h-4 w-4" />
-            {isFetchingLocation ? 'Getting Location...' : 'Use Current Location'}
-          </Button>
+
+          <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+            <DialogTrigger asChild>
+              <Button
+                type="button" 
+                variant="outline" 
+                className="w-full"
+                disabled={isFetchingLocation || isLoadingAddresses}
+              >
+                <MapPin className="mr-2 h-4 w-4" />
+                {isFetchingLocation ? 'Getting Location...' : 'Select from Map'}
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-xl">
+              <DialogHeader>
+                <DialogTitle>Select Delivery Location</DialogTitle>
+                <DialogDescription>Click on the map to set a marker, or drag it, then confirm.</DialogDescription>
+              </DialogHeader>
+              <MapPicker onConfirm={handleLocationConfirm} />
+            </DialogContent>
+          </Dialog>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
-              <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+              <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
-              <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+              <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
             </div>
           </div>
           <div className="space-y-2">
             <Label htmlFor="street">Street Address</Label>
-            <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+            <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="city">City</Label>
-              <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+              <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
             </div>
              <div className="space-y-2">
               <Label htmlFor="state">State / Province</Label>
-              <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+              <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
             </div>
           </div>
            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="zip">ZIP / Postal Code</Label>
-              <Input id="zip" name="zip" value={formData.zip} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+              <Input id="zip" name="zip" value={formData.zip} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
             </div>
             <div className="space-y-2">
               <Label htmlFor="country">Country</Label>
-              <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required disabled={isLoadingAddresses}/>
+              <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required disabled={isLoadingAddresses || isFetchingLocation}/>
             </div>
           </div>
           {selectedAddressId === 'new' && (
@@ -282,7 +298,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
         </CardContent>
       </Card>
 
-      <Button type="submit" size="lg" className="w-full" disabled={isLoading || isLoadingAddresses}>
+      <Button type="submit" size="lg" className="w-full" disabled={isLoading || isLoadingAddresses || isFetchingLocation}>
         {isLoading ? "Placing Order..." : "Place Order"}
       </Button>
     </form>
