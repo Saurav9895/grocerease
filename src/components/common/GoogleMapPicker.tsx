@@ -78,6 +78,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
     mapRef.current = map;
     // Try to get user's current location on load
     if (navigator.geolocation) {
+        toast({ title: 'Locating you...', description: 'Please wait, this may take a moment.' });
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const pos = {
@@ -88,20 +89,23 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
           map.setZoom(17);
           setMarkerPosition(pos);
           setCurrentLocation(pos);
+          toast({ title: 'Location Found!', description: 'You can adjust the pin if needed.' });
         },
         () => {
           // Error or permission denied, use default center
+           toast({ variant: 'destructive', title: 'Could not get location', description: 'Defaulting to Kathmandu. Please grant location permissions or set manually.' });
            map.setCenter(defaultCenter);
            setMarkerPosition(defaultCenter);
         },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
       );
     } else {
       // Browser doesn't support Geolocation
+       toast({ variant: 'destructive', title: 'Geolocation not supported', description: 'Defaulting to Kathmandu.' });
        map.setCenter(defaultCenter);
        setMarkerPosition(defaultCenter);
     }
-  }, []);
+  }, [toast]);
 
   const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
     mapRef.current = null;
