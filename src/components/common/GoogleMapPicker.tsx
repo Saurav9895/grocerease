@@ -48,7 +48,20 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   });
 
   const [markerPosition, setMarkerPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
+  const [currentLocation, setCurrentLocation] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
+
+  const blueDotSvg = `
+  <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="12" cy="12" r="11" fill="#4285F4" fill-opacity="0.2"/>
+      <circle cx="12" cy="12" r="5" fill="#4285F4" stroke="white" stroke-width="2"/>
+  </svg>`;
+
+  const blueDotIcon = isLoaded ? {
+      url: `data:image/svg+xml;base64,${btoa(blueDotSvg)}`,
+      anchor: new window.google.maps.Point(12, 12),
+      scaledSize: new window.google.maps.Size(24, 24),
+  } : undefined;
 
   const handleMapClick = React.useCallback((event: google.maps.MapMouseEvent) => {
     if (event.latLng) {
@@ -73,6 +86,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
           };
           map.setCenter(pos);
           setMarkerPosition(pos);
+          setCurrentLocation(pos);
         },
         () => {
           // Error or permission denied, use default center
@@ -104,6 +118,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             mapRef.current.setZoom(15);
           }
           setMarkerPosition(pos);
+          setCurrentLocation(pos);
           toast({ title: 'Location updated', description: 'Marker moved to your current location.' });
         },
         () => {
@@ -118,7 +133,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       toast({
         variant: 'destructive',
         title: 'Geolocation not supported',
-        description: 'Your browser does not support geolocation.',
+        description: 'Your browser does not support a geolocation service.',
       });
     }
   };
@@ -175,7 +190,10 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         onClick={handleMapClick}
         options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
       >
-        {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} />}
+        {currentLocation && (
+          <Marker position={currentLocation} icon={blueDotIcon} zIndex={1} />
+        )}
+        {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
       </GoogleMap>
        <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" onClick={handleUseCurrentLocation}>
