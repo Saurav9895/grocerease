@@ -51,6 +51,11 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const [markerPosition, setMarkerPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [currentLocation, setCurrentLocation] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
+  
+  const mapRef = React.useRef<google.maps.Map | null>(null);
+  const watchIdRef = React.useRef<number | null>(null);
+  const initialLocationSetRef = React.useRef(false);
+
 
   const blueDotSvg = `
   <svg width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -73,76 +78,66 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
     }
   }, []);
   
-  const mapRef = React.useRef<google.maps.Map | null>(null);
-
   const onLoad = React.useCallback(function callback(map: google.maps.Map) {
     mapRef.current = map;
-    // Try to get user's current location on load
+    initialLocationSetRef.current = false;
+
     if (navigator.geolocation) {
-        toast({ title: 'Locating you...', description: 'Please wait, this may take a moment.' });
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          map.panTo(pos);
-          map.setZoom(17);
-          setMarkerPosition(pos);
-          setCurrentLocation(pos);
-          toast({ title: 'Location Found!', description: 'You can adjust the pin if needed.' });
-        },
-        () => {
-          // Error or permission denied, use default center
-           toast({ variant: 'destructive', title: 'Could not get location', description: 'Defaulting to Kathmandu. Please grant location permissions or set manually.' });
-           map.setCenter(defaultCenter);
-           setMarkerPosition(defaultCenter);
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+        toast({ title: 'Locating you...', description: 'Getting an accurate position...' });
+
+        watchIdRef.current = navigator.geolocation.watchPosition(
+            (position) => {
+                const pos = {
+                    lat: position.coords.latitude,
+                    lng: position.coords.longitude,
+                };
+                
+                setCurrentLocation(pos);
+
+                if (!initialLocationSetRef.current && mapRef.current) {
+                    mapRef.current.panTo(pos);
+                    mapRef.current.setZoom(17);
+                    setMarkerPosition(pos);
+                    initialLocationSetRef.current = true;
+                    toast({ title: 'Location Found!', description: 'Your blue dot location will refine. You can adjust the pin.' });
+                }
+            },
+            () => {
+                if (!initialLocationSetRef.current) {
+                    toast({ variant: 'destructive', title: 'Could not get location', description: 'Please grant location permissions or set manually.' });
+                    map.setCenter(defaultCenter);
+                    setMarkerPosition(defaultCenter);
+                    initialLocationSetRef.current = true;
+                }
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
     } else {
-      // Browser doesn't support Geolocation
-       toast({ variant: 'destructive', title: 'Geolocation not supported', description: 'Defaulting to Kathmandu.' });
-       map.setCenter(defaultCenter);
-       setMarkerPosition(defaultCenter);
+        toast({ variant: 'destructive', title: 'Geolocation not supported', description: 'Defaulting to Kathmandu.' });
+        map.setCenter(defaultCenter);
+        setMarkerPosition(defaultCenter);
     }
-  }, [toast]);
+}, [toast]);
+
 
   const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+    }
     mapRef.current = null;
   }, []);
 
   const handleUseCurrentLocation = () => {
-    if (navigator.geolocation) {
-      toast({ title: 'Locating you...', description: 'Getting the most accurate position...' });
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const pos = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          if (mapRef.current) {
-            mapRef.current.panTo(pos);
-            mapRef.current.setZoom(17);
-          }
-          setMarkerPosition(pos);
-          setCurrentLocation(pos);
-          toast({ title: 'Location updated', description: 'Marker moved to your current location.' });
-        },
-        () => {
-          toast({
-            variant: 'destructive',
-            title: 'Geolocation failed',
-            description: 'Could not get your location. Please check your browser permissions.',
-          });
-        },
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-      );
+    if (currentLocation && mapRef.current) {
+      mapRef.current.panTo(currentLocation);
+      mapRef.current.setZoom(17);
+      setMarkerPosition(currentLocation);
+      toast({ title: 'Location centered', description: 'Marker moved to your last known location.' });
     } else {
       toast({
         variant: 'destructive',
-        title: 'Geolocation not supported',
-        description: 'Your browser does not support a geolocation service.',
+        title: 'Location not available',
+        description: 'Could not get your location yet. Please check permissions.',
       });
     }
   };
@@ -203,7 +198,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={defaultCenter}
-        zoom={17}
+        zoom={12}
         onLoad={onLoad}
         onUnmount={onUnmount}
         onClick={handleMapClick}
@@ -215,7 +210,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
       </GoogleMap>
       <p className="text-xs text-muted-foreground text-center">
-        Automatic location may be approximate. Drag the pin to the exact spot.
+        Your blue dot location will refine over time. Drag the red pin to the exact spot.
       </p>
        <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" onClick={handleUseCurrentLocation}>
