@@ -6,12 +6,14 @@ import {
   GoogleMap,
   useJsApiLoader,
   Marker,
+  Autocomplete,
 } from '@react-google-maps/api';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { Address } from '@/lib/types';
 import { LocateFixed } from 'lucide-react';
+import { Input } from '../ui/input';
 
 const containerStyle = {
   width: '100%',
@@ -46,11 +48,13 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: apiKey,
+    libraries: ['places'],
   });
 
   const [markerPosition, setMarkerPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [currentLocation, setCurrentLocation] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
+  const [autocomplete, setAutocomplete] = React.useState<google.maps.places.Autocomplete | null>(null);
   
   const mapRef = React.useRef<google.maps.Map | null>(null);
   const watchIdRef = React.useRef<number | null>(null);
@@ -141,6 +145,32 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       });
     }
   };
+  
+  const onAutocompleteLoad = React.useCallback((ac: google.maps.places.Autocomplete) => {
+    setAutocomplete(ac);
+  }, []);
+
+  const onPlaceChanged = React.useCallback(() => {
+    if (autocomplete !== null) {
+      const place = autocomplete.getPlace();
+      if (place.geometry && place.geometry.location) {
+        const newPos = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng(),
+        };
+        if (mapRef.current) {
+          mapRef.current.panTo(newPos);
+          mapRef.current.setZoom(17);
+        }
+        setMarkerPosition(newPos);
+      } else {
+         toast({ variant: 'destructive', title: 'Invalid location', description: 'Please select a valid location from the list.' });
+      }
+    } else {
+      console.error('Autocomplete is not loaded yet!');
+    }
+  }, [autocomplete, toast]);
+
 
   const handleConfirm = () => {
     if (!markerPosition) {
@@ -196,6 +226,18 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
 
   return isLoaded ? (
     <div className="space-y-4">
+       <Autocomplete
+        onLoad={onAutocompleteLoad}
+        onPlaceChanged={onPlaceChanged}
+        className="w-full"
+      >
+        <Input
+          type="text"
+          placeholder="Search for a location..."
+          className="w-full"
+        />
+      </Autocomplete>
+
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={defaultCenter}
