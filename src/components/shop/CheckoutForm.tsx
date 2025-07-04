@@ -134,7 +134,8 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     } finally {
       setIsFetchingLocation(false);
     }
-  }, [toast]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
