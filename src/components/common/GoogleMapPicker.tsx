@@ -1,3 +1,4 @@
+
 'use client';
 
 import * as React from 'react';
@@ -85,7 +86,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
           };
-          map.setCenter(pos);
+          map.panTo(pos);
           map.setZoom(17);
           setMarkerPosition(pos);
           setCurrentLocation(pos);
@@ -113,6 +114,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
 
   const handleUseCurrentLocation = () => {
     if (navigator.geolocation) {
+      toast({ title: 'Locating you...', description: 'Getting the most accurate position...' });
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const pos = {
@@ -177,7 +179,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             }
 
             parsedAddress.street = street;
-            parsedAddress.city = get('locality');
+            parsedAddress.city = get('locality') || get('administrative_area_level_2');
             parsedAddress.state = get('administrative_area_level_1', true);
             parsedAddress.zip = get('postal_code');
             parsedAddress.country = get('country');
@@ -212,6 +214,9 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         )}
         {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
       </GoogleMap>
+      <p className="text-xs text-muted-foreground text-center">
+        Automatic location may be approximate. Drag the pin to the exact spot.
+      </p>
        <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" onClick={handleUseCurrentLocation}>
           <LocateFixed className="mr-2 h-4 w-4" />
@@ -223,6 +228,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       </div>
     </div>
   ) : (
-    <Skeleton className="h-[448px] w-full" />
+    <Skeleton className="h-[468px] w-full" />
   );
 }
