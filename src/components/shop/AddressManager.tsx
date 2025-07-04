@@ -131,7 +131,7 @@ export function AddressManager() {
         setIsFormOpen(open);
         if (!open) setSelectedAddress(null);
       }}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle>{selectedAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>
           </DialogHeader>

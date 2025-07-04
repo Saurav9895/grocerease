@@ -121,7 +121,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2">
+    <form onSubmit={handleSubmit} className="space-y-6">
         <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
             <DialogTrigger asChild>
                 <Button type="button" variant="outline" className="w-full">
@@ -140,45 +140,42 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
             </DialogContent>
         </Dialog>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="space-y-1">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input id="name" name="name" value={formData.name} onChange={handleInputChange} required />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
               <Label htmlFor="phone">Phone Number</Label>
               <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required />
             </div>
-        </div>
-        <div className="space-y-1">
-            <Label htmlFor="apartment">Apartment, suite, etc.</Label>
-            <Input id="apartment" name="apartment" value={formData.apartment || ''} onChange={handleInputChange} required />
-        </div>
-        <div className="space-y-1">
-            <Label htmlFor="street">Street Address</Label>
-            <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="space-y-1">
+            <div className="space-y-2">
+                <Label htmlFor="apartment">Apartment, suite, etc.</Label>
+                <Input id="apartment" name="apartment" value={formData.apartment || ''} onChange={handleInputChange} required />
+            </div>
+            <div className="space-y-2">
+                <Label htmlFor="street">Street Address</Label>
+                <Input id="street" name="street" value={formData.street} onChange={handleInputChange} required />
+            </div>
+            <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
                 <Input id="city" name="city" value={formData.city} onChange={handleInputChange} required />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
                 <Label htmlFor="state">State / Province</Label>
                 <Input id="state" name="state" value={formData.state} onChange={handleInputChange} required />
             </div>
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-            <div className="space-y-1">
+            <div className="space-y-2">
                 <Label htmlFor="zip">ZIP / Postal Code</Label>
                 <Input id="zip" name="zip" value={formData.zip} onChange={handleInputChange} required />
             </div>
-            <div className="space-y-1">
+            <div className="space-y-2">
                 <Label htmlFor="country">Country</Label>
                 <Input id="country" name="country" value={formData.country} onChange={handleInputChange} required />
             </div>
         </div>
-        <Button type="submit" disabled={isLoading} className="w-full !mt-4">
+
+        <Button type="submit" disabled={isLoading} className="w-full !mt-6">
             {isLoading ? 'Saving...' : 'Save Address'}
         </Button>
     </form>
