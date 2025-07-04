@@ -1,11 +1,10 @@
-
 'use client';
 
 import type { LatLng } from 'leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import * as React from 'react';
-import { MapContainer, Marker, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import { MapContainer, Marker, TileLayer, useMapEvents } from 'react-leaflet';
 import { Button } from '../ui/button';
 
 // Fix for default icon issue with webpack
@@ -39,9 +38,9 @@ function LocationMarker({ position, setPosition }: LocationMarkerProps) {
   }, [map, position, setPosition]);
 
   return position === null ? null : (
-    <Marker 
-        position={position} 
-        draggable={true} 
+    <Marker
+        position={position}
+        draggable={true}
         eventHandlers={{
             dragend: (e) => setPosition(e.target.getLatLng())
         }}
@@ -53,7 +52,7 @@ export interface MapPickerProps {
     onConfirm: (position: LatLng) => void;
 }
 
-function MapPickerComponent({ onConfirm }: MapPickerProps) {
+export function MapPicker({ onConfirm }: MapPickerProps) {
   const [position, setPosition] = React.useState<LatLng | null>(null);
 
   return (
@@ -70,7 +69,7 @@ function MapPickerComponent({ onConfirm }: MapPickerProps) {
             />
             <LocationMarker position={position} setPosition={setPosition} />
         </MapContainer>
-        <Button 
+        <Button
             onClick={() => position && onConfirm(position)}
             disabled={!position}
             className="w-full"
@@ -80,5 +79,3 @@ function MapPickerComponent({ onConfirm }: MapPickerProps) {
     </div>
   );
 }
-
-export const MapPicker = React.memo(MapPickerComponent);
