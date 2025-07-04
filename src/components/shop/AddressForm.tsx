@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
@@ -48,7 +49,6 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   const [formData, setFormData] = useState(initialAddressState);
   
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [mapPickerKey, setMapPickerKey] = useState(Date.now());
 
 
   useEffect(() => {
@@ -142,10 +142,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
         <div className="flex justify-end">
-          <Dialog open={isMapOpen} onOpenChange={(open) => {
-            if (open) setMapPickerKey(Date.now());
-            setIsMapOpen(open);
-          }}>
+          <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
             <DialogTrigger asChild>
               <Button type="button" variant="outline">
                 <MapPin className="mr-2 h-4 w-4" />
@@ -157,7 +154,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
                 <DialogTitle>Select Delivery Location</DialogTitle>
                 <DialogDescription>Click on the map to place a pin or drag it to your exact location.</DialogDescription>
               </DialogHeader>
-              <MapPicker key={mapPickerKey} onConfirm={handleMapConfirm} />
+              {isMapOpen && <MapPicker onConfirm={handleMapConfirm} />}
             </DialogContent>
           </Dialog>
         </div>

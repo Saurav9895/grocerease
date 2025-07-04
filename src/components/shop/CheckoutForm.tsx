@@ -3,7 +3,7 @@
 
 import { useCart } from "@/hooks/use-cart";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -66,7 +66,6 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
   const [selectedAddressId, setSelectedAddressId] = useState<string>('new');
   
   const [isMapOpen, setIsMapOpen] = useState(false);
-  const [mapPickerKey, setMapPickerKey] = useState(Date.now());
 
 
   useEffect(() => {
@@ -209,10 +208,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
           </div>
           
           <div className="flex justify-end">
-             <Dialog open={isMapOpen} onOpenChange={(open) => {
-                if (open) setMapPickerKey(Date.now());
-                setIsMapOpen(open);
-             }}>
+             <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                 <DialogTrigger asChild>
                   <Button type="button" variant="outline">
                     <MapPin className="mr-2 h-4 w-4" />
@@ -224,7 +220,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                     <DialogTitle>Select Delivery Location</DialogTitle>
                     <DialogDescription>Click on the map to place a pin or drag it to your exact location.</DialogDescription>
                   </DialogHeader>
-                  <MapPicker key={mapPickerKey} onConfirm={handleMapConfirm} />
+                  {isMapOpen && <MapPicker onConfirm={handleMapConfirm} />}
                 </DialogContent>
               </Dialog>
           </div>
@@ -296,5 +292,3 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
     </form>
   );
 }
-
-    
