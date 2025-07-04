@@ -85,7 +85,7 @@ export function AddressManager() {
                 <Home className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
                 <div className="text-sm">
                   <p className="font-semibold">{address.name}</p>
-                  <p className="text-muted-foreground">{address.street}, {address.city}, {address.state} {address.zip}</p>
+                  <p className="text-muted-foreground">{address.apartment && `${address.apartment}, `}{address.street}, {address.city}, {address.state} {address.zip}</p>
                   <p className="text-muted-foreground">{address.country}</p>
                   <p className="text-muted-foreground">Phone: {address.phone}</p>
                 </div>

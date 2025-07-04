@@ -184,6 +184,7 @@ function OrderDetailPageContent() {
                 <div className="flex items-start gap-3">
                     <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />
                     <div className="text-muted-foreground">
+                        {order.address.apartment && <p>{order.address.apartment}</p>}
                         <p>{order.address.street}</p>
                         <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
                         <p>{order.address.country}</p>

@@ -28,6 +28,7 @@ interface AddressFormProps {
 const addressSchema = z.object({
   name: z.string().min(3, "Name must be at least 3 characters."),
   phone: z.string().min(10, "Please enter a valid phone number.").max(15),
+  apartment: z.string().optional(),
   street: z.string().min(5, "Street address is too short."),
   city: z.string().min(2, "City is too short."),
   state: z.string().min(2, "State/Province is too short."),
@@ -36,7 +37,7 @@ const addressSchema = z.object({
 });
 
 const initialAddressState: Omit<Address, 'id'> = {
-  name: '', phone: '', street: '', city: '', state: '', zip: '', country: ''
+  name: '', phone: '', apartment: '', street: '', city: '', state: '', zip: '', country: ''
 };
 
 export function AddressForm({ address, onSuccess }: AddressFormProps) {
@@ -67,6 +68,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
         ...addressFromMap,
         name: prev.name,
         phone: prev.phone,
+        apartment: prev.apartment,
     }));
   };
 
@@ -146,6 +148,10 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
               <Label htmlFor="phone">Phone Number</Label>
               <Input id="phone" name="phone" type="tel" value={formData.phone} onChange={handleInputChange} required />
             </div>
+        </div>
+        <div className="space-y-2">
+            <Label htmlFor="apartment">Apartment, suite, etc. (optional)</Label>
+            <Input id="apartment" name="apartment" value={formData.apartment || ''} onChange={handleInputChange} />
         </div>
         <div className="space-y-2">
             <Label htmlFor="street">Street Address</Label>
