@@ -100,11 +100,21 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       
       const streetNumber = get('street_number');
       const route = get('route');
-      parsed.street = [streetNumber, route].filter(Boolean).join(' ');
-      parsed.city = get('locality') || get('administrative_area_level_2');
+      
+      // Use establishment as street if no route is found. This is common for landmarks.
+      let streetAddress = route ? [streetNumber, route].filter(Boolean).join(' ') : (get('establishment') || get('point_of_interest'));
+
+      // If still no street, maybe a sublocality can serve as a street.
+      if (!streetAddress) {
+          streetAddress = get('sublocality_level_1') || get('sublocality');
+      }
+      
+      parsed.street = streetAddress;
+      parsed.city = get('locality') || get('administrative_area_level_2') || get('postal_town');
       parsed.state = get('administrative_area_level_1', true);
       parsed.zip = get('postal_code');
       parsed.country = get('country');
+
       return parsed;
   }
   
@@ -286,7 +296,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   
   return isLoaded ? (
     <div className="relative h-[70vh] w-full bg-background">
-      <div className={cn("absolute inset-0 z-0", viewMode === 'search' ? 'invisible' : 'visible')}>
+      <div className={cn("absolute inset-0 z-0", viewMode === 'search' && 'invisible')}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
             center={defaultCenter}
