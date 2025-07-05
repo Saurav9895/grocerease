@@ -132,13 +132,7 @@ export function AddressManager() {
         if (!open) setSelectedAddress(null);
       }}>
         <DialogContent 
-            className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"
-            onInteractOutside={(e) => {
-                const target = e.target as HTMLElement;
-                if (target.closest('.pac-container')) {
-                  e.preventDefault();
-                }
-            }}
+            className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
         >
           <DialogHeader>
             <DialogTitle>{selectedAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>

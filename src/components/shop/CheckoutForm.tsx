@@ -22,7 +22,7 @@ import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
     ssr: false,
-    loading: () => <Skeleton className="h-[300px] w-full" />
+    loading: () => <Skeleton className="h-[70vh] w-full" />
 });
 
 const addressSchema = z.object({
@@ -174,20 +174,8 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                     </Button>
                 </DialogTrigger>
                 <DialogContent 
-                    className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"
-                    onInteractOutside={(e) => {
-                        const target = e.target as HTMLElement;
-                        if (target.closest('.pac-container')) {
-                            e.preventDefault();
-                        }
-                    }}
+                    className="sm:max-w-2xl p-0"
                 >
-                    <DialogHeader>
-                        <DialogTitle>Select Delivery Location</DialogTitle>
-                        <DialogDescription>
-                            Click on the map or drag the marker to set your address.
-                        </DialogDescription>
-                    </DialogHeader>
                     {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
                 </DialogContent>
             </Dialog>

@@ -16,7 +16,7 @@ import { Skeleton } from "../ui/skeleton";
 
 const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
     ssr: false,
-    loading: () => <Skeleton className="h-[300px] w-full" />
+    loading: () => <Skeleton className="h-[70vh] w-full" />
 });
 
 interface AddressFormProps {
@@ -125,24 +125,10 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
             <DialogTrigger asChild>
                 <Button type="button" variant="outline" className="w-full">
                     <MapPin className="mr-2 h-4 w-4" />
-                    Select Address on Map
+                    Set Location with Map
                 </Button>
             </DialogTrigger>
-            <DialogContent 
-              className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
-              onInteractOutside={(e) => {
-                const target = e.target as HTMLElement;
-                if (target.closest('.pac-container')) {
-                  e.preventDefault();
-                }
-              }}
-            >
-                <DialogHeader>
-                    <DialogTitle>Select Delivery Location</DialogTitle>
-                    <DialogDescription>
-                        Click on the map or drag the marker to set your address.
-                    </DialogDescription>
-                </DialogHeader>
+            <DialogContent className="sm:max-w-2xl p-0">
                 {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
             </DialogContent>
         </Dialog>
