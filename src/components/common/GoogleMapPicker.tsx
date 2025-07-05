@@ -31,37 +31,29 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   };
 }
 
-const getPrimaryPlaceName = (place: google.maps.GeocoderResult): string => {
-    const establishment = place.address_components.find(c => c.types.includes('establishment') || c.types.includes('point_of_interest'));
-    if (establishment) {
-      const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1') || c.types.includes('sublocality'));
-      if(sublocality) {
-          return `${establishment.long_name}, ${sublocality.long_name}`;
-      }
-      return establishment.long_name;
-    }
-  
-    const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1') || c.types.includes('sublocality'));
-    if (sublocality) {
-      const neighborhood = place.address_components.find(c => c.types.includes('neighborhood'));
-      if(neighborhood && neighborhood.long_name !== sublocality.long_name) {
-          return `${neighborhood.long_name}, ${sublocality.long_name}`;
-      }
-      return sublocality.long_name;
+const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
+    if (!place.address_components || place.address_components.length === 0) {
+        return { main_text: place.formatted_address, secondary_text: "" };
     }
 
-    const route = place.address_components.find(c => c.types.includes('route'));
-    if (route) {
-        return route.long_name;
-    }
-
-    const locality = place.address_components.find(c => c.types.includes('locality'));
-    if (locality) {
-        return locality.long_name;
-    }
+    const nameComponent = 
+        place.address_components.find(c => c.types.includes('establishment')) ||
+        place.address_components.find(c => c.types.includes('point_of_interest')) ||
+        place.address_components.find(c => c.types.includes('premise')) ||
+        place.address_components.find(c => c.types.includes('route')) ||
+        place.address_components.find(c => c.types.includes('sublocality_level_1')) ||
+        place.address_components.find(c => c.types.includes('sublocality')) ||
+        place.address_components.find(c => c.types.includes('locality')) ||
+        place.address_components[0];
     
-    return place.address_components[0]?.long_name || 'Unnamed place';
-};
+    const main_text = nameComponent.long_name;
+
+    const secondary_text = place.formatted_address
+        .replace(new RegExp(`^${main_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, )?`), '')
+        .trim();
+
+    return { main_text, secondary_text: secondary_text === main_text ? '' : secondary_text };
+}
 
 
 export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: Partial<Address>) => void; onClose: () => void; }) {
@@ -101,10 +93,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       const streetNumber = get('street_number');
       const route = get('route');
       
-      // Use establishment as street if no route is found. This is common for landmarks.
       let streetAddress = route ? [streetNumber, route].filter(Boolean).join(' ') : (get('establishment') || get('point_of_interest'));
 
-      // If still no street, maybe a sublocality can serve as a street.
       if (!streetAddress) {
           streetAddress = get('sublocality_level_1') || get('sublocality');
       }
@@ -253,10 +243,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
             setSuggestions(results);
         } catch (error: any) {
             if (error.code === google.maps.GeocoderStatus.ZERO_RESULTS) {
-                // This is an expected case, just clear suggestions.
                 setSuggestions([]);
             } else {
-                // For other errors, log them.
                 console.error('Geocoding search error:', error);
                 setSuggestions([]);
             }
@@ -401,16 +389,24 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                     </div>
                 ) : suggestions.length > 0 ? (
                     <ul className="divide-y divide-border">
-                        {suggestions.map((place) => (
-                            <li
-                                key={place.place_id}
-                                onClick={() => handleSuggestionClick(place)}
-                                className="p-3 cursor-pointer hover:bg-muted"
-                            >
-                                <p className="font-medium">{getPrimaryPlaceName(place)}</p>
-                                <p className="text-sm text-muted-foreground">{place.formatted_address}</p>
-                            </li>
-                        ))}
+                        {suggestions.map((place) => {
+                             const { main_text, secondary_text } = formatSuggestionForDisplay(place);
+                             return (
+                                <li
+                                    key={place.place_id}
+                                    onClick={() => handleSuggestionClick(place)}
+                                    className="flex items-center gap-4 p-3 cursor-pointer hover:bg-muted"
+                                >
+                                    <div className="flex-shrink-0 bg-muted p-2 rounded-full">
+                                        <MapPin className="h-5 w-5 text-muted-foreground" />
+                                    </div>
+                                    <div className="flex-grow overflow-hidden">
+                                        <p className="font-medium truncate">{main_text}</p>
+                                        {secondary_text && <p className="text-sm text-muted-foreground truncate">{secondary_text}</p>}
+                                    </div>
+                                </li>
+                            );
+                        })}
                     </ul>
                 ) : searchQuery ? (
                     <div className="text-center text-muted-foreground py-4">No results found for "{searchQuery}".</div>
