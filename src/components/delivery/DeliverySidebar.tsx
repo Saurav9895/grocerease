@@ -14,7 +14,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Leaf, LogOut, Home, History, LayoutDashboard } from "lucide-react";
+import { Leaf, LogOut, Home, History, LayoutDashboard, ClipboardList } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -53,12 +53,24 @@ export function DeliverySidebar() {
           <SidebarMenuItem>
             <SidebarMenuButton
               asChild
-              isActive={pathname === "/delivery" || pathname.startsWith("/delivery/orders")}
+              isActive={pathname === "/delivery"}
               tooltip="Dashboard"
             >
               <Link href="/delivery">
                 <LayoutDashboard />
                 <span>Dashboard</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/delivery/assigned") || pathname.startsWith("/delivery/orders")}
+              tooltip="Assigned Orders"
+            >
+              <Link href="/delivery/assigned">
+                <ClipboardList />
+                <span>Assigned Orders</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>

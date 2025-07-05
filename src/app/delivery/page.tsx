@@ -6,7 +6,6 @@ import { getOrdersForDeliveryPerson } from "@/lib/data";
 import { useAuth } from "@/context/AuthProvider";
 import type { Order } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AssignedOrderTable } from "@/components/delivery/AssignedOrderTable";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Truck, CheckCircle2, DollarSign } from "lucide-react";
 
@@ -38,7 +37,6 @@ export default function DeliveryDashboardPage() {
       deliveredCount: deliveredOrders.length,
       pendingSubmissionsCount: pendingSubmissions.length,
       pendingSubmissionsAmount,
-      actionableOrders,
     };
   }, [orders]);
 
@@ -50,14 +48,6 @@ export default function DeliveryDashboardPage() {
           <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
           <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
           <Card><CardHeader><Skeleton className="h-5 w-3/4" /></CardHeader><CardContent><Skeleton className="h-8 w-1/2" /></CardContent></Card>
-        </div>
-        <div className="space-y-2">
-            <Skeleton className="h-8 w-1/4" />
-            <div className="border rounded-md p-4 space-y-2">
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-                <Skeleton className="h-12 w-full" />
-            </div>
         </div>
       </div>
     );
@@ -98,11 +88,6 @@ export default function DeliveryDashboardPage() {
             <p className="text-xs text-muted-foreground">{stats.pendingSubmissionsCount} COD order(s) to submit</p>
           </CardContent>
         </Card>
-      </div>
-
-      <div>
-        <h2 className="text-2xl font-bold mb-4">Current Tasks</h2>
-        <AssignedOrderTable orders={stats.actionableOrders} />
       </div>
     </div>
   );
