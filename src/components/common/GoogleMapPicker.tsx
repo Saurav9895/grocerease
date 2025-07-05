@@ -51,6 +51,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
     libraries: ['places'],
   });
 
+  const [map, setMap] = React.useState<google.maps.Map | null>(null);
   const [markerPosition, setMarkerPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [currentLocation, setCurrentLocation] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
@@ -83,8 +84,9 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
     }
   }, []);
   
-  const onLoad = React.useCallback(function callback(map: google.maps.Map) {
-    mapRef.current = map;
+  const onLoad = React.useCallback(function callback(mapInstance: google.maps.Map) {
+    mapRef.current = mapInstance;
+    setMap(mapInstance);
     initialLocationSetRef.current = false;
 
     if (navigator.geolocation) {
@@ -110,7 +112,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
             () => {
                 if (!initialLocationSetRef.current) {
                     toast({ variant: 'destructive', title: 'Could not get location', description: 'Please grant location permissions or set manually.' });
-                    map.setCenter(defaultCenter);
+                    mapInstance.setCenter(defaultCenter);
                     setMarkerPosition(defaultCenter);
                     initialLocationSetRef.current = true;
                 }
@@ -119,7 +121,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         );
     } else {
         toast({ variant: 'destructive', title: 'Geolocation not supported', description: 'Defaulting to Kathmandu.' });
-        map.setCenter(defaultCenter);
+        mapInstance.setCenter(defaultCenter);
         setMarkerPosition(defaultCenter);
     }
 }, [toast]);
@@ -130,6 +132,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       navigator.geolocation.clearWatch(watchIdRef.current);
     }
     mapRef.current = null;
+    setMap(null);
   }, []);
 
   const handleUseCurrentLocation = () => {
@@ -169,6 +172,17 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const onAutocompleteLoad = React.useCallback((ac: google.maps.places.Autocomplete) => {
     setAutocomplete(ac);
   }, []);
+
+  React.useEffect(() => {
+    if (autocomplete && map) {
+      autocomplete.bindTo("bounds", map);
+    }
+    return () => {
+      if (autocomplete) {
+        autocomplete.unbind("bounds");
+      }
+    };
+  }, [autocomplete, map]);
 
   const onPlaceChanged = React.useCallback(() => {
     if (autocomplete === null) {
