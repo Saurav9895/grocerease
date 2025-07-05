@@ -5,7 +5,6 @@ import * as React from 'react';
 import {
   GoogleMap,
   useJsApiLoader,
-  Autocomplete,
   MarkerF,
 } from '@react-google-maps/api';
 import { Button } from '../ui/button';
@@ -16,6 +15,7 @@ import { ArrowLeft, LocateFixed, MapPin, Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
 
 // Default center (Kathmandu)
 const defaultCenter = {
@@ -23,25 +23,17 @@ const defaultCenter = {
   lng: 85.324,
 };
 
-interface GoogleMapPickerProps {
-  onConfirm: (address: Partial<Address>) => void;
-  onClose: () => void;
-}
-
 // Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   let timeout: NodeJS.Timeout;
-  return (...args: Parameters<F>): Promise<ReturnType<F>> =>
-    new Promise(resolve => {
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-      timeout = setTimeout(() => resolve(func(...args)), waitFor);
-    });
+  return (...args: Parameters<F>): void => {
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func(...args), waitFor);
+  };
 }
 
 
-export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
+export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: Partial<Address>) => void; onClose: () => void; }) {
   const { toast } = useToast();
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
@@ -52,14 +44,18 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   });
 
   const [map, setMap] = React.useState<google.maps.Map | null>(null);
-  const [autocomplete, setAutocomplete] = React.useState<google.maps.places.Autocomplete | null>(null);
-
+  
   const [displayAddress, setDisplayAddress] = React.useState<string>('Move the map to select your address');
   const [selectedAddressDetails, setSelectedAddressDetails] = React.useState<Partial<Address> | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(true);
   const [viewMode, setViewMode] = React.useState<'map' | 'search'>('map');
   const [currentUserPosition, setCurrentUserPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
+  
+  // Custom search state
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [suggestions, setSuggestions] = React.useState<google.maps.GeocoderResult[]>([]);
+  const [isSearching, setIsSearching] = React.useState(false);
 
 
   const mapRef = React.useRef<google.maps.Map | null>(null);
@@ -108,7 +104,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   }, [isLoaded]);
 
   const debouncedReverseGeocode = React.useMemo(() => debounce(reverseGeocode, 500), [reverseGeocode]);
-
+  
   const handleMapIdle = React.useCallback(() => {
     if (mapRef.current) {
       const center = mapRef.current.getCenter();
@@ -186,27 +182,52 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         }
     );
   };
-  
-  const onAutocompleteLoad = React.useCallback((ac: google.maps.places.Autocomplete) => {
-    setAutocomplete(ac);
-  }, []);
-
-  const onPlaceChanged = React.useCallback(() => {
-    if (autocomplete !== null) {
-      const place = autocomplete.getPlace();
-      if (place && place.geometry && place.geometry.location) {
+   
+  const handleSuggestionClick = (place: google.maps.GeocoderResult) => {
+    if (place.geometry && place.geometry.location) {
         mapRef.current?.panTo(place.geometry.location);
         mapRef.current?.setZoom(17);
         setViewMode('map');
-      } else {
-          toast({ variant: 'destructive', title: 'Invalid location', description: 'Please select a valid location from the list.' });
-      }
+        setSearchQuery('');
+        setSuggestions([]);
+    } else {
+        toast({ variant: 'destructive', title: 'Location not found', description: 'Could not get coordinates for this location.' });
     }
-  }, [autocomplete, toast]);
+  };
+  
+  const handleSearch = React.useCallback(
+    debounce(async (query: string) => {
+        if (!query.trim() || !isLoaded) {
+            setSuggestions([]);
+            return;
+        }
+        setIsSearching(true);
+        const geocoder = new window.google.maps.Geocoder();
+        try {
+            const request: google.maps.GeocoderRequest = {
+                address: query,
+                bounds: map?.getBounds(), // Prioritize results within the current map view
+            };
+            const { results } = await geocoder.geocode(request);
+            setSuggestions(results);
+        } catch (error) {
+            console.error('Geocoding search error:', error);
+            setSuggestions([]);
+        } finally {
+            setIsSearching(false);
+        }
+    }, 400),
+    [isLoaded, map]
+  );
+
+  React.useEffect(() => {
+    handleSearch(searchQuery);
+  }, [searchQuery, handleSearch]);
+
 
   const handleConfirm = () => {
     if (!selectedAddressDetails) {
-        toast({ variant: 'destructive', title: "No location selected", description: "Please select a valid location on the map." });
+        toast({ variant: "destructive", title: "No location selected", description: "Please select a valid location on the map." });
         return;
     }
     onConfirm(selectedAddressDetails);
@@ -312,41 +333,56 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
                 <h2 className="text-lg font-semibold">Change delivery location</h2>
             </div>
             
-            <div className="flex-shrink-0">
-                <Autocomplete
-                  onLoad={onAutocompleteLoad}
-                  onPlaceChanged={onPlaceChanged}
-                  options={{
-                    bounds: map?.getBounds(),
-                    strictBounds: false,
-                  }}
-                >
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-                    <Input
-                      id="location-search-focused"
-                      type="text"
-                      placeholder="Search for an area, street name..."
-                      className="w-full pl-10 h-12"
-                      autoFocus
-                    />
-                  </div>
-                </Autocomplete>
-                
+             <div className="relative flex-shrink-0">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                <Input
+                    id="location-search-focused"
+                    type="text"
+                    placeholder="Search for an area, street name..."
+                    className="w-full pl-10 h-12"
+                    autoFocus
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                />
+            </div>
+
+            <div className="flex-grow mt-4 overflow-y-auto">
+                {isSearching ? (
+                    <div className="text-center text-muted-foreground py-4 flex items-center justify-center gap-2">
+                        <Loader2 className="h-4 w-4 animate-spin"/>
+                        <span>Searching...</span>
+                    </div>
+                ) : suggestions.length > 0 ? (
+                    <ul className="divide-y divide-border">
+                        {suggestions.map((place) => (
+                            <li
+                                key={place.place_id}
+                                onClick={() => handleSuggestionClick(place)}
+                                className="p-3 cursor-pointer hover:bg-muted"
+                            >
+                                <p className="font-medium">{place.address_components[0]?.long_name || 'Unnamed place'}</p>
+                                <p className="text-sm text-muted-foreground">{place.formatted_address}</p>
+                            </li>
+                        ))}
+                    </ul>
+                ) : searchQuery ? (
+                    <div className="text-center text-muted-foreground py-4">No results found for "{searchQuery}".</div>
+                ): null}
+            </div>
+
+            <div className="flex-shrink-0 border-t pt-4">
                 <Button 
                     variant="ghost" 
-                    className="w-full justify-start h-14 text-left my-4 text-primary font-semibold"
+                    className="w-full justify-start h-14 text-left text-primary font-semibold"
                     onClick={() => {
-                      handleUseCurrentLocation();
-                      setViewMode('map');
+                        handleUseCurrentLocation();
+                        setViewMode('map');
                     }}
                 >
                     <LocateFixed className="mr-4 h-5 w-5" />
                     Use your current location
                 </Button>
             </div>
-            
-            {/* Suggestions from Autocomplete will appear below the input field, styled by Google's script */}
         </div>
       )}
     </div>
