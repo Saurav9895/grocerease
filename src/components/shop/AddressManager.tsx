@@ -80,7 +80,7 @@ export function AddressManager() {
           </>
         ) : addresses.length > 0 ? (
           addresses.map((address) => (
-            <div key={address.id} className="flex items-start justify-between p-4 rounded-lg border">
+            <div key={address.id} className="flex flex-col sm:flex-row sm:items-start justify-between p-4 rounded-lg border gap-4">
               <div className="flex items-start gap-4">
                 <Home className="w-5 h-5 text-muted-foreground mt-1 flex-shrink-0" />
                 <div className="text-sm">
@@ -96,7 +96,7 @@ export function AddressManager() {
                   )}
                 </div>
               </div>
-              <div className="flex gap-2 flex-shrink-0 ml-4">
+              <div className="flex gap-2 flex-shrink-0 self-end sm:self-auto">
                 <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleOpenForm(address)}>
                     <Pencil className="h-4 w-4" />
                     <span className="sr-only">Edit</span>
@@ -132,7 +132,7 @@ export function AddressManager() {
         if (!open) setSelectedAddress(null);
       }}>
         <DialogContent 
-            className="sm:max-w-lg max-h-[90vh] overflow-y-auto"
+            className="sm:max-w-md max-h-[90vh] overflow-y-auto"
         >
           <DialogHeader>
             <DialogTitle>{selectedAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>

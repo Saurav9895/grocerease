@@ -175,7 +175,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                     </Button>
                 </DialogTrigger>
                 <DialogContent 
-                    className="sm:max-w-xl p-0"
+                    className="sm:max-w-md p-0"
                 >
                     <DialogHeader className="sr-only">
                         <DialogTitle>Select Delivery Location</DialogTitle>

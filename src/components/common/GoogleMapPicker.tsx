@@ -47,22 +47,13 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
         place.address_components[0];
     
     let main_text = nameComponent.long_name;
-    let secondary_text = place.formatted_address;
     
-    // Check if the searched term is part of the result and make it the main text
-    // A bit of a heuristic, but can improve relevance.
-    if (nameComponent.types.includes('plus_code')) {
-        const est = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
-        if(est) {
-            main_text = est;
-            secondary_text = place.formatted_address.replace(`${est}, `, '');
-        } else {
-             secondary_text = place.formatted_address.replace(`${main_text}, `, '');
-        }
-    } else {
-        secondary_text = place.formatted_address.replace(new RegExp(`^${main_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, )?`), '').trim();
+    const est = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
+    if (est) {
+        main_text = est;
     }
-
+    
+    const secondary_text = place.formatted_address.replace(new RegExp(`^${main_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, )?`), '').trim();
 
     return { main_text, secondary_text: secondary_text === main_text ? '' : secondary_text };
 }
@@ -102,13 +93,13 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
         return component ? (useShortName ? component.short_name : component.long_name) : '';
       };
       
-      const streetNumber = get('street_number');
       const route = get('route');
+      const establishment = get('establishment');
+      const pointOfInterest = get('point_of_interest');
       
-      let streetAddress = route ? [streetNumber, route].filter(Boolean).join(' ') : '';
-      
+      let streetAddress = route;
       if (!streetAddress) {
-          streetAddress = get('establishment') || get('point_of_interest') || get('sublocality_level_1') || get('sublocality');
+        streetAddress = establishment || pointOfInterest || get('sublocality_level_1') || get('sublocality');
       }
       
       parsed.street = streetAddress;
@@ -283,7 +274,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
 
   if (!apiKey) {
     return (
-        <div className="flex flex-col items-center justify-center h-[450px] text-center p-4 bg-muted rounded-md">
+        <div className="flex flex-col items-center justify-center h-[400px] text-center p-4 bg-muted rounded-md">
             <h3 className="text-lg font-semibold text-destructive">Google Maps API Key Missing</h3>
             <p className="text-sm text-muted-foreground mt-2">Please provide a valid NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file to use this feature.</p>
         </div>
@@ -295,7 +286,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   }
   
   return isLoaded ? (
-    <div className="relative h-[450px] w-full bg-background overflow-hidden">
+    <div className="relative h-[400px] w-full bg-background overflow-hidden">
       <div className={cn("absolute inset-0 z-0", viewMode === 'search' && 'invisible')}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
@@ -442,6 +433,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       )}
     </div>
   ) : (
-    <Skeleton className="h-[450px] w-full" />
+    <Skeleton className="h-[400px] w-full" />
   );
 }
