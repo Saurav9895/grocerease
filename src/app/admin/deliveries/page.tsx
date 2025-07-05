@@ -6,15 +6,16 @@ import { getDeliveredOrders } from "@/lib/data";
 import { useAuth } from "@/context/AuthProvider";
 import type { Order } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { startOfDay, endOfDay } from "date-fns";
 import { Button } from "@/components/ui/button";
+import type { DateRange } from "react-day-picker";
 
 export default function AdminDeliveriesPage() {
   const { user } = useAuth();
   const [allDeliveredOrders, setAllDeliveredOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
 
   const fetchOrders = async () => {
     setIsLoading(true);
@@ -30,17 +31,17 @@ export default function AdminDeliveriesPage() {
   }, [user]);
   
   const filteredOrders = useMemo(() => {
-    if (!selectedDate) {
+    if (!date?.from) {
         return allDeliveredOrders;
     }
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
+    const start = startOfDay(date.from);
+    const end = date.to ? endOfDay(date.to) : endOfDay(date.from);
     return allDeliveredOrders.filter(order => {
         if (!order.deliveredAt) return false;
         const deliveredDate = new Date(order.deliveredAt);
         return deliveredDate >= start && deliveredDate <= end;
     });
-  }, [allDeliveredOrders, selectedDate]);
+  }, [allDeliveredOrders, date]);
 
 
   return (
@@ -51,8 +52,8 @@ export default function AdminDeliveriesPage() {
             <p className="text-muted-foreground">A chronological log of all completed deliveries.</p>
         </div>
         <div className="flex items-center gap-2">
-            <DatePicker date={selectedDate} setDate={setSelectedDate} />
-            {selectedDate && <Button variant="ghost" onClick={() => setSelectedDate(undefined)}>Clear</Button>}
+            <DateRangePicker date={date} onDateChange={setDate} />
+            {date && <Button variant="ghost" onClick={() => setDate(undefined)}>Clear</Button>}
         </div>
       </div>
       

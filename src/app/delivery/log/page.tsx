@@ -6,15 +6,16 @@ import { useAuth } from "@/context/AuthProvider";
 import type { Order } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DeliveryLogTable } from "@/components/delivery/DeliveryLogTable";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { Button } from "@/components/ui/button";
 import { startOfDay, endOfDay } from 'date-fns';
+import type { DateRange } from "react-day-picker";
 
 export default function DeliveryLogPage() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [date, setDate] = useState<DateRange | undefined>(undefined);
 
   useEffect(() => {
     if (user) {
@@ -29,17 +30,17 @@ export default function DeliveryLogPage() {
   }, [user]);
 
   const filteredOrders = useMemo(() => {
-    if (!selectedDate) {
+    if (!date?.from) {
       return orders;
     }
-    const start = startOfDay(selectedDate);
-    const end = endOfDay(selectedDate);
+    const start = startOfDay(date.from);
+    const end = date.to ? endOfDay(date.to) : endOfDay(date.from);
     return orders.filter(order => {
         if (!order.deliveredAt) return false;
         const deliveredDate = new Date(order.deliveredAt);
         return deliveredDate >= start && deliveredDate <= end;
     });
-  }, [orders, selectedDate]);
+  }, [orders, date]);
 
   return (
     <div className="flex flex-col h-full">
@@ -50,8 +51,8 @@ export default function DeliveryLogPage() {
             <p className="text-muted-foreground">A log of your completed deliveries.</p>
           </div>
           <div className="flex items-center gap-2">
-              <DatePicker date={selectedDate} setDate={setSelectedDate} />
-              {selectedDate && <Button variant="ghost" onClick={() => setSelectedDate(undefined)}>Clear</Button>}
+              <DateRangePicker date={date} onDateChange={setDate} />
+              {date && <Button variant="ghost" onClick={() => setDate(undefined)}>Clear</Button>}
           </div>
         </div>
       </div>
