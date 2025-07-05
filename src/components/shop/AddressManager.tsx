@@ -132,7 +132,7 @@ export function AddressManager() {
         if (!open) setSelectedAddress(null);
       }}>
         <DialogContent 
-            className="sm:max-w-md max-h-[90vh] overflow-y-auto"
+            className="w-[95vw] max-w-md max-h-[90vh] overflow-y-auto rounded-lg"
         >
           <DialogHeader>
             <DialogTitle>{selectedAddress ? 'Edit Address' : 'Add New Address'}</DialogTitle>

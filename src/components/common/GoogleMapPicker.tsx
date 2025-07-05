@@ -36,26 +36,19 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
         return { main_text: place.formatted_address, secondary_text: "" };
     }
 
-    const nameComponent = 
-        place.address_components.find(c => c.types.includes('establishment')) ||
-        place.address_components.find(c => c.types.includes('point_of_interest')) ||
-        place.address_components.find(c => c.types.includes('premise')) ||
-        place.address_components.find(c => c.types.includes('route')) ||
-        place.address_components.find(c => c.types.includes('sublocality_level_1')) ||
-        place.address_components.find(c => c.types.includes('sublocality')) ||
-        place.address_components.find(c => c.types.includes('locality')) ||
-        place.address_components[0];
+    const establishment = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
+    const pointOfInterest = place.address_components.find(c => c.types.includes('point_of_interest'))?.long_name;
+    const premise = place.address_components.find(c => c.types.includes('premise'))?.long_name;
+    const route = place.address_components.find(c => c.types.includes('route'))?.long_name;
+    const neighborhood = place.address_components.find(c => c.types.includes('neighborhood'))?.long_name;
+    const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
     
-    let main_text = nameComponent.long_name;
-    
-    const est = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
-    if (est) {
-        main_text = est;
-    }
-    
-    const secondary_text = place.formatted_address.replace(new RegExp(`^${main_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, )?`), '').trim();
+    const main_text = establishment || pointOfInterest || premise || route || neighborhood || sublocality || place.address_components[0].long_name;
 
-    return { main_text, secondary_text: secondary_text === main_text ? '' : secondary_text };
+    const secondary_text_parts = place.formatted_address.split(', ');
+    const secondary_text = secondary_text_parts.filter(part => part !== main_text).join(', ');
+
+    return { main_text, secondary_text };
 }
 
 
@@ -96,10 +89,11 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       const route = get('route');
       const establishment = get('establishment');
       const pointOfInterest = get('point_of_interest');
-      
+      const premise = get('premise');
+
       let streetAddress = route;
       if (!streetAddress) {
-        streetAddress = establishment || pointOfInterest || get('sublocality_level_1') || get('sublocality');
+        streetAddress = premise || establishment || pointOfInterest || get('sublocality_level_1') || get('sublocality');
       }
       
       parsed.street = streetAddress;
@@ -274,7 +268,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
 
   if (!apiKey) {
     return (
-        <div className="flex flex-col items-center justify-center h-[400px] text-center p-4 bg-muted rounded-md">
+        <div className="flex flex-col items-center justify-center h-[350px] text-center p-4 bg-muted rounded-md">
             <h3 className="text-lg font-semibold text-destructive">Google Maps API Key Missing</h3>
             <p className="text-sm text-muted-foreground mt-2">Please provide a valid NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file to use this feature.</p>
         </div>
@@ -286,7 +280,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   }
   
   return isLoaded ? (
-    <div className="relative h-[400px] w-full bg-background overflow-hidden">
+    <div className="relative h-[350px] w-full bg-background overflow-hidden">
       <div className={cn("absolute inset-0 z-0", viewMode === 'search' && 'invisible')}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
@@ -433,6 +427,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       )}
     </div>
   ) : (
-    <Skeleton className="h-[400px] w-full" />
+    <Skeleton className="h-[350px] w-full" />
   );
 }
