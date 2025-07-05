@@ -21,6 +21,10 @@ const defaultCenter = {
   lng: 85.324,
 };
 
+// Map constants
+const MAP_HEIGHT = 350;
+const PIN_TOP_PERCENT = 0.2;
+
 // Debounce function
 function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
   let timeout: NodeJS.Timeout;
@@ -52,6 +56,50 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
     
     return { main_text, secondary_text };
 }
+
+// Map helper functions
+const getOffsetCenter = (targetLatLng: google.maps.LatLng, map: google.maps.Map): google.maps.LatLng | null => {
+    const projection = map.getProjection();
+    const zoom = map.getZoom();
+    if (!projection || !zoom) return null;
+
+    const scale = Math.pow(2, zoom);
+    const worldCoordinate = projection.fromLatLngToPoint(targetLatLng);
+    if (!worldCoordinate) return null;
+
+    const yOffset = MAP_HEIGHT * (0.5 - PIN_TOP_PERCENT);
+
+    const pixelCoordinate = new google.maps.Point(worldCoordinate.x * scale, worldCoordinate.y * scale);
+    pixelCoordinate.y += yOffset;
+
+    const newWorldCoordinate = new google.maps.Point(pixelCoordinate.x / scale, pixelCoordinate.y / scale);
+    return projection.fromPointToLatLng(newWorldCoordinate);
+};
+
+const getPinLocation = (map: google.maps.Map): google.maps.LatLng | null => {
+    const projection = map.getProjection();
+    const zoom = map.getZoom();
+    const center = map.getCenter();
+    if (!projection || !zoom || !center) return null;
+
+    const scale = Math.pow(2, zoom);
+    const centerPoint = projection.fromLatLngToPoint(center);
+    if (!centerPoint) return null;
+
+    const yOffset = MAP_HEIGHT * (0.5 - PIN_TOP_PERCENT);
+
+    const pinPointInPixels = new google.maps.Point(
+        centerPoint.x * scale,
+        centerPoint.y * scale - yOffset
+    );
+    
+    const pinPointInWorld = new google.maps.Point(
+        pinPointInPixels.x / scale,
+        pinPointInPixels.y / scale
+    );
+
+    return projection.fromPointToLatLng(pinPointInWorld);
+};
 
 
 export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: Partial<Address>) => void; onClose: () => void; }) {
@@ -135,9 +183,9 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   
   const handleMapIdle = React.useCallback(() => {
     if (mapRef.current) {
-      const center = mapRef.current.getCenter();
-      if (center) {
-        debouncedReverseGeocode(center);
+      const pinLocation = getPinLocation(mapRef.current);
+      if (pinLocation) {
+        debouncedReverseGeocode(pinLocation);
       }
     }
   }, [debouncedReverseGeocode]);
@@ -148,6 +196,15 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
     setIsLocating(true);
     toast({ title: 'Locating you...', description: 'Getting an accurate position.' });
 
+    const setMapCenter = (pos: google.maps.LatLngLiteral) => {
+        const newCenter = getOffsetCenter(new google.maps.LatLng(pos), mapInstance);
+        if (newCenter) {
+            mapInstance.setCenter(newCenter);
+        } else {
+            mapInstance.setCenter(pos);
+        }
+    }
+
     if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
             (position) => {
@@ -156,15 +213,15 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                     lng: position.coords.longitude,
                 };
                 setCurrentUserPosition(pos);
-                mapInstance.setCenter(pos);
                 mapInstance.setZoom(17);
+                setMapCenter(pos);
                 toast({ title: 'Location Found!', description: 'You can now fine-tune your address.' });
                 handleMapIdle(); // Initial geocode
                 setIsLocating(false);
             },
             () => {
                 toast({ variant: 'destructive', title: 'Could not get location', description: 'Defaulting to city center. Please move the map.' });
-                mapInstance.setCenter(defaultCenter);
+                setMapCenter(defaultCenter);
                 handleMapIdle();
                 setIsLocating(false);
             },
@@ -172,7 +229,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
         );
     } else {
         toast({ variant: 'destructive', title: 'Geolocation not supported' });
-        mapInstance.setCenter(defaultCenter);
+        setMapCenter(defaultCenter);
         handleMapIdle();
         setIsLocating(false);
     }
@@ -185,13 +242,14 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   }, []);
 
   const handleUseCurrentLocation = () => {
-    if (!navigator.geolocation) {
+    if (!navigator.geolocation || !mapRef.current) {
         toast({ variant: 'destructive', title: 'Geolocation not supported' });
         return;
     }
     
     setIsLocating(true);
     toast({ title: 'Getting your location...' });
+    const map = mapRef.current;
 
     navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -200,8 +258,11 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 lng: position.coords.longitude,
             };
             setCurrentUserPosition(pos);
-            mapRef.current?.panTo(pos);
-            mapRef.current?.setZoom(17);
+            const newCenter = getOffsetCenter(new google.maps.LatLng(pos), map);
+            if (newCenter) {
+              map.panTo(newCenter);
+              map.setZoom(17);
+            }
             setIsLocating(false);
         },
         () => {
@@ -212,9 +273,13 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   };
    
   const handleSuggestionClick = (place: google.maps.GeocoderResult) => {
-    if (place.geometry && place.geometry.location) {
-        mapRef.current?.panTo(place.geometry.location);
-        mapRef.current?.setZoom(17);
+    if (place.geometry && place.geometry.location && mapRef.current) {
+        const map = mapRef.current;
+        const newCenter = getOffsetCenter(place.geometry.location, map);
+        if (newCenter) {
+          map.panTo(newCenter);
+          map.setZoom(17);
+        }
         setViewMode('map');
         setSearchQuery('');
         setSuggestions([]);
@@ -319,8 +384,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 </Button>
             </div>
             
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
+            <div className="absolute top-[20%] left-1/2 -translate-x-1/2 -translate-y-full">
+                <MapPin className="h-10 w-10 text-primary drop-shadow-lg" />
             </div>
 
             <div className="absolute inset-x-0 bottom-0 z-10">
