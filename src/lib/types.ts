@@ -120,3 +120,10 @@ export interface AttributeSet {
   id: string;
   name: string; // e.g., "Weight", "Volume", "Brand"
 }
+
+export interface GroupedDeliveries {
+  [key: string]: {
+    personName: string;
+    orders: Order[];
+  };
+}

@@ -10,21 +10,22 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
-import type { Order } from "@/lib/types";
+import type { Order, GroupedDeliveries } from "@/lib/types";
 import { format } from "date-fns";
 import Link from "next/link";
-import { CheckCircle2, CircleDashed } from "lucide-react";
+import { CheckCircle2, CircleDashed, Truck } from "lucide-react";
 import { Button } from "../ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { markPaymentAsSubmitted } from "@/lib/data";
 
-interface DeliveriesTableProps {
-  orders: Order[];
+interface DeliveriesLogProps {
+  groupedDeliveries: GroupedDeliveries;
   onDataChanged: () => void;
 }
 
-export function DeliveriesTable({ orders, onDataChanged }: DeliveriesTableProps) {
+export function DeliveriesTable({ groupedDeliveries, onDataChanged }: DeliveriesLogProps) {
   const { toast } = useToast();
   const [updatingOrderId, setUpdatingOrderId] = useState<string | null>(null);
 
@@ -49,69 +50,92 @@ export function DeliveriesTable({ orders, onDataChanged }: DeliveriesTableProps)
     }
   };
 
+  const deliveryPersonIds = Object.keys(groupedDeliveries);
+
+  if (deliveryPersonIds.length === 0) {
+    return (
+      <div className="text-center py-16 text-muted-foreground bg-card rounded-lg">
+        <p>No delivered orders found.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="border rounded-md bg-card">
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Order ID</TableHead>
-            <TableHead>Delivery Person</TableHead>
-            <TableHead>Delivered At</TableHead>
-            <TableHead>Payment</TableHead>
-            <TableHead>Amount</TableHead>
-            <TableHead className="text-center">Submission Status</TableHead>
-            <TableHead className="text-right">Actions</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {orders.length > 0 ? (
-            orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">
-                   <Link href={`/admin/orders/${order.id}`} className="hover:underline text-primary">
-                    {order.id.substring(0, 7)}...
-                  </Link>
-                </TableCell>
-                <TableCell>{order.deliveryPersonName || 'N/A'}</TableCell>
-                <TableCell>{order.deliveredAt ? format(order.deliveredAt, 'PPp') : 'N/A'}</TableCell>
-                <TableCell>{order.paymentMethod}</TableCell>
-                <TableCell>Rs{order.total.toFixed(2)}</TableCell>
-                <TableCell className="text-center">
-                  {order.paymentSubmitted ? (
-                    <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">
-                        <CheckCircle2 className="mr-2 h-4 w-4" />
-                        Submitted
-                    </Badge>
-                  ) : (
-                     <Badge variant="secondary">
-                        <CircleDashed className="mr-2 h-4 w-4" />
-                        Pending
-                    </Badge>
-                  )}
-                </TableCell>
-                <TableCell className="text-right">
-                  {order.paymentMethod === 'COD' && !order.paymentSubmitted && (
-                    <Button 
-                      variant="secondary" 
-                      size="sm" 
-                      onClick={() => handleMarkAsSubmitted(order.id)}
-                      disabled={updatingOrderId === order.id}
-                    >
-                      {updatingOrderId === order.id ? 'Submitting...' : 'Mark as Submitted'}
-                    </Button>
-                  )}
-                </TableCell>
-              </TableRow>
-            ))
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="text-center h-24">
-                No delivered orders found.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
-    </div>
+    <Accordion type="multiple" className="w-full space-y-4">
+      {deliveryPersonIds.map((personId) => {
+        const { personName, orders } = groupedDeliveries[personId];
+        const pendingSubmissions = orders.filter(o => o.paymentMethod === 'COD' && !o.paymentSubmitted).length;
+
+        return (
+          <AccordionItem value={personId} key={personId} className="border rounded-lg bg-card overflow-hidden">
+            <AccordionTrigger className="px-6 py-4 text-lg hover:no-underline">
+              <div className="flex items-center gap-4">
+                 <div className="p-2 bg-muted rounded-full">
+                    <Truck className="h-6 w-6 text-muted-foreground" />
+                 </div>
+                 <div>
+                    <h3 className="font-semibold text-left">{personName}</h3>
+                    <p className="text-sm text-muted-foreground text-left">
+                        {orders.length} deliver{orders.length === 1 ? 'y' : 'ies'}
+                        {pendingSubmissions > 0 && `, ${pendingSubmissions} pending submission(s)`}
+                    </p>
+                 </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent className="bg-background/50">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order ID</TableHead>
+                    <TableHead>Delivered At</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Submission Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-medium">
+                        <Link href={`/admin/orders/${order.id}`} className="hover:underline text-primary">
+                          {order.id.substring(0, 7)}...
+                        </Link>
+                      </TableCell>
+                      <TableCell>{order.deliveredAt ? format(order.deliveredAt, 'PPp') : 'N/A'}</TableCell>
+                      <TableCell>{order.paymentMethod}</TableCell>
+                      <TableCell>Rs{order.total.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {order.paymentSubmitted ? (
+                          <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">
+                            <CheckCircle2 className="mr-2 h-4 w-4" /> Submitted
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary">
+                            <CircleDashed className="mr-2 h-4 w-4" /> Pending
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {order.paymentMethod === 'COD' && !order.paymentSubmitted && (
+                          <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => handleMarkAsSubmitted(order.id)}
+                            disabled={updatingOrderId === order.id}
+                          >
+                            {updatingOrderId === order.id ? 'Submitting...' : 'Mark as Submitted'}
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </AccordionContent>
+          </AccordionItem>
+        );
+      })}
+    </Accordion>
   );
 }
