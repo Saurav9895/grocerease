@@ -15,12 +15,6 @@ import type { Address } from '@/lib/types';
 import { LocateFixed } from 'lucide-react';
 import { Input } from '../ui/input';
 
-const containerStyle = {
-  width: '100%',
-  height: '300px',
-  borderRadius: '0.5rem',
-};
-
 // Default center (Kathmandu)
 const defaultCenter = {
   lat: 27.7172,
@@ -258,33 +252,37 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   }
 
   return isLoaded ? (
-    <div className="space-y-4">
-       <Autocomplete
-        onLoad={onAutocompleteLoad}
-        onPlaceChanged={onPlaceChanged}
-        className="w-full"
-      >
-        <Input
-          type="text"
-          placeholder="Search for a location..."
-          className="w-full"
-        />
-      </Autocomplete>
+    <div className="flex flex-col gap-4">
+      <div className="relative z-10">
+        <Autocomplete
+          onLoad={onAutocompleteLoad}
+          onPlaceChanged={onPlaceChanged}
+        >
+          <Input
+            type="text"
+            placeholder="Search for a location..."
+            className="w-full"
+          />
+        </Autocomplete>
+      </div>
 
-      <GoogleMap
-        mapContainerStyle={containerStyle}
-        center={defaultCenter}
-        zoom={12}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        onClick={handleMapClick}
-        options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
-      >
-        {currentLocation && (
-          <Marker position={currentLocation} icon={blueDotIcon} zIndex={1} />
-        )}
-        {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
-      </GoogleMap>
+      <div className="w-full h-[300px] rounded-lg overflow-hidden border">
+        <GoogleMap
+          mapContainerStyle={{ width: '100%', height: '100%' }}
+          center={defaultCenter}
+          zoom={12}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          onClick={handleMapClick}
+          options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+        >
+          {currentLocation && (
+            <Marker position={currentLocation} icon={blueDotIcon} zIndex={1} />
+          )}
+          {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
+        </GoogleMap>
+      </div>
+
       <p className="text-xs text-muted-foreground text-center">
         Your blue dot location will refine over time. Drag the red pin to the exact spot.
       </p>
@@ -299,6 +297,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       </div>
     </div>
   ) : (
-    <Skeleton className="h-[368px] w-full" />
+    <Skeleton className="h-[450px] w-full" />
   );
 }
