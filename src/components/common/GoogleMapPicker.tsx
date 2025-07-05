@@ -312,8 +312,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
         </GoogleMap>
       </div>
 
-       <div className={cn("absolute inset-0 flex flex-col justify-between pointer-events-none", viewMode === 'search' && 'hidden')}>
-            <div className="flex justify-end p-4 pointer-events-auto">
+       <div className={cn("absolute inset-0 pointer-events-none", viewMode === 'search' && 'hidden')}>
+            <div className="absolute top-4 right-4 z-10 pointer-events-auto">
                 <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
                     <LocateFixed className="h-6 w-6" />
                 </Button>
@@ -323,26 +323,28 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
             </div>
 
-            <div className="p-4 pointer-events-auto bg-background/90 backdrop-blur-sm">
+            <div className="absolute inset-x-4 bottom-4 z-10">
+              <div className="pointer-events-auto rounded-lg bg-background/90 p-4 shadow-lg backdrop-blur-sm">
                 <div className="space-y-1">
-                    <p className="font-semibold text-primary">Select delivery location</p>
-                    <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
-                        {isGeocoding ? 'Loading address...' : displayAddress}
-                    </p>
+                  <p className="font-semibold text-primary">Select delivery location</p>
+                  <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
+                    {isGeocoding ? 'Loading address...' : displayAddress}
+                  </p>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                    <Button
-                        variant="secondary"
-                        className="w-full justify-center font-normal"
-                        onClick={() => setViewMode('search')}
-                    >
-                        <Search className="mr-2 h-4 w-4" />
-                        <span>Search</span>
-                    </Button>
-                    <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
-                        {isGeocoding ? "Locating..." : "Confirm"}
-                    </Button>
+                  <Button
+                    variant="secondary"
+                    className="w-full justify-center font-normal"
+                    onClick={() => setViewMode('search')}
+                  >
+                    <Search className="mr-2 h-4 w-4" />
+                    <span>Search</span>
+                  </Button>
+                  <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
+                    {isGeocoding ? "Locating..." : "Confirm"}
+                  </Button>
                 </div>
+              </div>
             </div>
        </div>
 
