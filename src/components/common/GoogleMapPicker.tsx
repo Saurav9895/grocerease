@@ -278,7 +278,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   }
   
   return isLoaded ? (
-    <div className="relative h-[400px] w-full bg-background overflow-hidden">
+    <div className="relative h-[450px] w-full bg-background overflow-hidden">
       <div className={cn("absolute inset-0 z-0")}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
@@ -311,7 +311,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       </div>
 
        <div className={cn("absolute inset-0 pointer-events-none", viewMode === 'search' && 'hidden')}>
-            <div className="absolute top-4 right-4 z-10 pointer-events-auto">
+            <div className="absolute top-4 left-4 z-10 pointer-events-auto">
                 <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
                     <LocateFixed className="h-6 w-6" />
                 </Button>
@@ -321,8 +321,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 <MapPin className="h-10 w-10 text-primary drop-shadow-lg" />
             </div>
 
-            <div className="absolute inset-x-0 bottom-0 z-10">
-              <div className="pointer-events-auto rounded-t-lg bg-background/90 p-3 shadow-lg backdrop-blur-sm">
+            <div className="absolute inset-x-0 bottom-0 z-10 p-4">
+              <div className="pointer-events-auto rounded-lg bg-background/80 p-3 shadow-lg backdrop-blur-sm">
                 <div className="space-y-1">
                   <p className="font-semibold text-primary">Select delivery location</p>
                   <p className={cn("text-sm text-muted-foreground truncate", isGeocoding && "animate-pulse")}>
@@ -415,6 +415,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       )}
     </div>
   ) : (
-    <Skeleton className="h-[400px] w-full" />
+    <Skeleton className="h-[450px] w-full" />
   );
 }
