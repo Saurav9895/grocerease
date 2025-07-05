@@ -32,14 +32,19 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
 }
 
 const getPrimaryPlaceName = (place: google.maps.GeocoderResult): string => {
-    // The first part of the formatted_address usually contains the most specific name (e.g., "BP Eye Hospital").
-    const primaryName = place.formatted_address?.split(',')[0];
-    
-    if (primaryName) {
-      return primaryName;
+    // Check for specific establishment types first
+    const establishment = place.address_components.find(c => c.types.includes('establishment') || c.types.includes('point_of_interest'));
+    if (establishment) {
+      return establishment.long_name;
+    }
+  
+    // Check for a specific sublocality or route next
+    const sublocality = place.address_components.find(c => c.types.includes('sublocality') || c.types.includes('route'));
+    if (sublocality) {
+      return sublocality.long_name;
     }
     
-    // Fallback if formatted_address is unusual
+    // Fallback to the first component, which is often the most specific
     return place.address_components[0]?.long_name || 'Unnamed place';
 };
 
