@@ -6,6 +6,7 @@ import {
   GoogleMap,
   useJsApiLoader,
   Autocomplete,
+  MarkerF,
 } from '@react-google-maps/api';
 import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
@@ -58,6 +59,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const [isGeocoding, setIsGeocoding] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(true);
   const [viewMode, setViewMode] = React.useState<'map' | 'search'>('map');
+  const [currentUserPosition, setCurrentUserPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
+
 
   const mapRef = React.useRef<google.maps.Map | null>(null);
 
@@ -128,6 +131,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
                     lat: position.coords.latitude,
                     lng: position.coords.longitude,
                 };
+                setCurrentUserPosition(pos);
                 mapInstance.setCenter(pos);
                 mapInstance.setZoom(17);
                 toast({ title: 'Location Found!', description: 'You can now fine-tune your address.' });
@@ -171,6 +175,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
                 lat: position.coords.latitude,
                 lng: position.coords.longitude,
             };
+            setCurrentUserPosition(pos);
             mapRef.current?.panTo(pos);
             mapRef.current?.setZoom(17);
             setIsLocating(false);
@@ -253,7 +258,21 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
                   fullscreenControl: false,
                   zoomControl: false,
               }}
-            />
+            >
+              {currentUserPosition && (
+                  <MarkerF
+                    position={currentUserPosition}
+                    icon={{
+                      path: google.maps.SymbolPath.CIRCLE,
+                      fillColor: '#4285F4',
+                      fillOpacity: 1,
+                      scale: 8,
+                      strokeColor: 'white',
+                      strokeWeight: 2,
+                    }}
+                  />
+              )}
+            </GoogleMap>
             
             <div className="absolute bottom-16 right-4 z-[1]">
                 <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
