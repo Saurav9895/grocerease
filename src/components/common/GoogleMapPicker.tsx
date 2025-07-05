@@ -11,7 +11,7 @@ import { Button } from '../ui/button';
 import { Skeleton } from '../ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import type { Address } from '@/lib/types';
-import { LocateFixed, MapPin } from 'lucide-react';
+import { ArrowLeft, LocateFixed, MapPin, Search } from 'lucide-react';
 import { Input } from '../ui/input';
 import { Card, CardContent, CardHeader } from '../ui/card';
 import { cn } from '@/lib/utils';
@@ -44,15 +44,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const { toast } = useToast();
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  if (!apiKey) {
-    return (
-        <div className="flex flex-col items-center justify-center h-[450px] text-center p-4 bg-muted rounded-md">
-            <h3 className="text-lg font-semibold text-destructive">Google Maps API Key Missing</h3>
-            <p className="text-sm text-muted-foreground mt-2">Please provide a valid NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file to use this feature.</p>
-        </div>
-    );
-  }
-
   const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
     googleMapsApiKey: apiKey,
@@ -66,6 +57,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const [selectedAddressDetails, setSelectedAddressDetails] = React.useState<Partial<Address> | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
   const [isLocating, setIsLocating] = React.useState(true);
+  const [viewMode, setViewMode] = React.useState<'map' | 'search'>('map');
 
   const mapRef = React.useRef<google.maps.Map | null>(null);
 
@@ -156,7 +148,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         handleMapIdle();
         setIsLocating(false);
     }
-}, [toast, handleMapIdle]);
+  }, [toast, handleMapIdle]);
 
 
   const onUnmount = React.useCallback(function callback(map: google.maps.Map) {
@@ -200,6 +192,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
       if (place.geometry && place.geometry.location) {
         mapRef.current?.panTo(place.geometry.location);
         mapRef.current?.setZoom(17);
+        setViewMode('map');
       } else {
           toast({ variant: 'destructive', title: 'Invalid location', description: 'Please select a valid location from the list.' });
       }
@@ -215,72 +208,128 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
     onClose();
   };
 
+  if (!apiKey) {
+    return (
+        <div className="flex flex-col items-center justify-center h-[450px] text-center p-4 bg-muted rounded-md">
+            <h3 className="text-lg font-semibold text-destructive">Google Maps API Key Missing</h3>
+            <p className="text-sm text-muted-foreground mt-2">Please provide a valid NEXT_PUBLIC_GOOGLE_MAPS_API_KEY in your .env file to use this feature.</p>
+        </div>
+    );
+  }
+
   if (loadError) {
       return <div className="text-center p-4">Error loading maps. Check your API key and network connection.</div>;
   }
   
   return isLoaded ? (
-    <div className="relative h-[60vh] md:h-[70vh] w-full bg-muted">
-      <div className="absolute top-4 left-4 right-4 z-[1]">
-          <Autocomplete
-            onLoad={onAutocompleteLoad}
-            onPlaceChanged={onPlaceChanged}
-          >
-            <Input
-              id="location-search"
-              type="text"
-              placeholder="Search for an area, street name..."
-              className="w-full shadow-lg"
+    <div className="h-[70vh] w-full bg-background flex flex-col">
+       {viewMode === 'map' && (
+         <div className="relative flex-grow h-full">
+            <div className="absolute top-4 left-4 right-4 z-[1]">
+              <Button
+                variant="outline"
+                className="w-full justify-start text-left font-normal shadow-lg bg-background"
+                onClick={() => setViewMode('search')}
+              >
+                <Search className="mr-2 h-4 w-4 text-muted-foreground" />
+                Search for area, street name...
+              </Button>
+            </div>
+
+            <div className="absolute top-1/2 left-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+              <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
+            </div>
+
+            <GoogleMap
+              mapContainerClassName="w-full h-full rounded-md"
+              center={defaultCenter}
+              zoom={12}
+              onLoad={onLoad}
+              onUnmount={onUnmount}
+              onIdle={handleMapIdle}
+              options={{ 
+                  streetViewControl: false, 
+                  mapTypeControl: false, 
+                  fullscreenControl: false,
+                  zoomControl: false,
+              }}
             />
-          </Autocomplete>
-      </div>
+            
+            <div className="absolute bottom-16 right-4 z-[1]">
+                <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
+                  <LocateFixed className="h-6 w-6" />
+                </Button>
+            </div>
 
-      <div className="absolute top-1/2 left-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-        <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
-      </div>
+            <div className="absolute bottom-0 left-0 right-0 z-[1] p-4 bg-gradient-to-t from-background via-background/90 to-transparent">
+                  <Card className="shadow-lg">
+                      <CardHeader>
+                          <div className="flex items-start gap-3">
+                              <MapPin className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
+                              <div>
+                                  <p className="font-semibold text-primary">Select delivery location</p>
+                                  <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
+                                      {isGeocoding ? 'Loading address...' : displayAddress}
+                                  </p>
+                              </div>
+                          </div>
+                      </CardHeader>
+                      <CardContent className="p-4 pt-0">
+                          <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
+                              {isGeocoding ? "Locating..." : "Confirm Location"}
+                          </Button>
+                      </CardContent>
+                  </Card>
+            </div>
+        </div>
+      )}
 
-      <GoogleMap
-        mapContainerClassName="w-full h-full rounded-md"
-        center={defaultCenter}
-        zoom={12}
-        onLoad={onLoad}
-        onUnmount={onUnmount}
-        onIdle={handleMapIdle}
-        options={{ 
-            streetViewControl: false, 
-            mapTypeControl: false, 
-            fullscreenControl: false,
-            zoomControl: false,
-        }}
-      />
-      
-       <div className="absolute bottom-16 right-4 z-[1]">
-          <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
-            <LocateFixed className="h-6 w-6" />
-          </Button>
-       </div>
-
-       <div className="absolute bottom-4 left-4 right-4 z-[1]">
-            <Card className="shadow-lg">
-                <CardHeader>
-                    <div className="flex items-start gap-3">
-                        <MapPin className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
-                        <div>
-                            <p className="font-semibold text-primary">Select delivery location</p>
-                            <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
-                                {isGeocoding ? 'Loading address...' : displayAddress}
-                            </p>
-                        </div>
-                    </div>
-                </CardHeader>
-                <CardContent className="p-4 pt-0">
-                     <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
-                        {isGeocoding ? "Locating..." : "Confirm Location"}
-                    </Button>
-                </CardContent>
-            </Card>
-       </div>
-
+      {viewMode === 'search' && (
+        <div className="p-4 flex flex-col h-full bg-background">
+            <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+                <Button variant="ghost" size="icon" onClick={() => setViewMode('map')}>
+                    <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <h2 className="text-lg font-semibold">Change delivery location</h2>
+            </div>
+            
+            <div className="flex-shrink-0">
+                <Autocomplete
+                  onLoad={onAutocompleteLoad}
+                  onPlaceChanged={onPlaceChanged}
+                  options={{
+                    bounds: map?.getBounds(),
+                    strictBounds: false,
+                  }}
+                >
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+                    <Input
+                      id="location-search-focused"
+                      type="text"
+                      placeholder="Search for an area, street name..."
+                      className="w-full pl-10 h-12"
+                      autoFocus
+                    />
+                  </div>
+                </Autocomplete>
+                
+                <Button 
+                    variant="ghost" 
+                    className="w-full justify-start h-14 text-left my-4 text-primary font-semibold"
+                    onClick={() => {
+                      handleUseCurrentLocation();
+                      setViewMode('map');
+                    }}
+                >
+                    <LocateFixed className="mr-4 h-5 w-5" />
+                    Use your current location
+                </Button>
+            </div>
+            
+            {/* Suggestions from Autocomplete will appear below the input field, styled by Google's script */}
+        </div>
+      )}
     </div>
   ) : (
     <Skeleton className="h-[70vh] w-full" />
