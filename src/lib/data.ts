@@ -829,10 +829,16 @@ export async function markPaymentAsSubmitted(orderId: string): Promise<void> {
     }
 }
 
-export async function getDeliveredOrders(options: { limit?: number } = {}): Promise<Order[]> {
+export async function getDeliveredOrders(options: { limit?: number, deliveryPersonId?: string } = {}): Promise<Order[]> {
   try {
     const ordersCol = collection(db, 'orders');
-    const q = query(ordersCol, where('status', '==', 'Delivered'));
+    
+    const constraints = [where('status', '==', 'Delivered')];
+    if (options.deliveryPersonId) {
+      constraints.push(where('deliveryPersonId', '==', options.deliveryPersonId));
+    }
+
+    const q = query(ordersCol, ...constraints);
     const snapshot = await getDocs(q);
     
     let orders = snapshot.docs.map(docToOrder);
@@ -844,7 +850,8 @@ export async function getDeliveredOrders(options: { limit?: number } = {}): Prom
         }
         if (a.deliveredAt) return -1;
         if (b.deliveredAt) return 1;
-        return 0;
+        // Fallback to createdAt if deliveredAt is the same or null
+        return b.createdAt.getTime() - a.createdAt.getTime();
     });
 
     if (options.limit) {
