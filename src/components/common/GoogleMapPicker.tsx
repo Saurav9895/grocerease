@@ -32,19 +32,34 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
 }
 
 const getPrimaryPlaceName = (place: google.maps.GeocoderResult): string => {
-    // Check for specific establishment types first
     const establishment = place.address_components.find(c => c.types.includes('establishment') || c.types.includes('point_of_interest'));
     if (establishment) {
+      const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1') || c.types.includes('sublocality'));
+      if(sublocality) {
+          return `${establishment.long_name}, ${sublocality.long_name}`;
+      }
       return establishment.long_name;
     }
   
-    // Check for a specific sublocality or route next
-    const sublocality = place.address_components.find(c => c.types.includes('sublocality') || c.types.includes('route'));
+    const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1') || c.types.includes('sublocality'));
     if (sublocality) {
+      const neighborhood = place.address_components.find(c => c.types.includes('neighborhood'));
+      if(neighborhood && neighborhood.long_name !== sublocality.long_name) {
+          return `${neighborhood.long_name}, ${sublocality.long_name}`;
+      }
       return sublocality.long_name;
     }
+
+    const route = place.address_components.find(c => c.types.includes('route'));
+    if (route) {
+        return route.long_name;
+    }
+
+    const locality = place.address_components.find(c => c.types.includes('locality'));
+    if (locality) {
+        return locality.long_name;
+    }
     
-    // Fallback to the first component, which is often the most specific
     return place.address_components[0]?.long_name || 'Unnamed place';
 };
 
@@ -271,6 +286,35 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   
   return isLoaded ? (
     <div className="relative h-[70vh] w-full bg-background">
+      <GoogleMap
+          mapContainerClassName="w-full h-full"
+          center={defaultCenter}
+          zoom={12}
+          onLoad={onLoad}
+          onUnmount={onUnmount}
+          onIdle={handleMapIdle}
+          options={{ 
+              streetViewControl: false, 
+              mapTypeControl: false, 
+              fullscreenControl: false,
+              zoomControl: false,
+          }}
+      >
+          {currentUserPosition && (
+              <MarkerF
+              position={currentUserPosition}
+              icon={{
+                  path: google.maps.SymbolPath.CIRCLE,
+                  fillColor: '#4285F4',
+                  fillOpacity: 1,
+                  scale: 8,
+                  strokeColor: 'white',
+                  strokeWeight: 2,
+              }}
+              />
+          )}
+      </GoogleMap>
+
        {viewMode === 'map' && (
          <>
             <div className="absolute top-0 left-0 right-0 z-[1] p-4 bg-gradient-to-b from-background via-background/80 to-transparent">
@@ -288,35 +332,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
             </div>
 
-            <GoogleMap
-                mapContainerClassName="w-full h-full"
-                center={defaultCenter}
-                zoom={12}
-                onLoad={onLoad}
-                onUnmount={onUnmount}
-                onIdle={handleMapIdle}
-                options={{ 
-                    streetViewControl: false, 
-                    mapTypeControl: false, 
-                    fullscreenControl: false,
-                    zoomControl: false,
-                }}
-            >
-                {currentUserPosition && (
-                    <MarkerF
-                    position={currentUserPosition}
-                    icon={{
-                        path: google.maps.SymbolPath.CIRCLE,
-                        fillColor: '#4285F4',
-                        fillOpacity: 1,
-                        scale: 8,
-                        strokeColor: 'white',
-                        strokeWeight: 2,
-                    }}
-                    />
-                )}
-            </GoogleMap>
-            
             <div className="absolute bottom-24 right-4 z-[1]">
                 <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
                     <LocateFixed className="h-6 w-6" />
