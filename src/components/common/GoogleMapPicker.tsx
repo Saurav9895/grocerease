@@ -323,8 +323,8 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
             </div>
 
-            <div className="absolute inset-x-4 bottom-8 z-10">
-              <div className="pointer-events-auto rounded-lg bg-background/90 p-4 shadow-lg backdrop-blur-sm">
+            <div className="absolute inset-x-0 bottom-0 z-10">
+              <div className="pointer-events-auto rounded-t-lg bg-background/90 p-4 shadow-lg backdrop-blur-sm">
                 <div className="space-y-1">
                   <p className="font-semibold text-primary">Select delivery location</p>
                   <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
