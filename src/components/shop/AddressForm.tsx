@@ -130,7 +130,7 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
             </DialogTrigger>
             <DialogContent 
               className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
-              onPointerDownOutside={(e) => {
+              onInteractOutside={(e) => {
                 const target = e.target as HTMLElement;
                 if (target.closest('.pac-container')) {
                   e.preventDefault();
