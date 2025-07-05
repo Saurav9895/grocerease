@@ -30,7 +30,10 @@ export default function RootLayout({
 }>) {
   const pathname = usePathname();
   const isAdminPage = pathname.startsWith('/admin');
+  const isDeliveryPage = pathname.startsWith('/delivery');
   const isAuthPage = pathname.startsWith('/signin') || pathname.startsWith('/signup');
+
+  const showShopUI = !isAdminPage && !isDeliveryPage && !isAuthPage;
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -44,9 +47,9 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <div className="flex flex-col min-h-screen">
-              {!isAdminPage && !isAuthPage && <ShopHeader />}
+              {showShopUI && <ShopHeader />}
               <main className="flex-grow">{children}</main>
-              {!isAdminPage && !isAuthPage && <Footer />}
+              {showShopUI && <Footer />}
             </div>
             <Toaster />
           </CartProvider>
