@@ -832,16 +832,26 @@ export async function markPaymentAsSubmitted(orderId: string): Promise<void> {
 export async function getDeliveredOrders(options: { limit?: number } = {}): Promise<Order[]> {
   try {
     const ordersCol = collection(db, 'orders');
-    const constraints: any[] = [
-        where('status', '==', 'Delivered'),
-        orderBy('deliveredAt', 'desc')
-    ];
-    if (options.limit) {
-        constraints.push(limit(options.limit));
-    }
-    const q = query(ordersCol, ...constraints);
+    const q = query(ordersCol, where('status', '==', 'Delivered'));
     const snapshot = await getDocs(q);
-    return snapshot.docs.map(docToOrder);
+    
+    let orders = snapshot.docs.map(docToOrder);
+
+    // Sort by deliveredAt date descending. Handle nulls by putting them last.
+    orders.sort((a, b) => {
+        if (a.deliveredAt && b.deliveredAt) {
+            return b.deliveredAt.getTime() - a.deliveredAt.getTime();
+        }
+        if (a.deliveredAt) return -1;
+        if (b.deliveredAt) return 1;
+        return 0;
+    });
+
+    if (options.limit) {
+        return orders.slice(0, options.limit);
+    }
+
+    return orders;
   } catch (error) {
     console.error("Error fetching delivered orders:", error);
     return [];
