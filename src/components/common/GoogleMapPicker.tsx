@@ -54,6 +54,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const [markerPosition, setMarkerPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [currentLocation, setCurrentLocation] = React.useState<google.maps.LatLngLiteral | null>(null);
   const [isGeocoding, setIsGeocoding] = React.useState(false);
+  const [isFetchingLocation, setIsFetchingLocation] = React.useState(false);
   const [autocomplete, setAutocomplete] = React.useState<google.maps.places.Autocomplete | null>(null);
   
   const mapRef = React.useRef<google.maps.Map | null>(null);
@@ -132,18 +133,37 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   }, []);
 
   const handleUseCurrentLocation = () => {
-    if (currentLocation && mapRef.current) {
-      mapRef.current.panTo(currentLocation);
-      mapRef.current.setZoom(17);
-      setMarkerPosition(currentLocation);
-      toast({ title: 'Location centered', description: 'Marker moved to your last known location.' });
-    } else {
-      toast({
-        variant: 'destructive',
-        title: 'Location not available',
-        description: 'Could not get your location yet. Please check permissions.',
-      });
+    if (!navigator.geolocation) {
+        toast({ variant: 'destructive', title: 'Geolocation not supported' });
+        return;
     }
+    
+    setIsFetchingLocation(true);
+    toast({ title: 'Getting your location...' });
+
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            const pos = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude,
+            };
+            
+            if (mapRef.current) {
+                mapRef.current.panTo(pos);
+                mapRef.current.setZoom(17);
+            }
+            setMarkerPosition(pos);
+            setCurrentLocation(pos);
+            
+            toast({ title: 'Location found!', description: 'Marker has been moved to your location.' });
+            setIsFetchingLocation(false);
+        },
+        () => {
+            toast({ variant: 'destructive', title: 'Could not get location', description: 'Please grant location permissions or enable location services.' });
+            setIsFetchingLocation(false);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
   };
   
   const onAutocompleteLoad = React.useCallback((ac: google.maps.places.Autocomplete) => {
@@ -255,9 +275,9 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
         Your blue dot location will refine over time. Drag the red pin to the exact spot.
       </p>
        <div className="grid grid-cols-2 gap-2">
-        <Button variant="outline" onClick={handleUseCurrentLocation}>
+        <Button variant="outline" onClick={handleUseCurrentLocation} disabled={isFetchingLocation}>
           <LocateFixed className="mr-2 h-4 w-4" />
-          Use My Location
+          {isFetchingLocation ? 'Locating...' : 'Use My Location'}
         </Button>
         <Button onClick={handleConfirm} disabled={!markerPosition || isGeocoding}>
           {isGeocoding ? "Finding Address..." : "Confirm Location"}
