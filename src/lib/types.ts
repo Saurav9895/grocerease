@@ -77,6 +77,7 @@ export interface Order {
   createdAt: Date;
   deliveryPersonId?: string | null;
   deliveryPersonName?: string | null;
+  deliveryOtp?: string | null;
 }
 
 export interface Review {

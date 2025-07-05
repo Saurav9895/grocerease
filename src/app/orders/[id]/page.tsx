@@ -16,10 +16,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, User, Home, Phone, MapPin, KeyRound } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderTracker } from "@/components/shop/OrderTracker";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 function OrderDetailPageContent() {
   const params = useParams();
@@ -94,6 +95,18 @@ function OrderDetailPageContent() {
             <OrderTracker currentStatus={order.status} />
         </CardContent>
       </Card>
+      
+      {order.status === 'Shipped' && order.deliveryOtp && (
+        <Alert>
+            <KeyRound className="h-4 w-4" />
+            <AlertTitle>Delivery Information</AlertTitle>
+            <AlertDescription className="space-y-1">
+                {order.deliveryPersonName && <p>Your order is out for delivery with <strong>{order.deliveryPersonName}</strong>.</p>}
+                <p>Please share this One-Time Password (OTP) with the delivery person to complete your order:</p>
+                <p className="text-2xl font-bold tracking-widest text-foreground">{order.deliveryOtp}</p>
+            </AlertDescription>
+        </Alert>
+      )}
 
 
       <div className="grid lg:grid-cols-3 gap-8">

@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getOrderById, getDeliveryPersons, assignDeliveryPerson } from "@/lib/data";
+import { getOrderById, getDeliveryPersons, assignDeliveryPerson, updateOrderStatus } from "@/lib/data";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import type { Order, UserProfile } from "@/lib/types";
@@ -72,9 +72,7 @@ export default function OrderDetailPage() {
 
     setIsUpdating(true);
     try {
-      const orderRef = doc(db, "orders", order.id);
-      await updateDoc(orderRef, { status: selectedStatus });
-      
+      await updateOrderStatus(order.id, selectedStatus);
       await fetchOrder(order.id);
 
       toast({

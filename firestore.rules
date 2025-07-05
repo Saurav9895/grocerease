@@ -1,69 +1,63 @@
-
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
   
     function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole in ['main', 'standard'];
+      let userProfile = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return request.auth != null && ('adminRole' in userProfile) && (userProfile.adminRole == 'main' || userProfile.adminRole == 'standard');
     }
-
-    function isMainAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
-    }
-
-    function isDeliveryPerson(order) {
-      return request.auth.uid == order.deliveryPersonId;
-    }
-
+    
     match /users/{userId} {
-      // Allow user to read/update their own profile, but not change their role.
-      allow read: if request.auth.uid == userId || isAdmin();
-      allow create: if request.auth.uid == userId;
-      allow update: if (request.auth.uid == userId && !("adminRole" in request.resource.data)) || isMainAdmin();
+      // Users can read and write to their own profile.
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      // Admins can read any user profile.
+      allow get: if isAdmin();
     }
-
+  
     match /products/{productId} {
-      allow read: if true; // Products are public
-      allow create, delete: if isAdmin();
-      
-      // Allow stock update during a transaction (order placement) or by an admin
-      allow update: if isAdmin() || (request.auth.uid != null && request.resource.data.stock != resource.data.stock);
+      allow read: if true;
+      // Allow writes only by admins
+      allow write: if isAdmin();
     }
-
+    
     match /products/{productId}/reviews/{reviewId} {
         allow read: if true;
-        allow create: if request.auth.uid != null;
+        // Allow create only by authenticated users
+        allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
-
+    
     match /categories/{categoryId} {
       allow read: if true;
-      allow create, update, delete: if isAdmin();
+      allow write: if isAdmin();
     }
     
     match /attributes/{attributeId} {
-      allow read: if true;
-      allow create, update, delete: if isAdmin();
-    }
-
-    match /orders/{orderId} {
-      allow create: if request.auth.uid == request.resource.data.userId;
-      
-      // User can see their own orders, Admin can see all, Delivery person can see assigned order.
-      allow read: if request.auth.uid == resource.data.userId || isAdmin() || isDeliveryPerson(resource.data);
-      
-      // Admin can update any part of the order.
-      // Delivery person can only update status to Shipped or Delivered.
-      allow update: if isAdmin() || (isDeliveryPerson(resource.data) && request.resource.data.status != resource.data.status && request.resource.data.status in ['Shipped', 'Delivered']);
-    }
-
-    match /promocodes/{codeId} {
-        allow read: if true;
-        allow create, update, delete: if isMainAdmin();
+      allow read, write: if isAdmin();
     }
     
-    match /settings/{docId} {
-      allow read: if true;
-      allow write: if isMainAdmin();
+    match /orders/{orderId} {
+      // Allow read by admins, the user who placed the order, or the assigned delivery person
+      allow read: if request.auth != null && 
+        (isAdmin() || resource.data.userId == request.auth.uid || resource.data.deliveryPersonId == request.auth.uid);
+      
+      // Allow creation by authenticated users for themselves
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      
+      // Allow updates by admins or the assigned delivery person
+      allow update: if request.auth != null && (isAdmin() || resource.data.deliveryPersonId == request.auth.uid);
     }
+    
+     match /promocodes/{codeId} {
+        // Only allow read if the code is active. Admins can read all.
+        allow read: if resource.data.isActive == true || isAdmin();
+        allow write: if isAdmin();
+     }
+     
+     match /settings/{settingId} {
+        allow read: if true;
+        // Only main admins can write to settings
+        allow write: if get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
+     }
   }
 }

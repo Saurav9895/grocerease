@@ -1,4 +1,5 @@
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem } from './types';
@@ -54,6 +55,7 @@ function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
         deliveryPersonId: data.deliveryPersonId || null,
         deliveryPersonName: data.deliveryPersonName || null,
+        deliveryOtp: data.deliveryOtp || null,
     };
 }
 
@@ -758,6 +760,52 @@ export async function deleteAttribute(id: string): Promise<void> {
     await deleteDoc(doc(db, "attributes", id));
   } catch (error) {
     console.error("Error deleting attribute:", error);
+    throw error;
+  }
+}
+
+// == Order Status and OTP Functions ==
+
+export async function updateOrderStatus(orderId: string, status: Order['status']): Promise<void> {
+  const orderRef = doc(db, "orders", orderId);
+  const updateData: { status: Order['status'], deliveryOtp?: string | null } = { status };
+
+  if (status === 'Shipped') {
+    // Generate a 6-digit OTP
+    updateData.deliveryOtp = Math.floor(100000 + Math.random() * 900000).toString();
+  } else if (status !== 'Delivered') {
+    // Clear OTP if moving to a status other than Shipped or Delivered (e.g., back to Processing)
+    updateData.deliveryOtp = null;
+  }
+
+  try {
+    await updateDoc(orderRef, updateData);
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    throw error;
+  }
+}
+
+export async function verifyOtpAndCompleteOrder(orderId: string, otp: string): Promise<boolean> {
+  const orderRef = doc(db, "orders", orderId);
+  
+  try {
+    const orderSnap = await getDoc(orderRef);
+    if (!orderSnap.exists()) {
+      console.error("Order not found");
+      return false;
+    }
+    
+    const order = docToOrder(orderSnap);
+    
+    if (order.deliveryOtp === otp) {
+      await updateDoc(orderRef, { status: 'Delivered' });
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error) {
+    console.error("Error verifying OTP and completing order:", error);
     throw error;
   }
 }
