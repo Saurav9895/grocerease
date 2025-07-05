@@ -39,15 +39,20 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
     const establishment = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
     const pointOfInterest = place.address_components.find(c => c.types.includes('point_of_interest'))?.long_name;
     const premise = place.address_components.find(c => c.types.includes('premise'))?.long_name;
-    const route = place.address_components.find(c => c.types.includes('route'))?.long_name;
-    const neighborhood = place.address_components.find(c => c.types.includes('neighborhood'))?.long_name;
-    const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
     
-    const main_text = establishment || pointOfInterest || premise || place.formatted_address.split(',')[0];
+    let main_text = establishment || pointOfInterest || premise;
+    let secondary_text = place.formatted_address;
 
-    const secondary_text_parts = place.formatted_address.split(', ');
-    const secondary_text = secondary_text_parts.slice(1).join(', ');
-
+    if (main_text) {
+        // If we have a specific name, the rest of the formatted address can be the secondary text
+        secondary_text = place.formatted_address.replace(`${main_text}, `, '');
+    } else {
+        // If no specific name, use the first part of the address as main text
+        const secondary_text_parts = place.formatted_address.split(',');
+        main_text = secondary_text_parts[0];
+        secondary_text = secondary_text_parts.slice(1).join(', ');
+    }
+    
     return { main_text, secondary_text };
 }
 
@@ -314,46 +319,40 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
 
        {viewMode === 'map' && (
          <>
-            <div className="absolute top-0 left-0 right-0 z-[1] p-4 bg-gradient-to-b from-background via-background/80 to-transparent">
-                <Button
-                    variant="outline"
-                    className="w-full justify-start text-left font-normal shadow-lg bg-background h-12 text-base"
-                    onClick={() => setViewMode('search')}
-                >
-                    <Search className="mr-3 h-5 w-5 text-muted-foreground" />
-                    <span className="text-muted-foreground">Search for area, street name...</span>
-                </Button>
-                </div>
-
             <div className="absolute top-1/2 left-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
                 <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
             </div>
 
-            <div className="absolute bottom-24 right-4 z-[1]">
+            <div className="absolute top-4 right-4 z-[1]">
                 <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
                     <LocateFixed className="h-6 w-6" />
                 </Button>
             </div>
 
             <div className="absolute bottom-0 left-0 right-0 z-[1] p-4 bg-gradient-to-t from-background via-background/90 to-transparent">
-                    <Card className="shadow-lg">
-                        <CardHeader>
-                            <div className="flex items-start gap-3">
-                                <MapPin className="h-5 w-5 text-muted-foreground mt-1 flex-shrink-0" />
-                                <div>
-                                    <p className="font-semibold text-primary">Select delivery location</p>
-                                    <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
-                                        {isGeocoding ? 'Loading address...' : displayAddress}
-                                    </p>
-                                </div>
-                            </div>
-                        </CardHeader>
-                        <CardContent className="p-4 pt-0">
-                            <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
-                                {isGeocoding ? "Locating..." : "Confirm Location"}
-                            </Button>
-                        </CardContent>
-                    </Card>
+                <Card className="shadow-lg">
+                    <CardHeader>
+                        <div className="space-y-1">
+                            <p className="font-semibold text-primary">Select delivery location</p>
+                            <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
+                                {isGeocoding ? 'Loading address...' : displayAddress}
+                            </p>
+                        </div>
+                    </CardHeader>
+                    <CardContent className="p-4 pt-0 grid grid-cols-2 gap-2">
+                        <Button
+                            variant="outline"
+                            className="w-full justify-center font-normal"
+                            onClick={() => setViewMode('search')}
+                        >
+                            <Search className="mr-2 h-4 w-4" />
+                            <span>Search</span>
+                        </Button>
+                        <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
+                            {isGeocoding ? "Locating..." : "Confirm"}
+                        </Button>
+                    </CardContent>
+                </Card>
             </div>
          </>
        )}
