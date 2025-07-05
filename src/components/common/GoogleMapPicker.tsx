@@ -253,20 +253,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
 
   return isLoaded ? (
     <div className="flex flex-col gap-4">
-      <div className="relative z-10">
-        <Autocomplete
-          onLoad={onAutocompleteLoad}
-          onPlaceChanged={onPlaceChanged}
-        >
-          <Input
-            type="text"
-            placeholder="Search for a location..."
-            className="w-full"
-          />
-        </Autocomplete>
-      </div>
-
-      <div className="w-full h-[300px] rounded-lg overflow-hidden border">
+      <div className="relative w-full h-[300px] rounded-lg overflow-hidden border">
         <GoogleMap
           mapContainerStyle={{ width: '100%', height: '100%' }}
           center={defaultCenter}
@@ -281,6 +268,20 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
           )}
           {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
         </GoogleMap>
+        
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-11/12 sm:w-3/4">
+            <Autocomplete
+                onLoad={onAutocompleteLoad}
+                onPlaceChanged={onPlaceChanged}
+                bounds={map?.getBounds() ?? undefined}
+                >
+                <Input
+                    type="text"
+                    placeholder="Search for a location..."
+                    className="w-full shadow-md"
+                />
+            </Autocomplete>
+        </div>
       </div>
 
       <p className="text-xs text-muted-foreground text-center">
