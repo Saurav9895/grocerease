@@ -174,7 +174,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                     </Button>
                 </DialogTrigger>
                 <DialogContent 
-                    className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+                    className="sm:max-w-4xl max-h-[90vh] overflow-y-auto"
                     onInteractOutside={(e) => {
                         const target = e.target as HTMLElement;
                         if (target.closest('.pac-container')) {

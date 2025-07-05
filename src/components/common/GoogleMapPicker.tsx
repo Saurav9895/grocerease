@@ -14,6 +14,7 @@ import { useToast } from '@/hooks/use-toast';
 import type { Address } from '@/lib/types';
 import { LocateFixed } from 'lucide-react';
 import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 
 // Default center (Kathmandu)
 const defaultCenter = {
@@ -250,51 +251,58 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   if (loadError) {
       return <div className="text-center p-4">Error loading maps. Check your API key and network connection.</div>;
   }
-
+  
   return isLoaded ? (
-    <div className="flex flex-col gap-4">
-      <div className="relative w-full h-[300px] rounded-lg overflow-hidden border">
-        <GoogleMap
-          mapContainerStyle={{ width: '100%', height: '100%' }}
-          center={defaultCenter}
-          zoom={12}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          onClick={handleMapClick}
-          options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
-        >
-          {currentLocation && (
-            <Marker position={currentLocation} icon={blueDotIcon} zIndex={1} />
-          )}
-          {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
-        </GoogleMap>
-        
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 w-11/12 sm:w-3/4">
-            <Autocomplete
-                onLoad={onAutocompleteLoad}
-                onPlaceChanged={onPlaceChanged}
-                bounds={map?.getBounds() ?? undefined}
-                >
-                <Input
-                    type="text"
-                    placeholder="Search for a location..."
-                    className="w-full shadow-md"
-                />
-            </Autocomplete>
+    <div className="flex flex-col md:flex-row gap-4 md:h-[450px]">
+      {/* Left Panel */}
+      <div className="w-full md:w-1/4 flex flex-col gap-4 p-1 md:pr-4 md:border-r">
+        <div className="space-y-2">
+          <Label htmlFor="location-search">Search Location</Label>
+          <Autocomplete
+            onLoad={onAutocompleteLoad}
+            onPlaceChanged={onPlaceChanged}
+            bounds={map?.getBounds() ?? undefined}
+          >
+            <Input
+              id="location-search"
+              type="text"
+              placeholder="Search for a location..."
+              className="w-full shadow-sm"
+            />
+          </Autocomplete>
+        </div>
+        <p className="text-xs text-muted-foreground flex-grow">
+            Search for a location or click/drag the pin on the map. Your blue dot shows your live position for reference.
+        </p>
+        <div className="mt-auto space-y-2">
+          <Button variant="outline" onClick={handleUseCurrentLocation} disabled={isFetchingLocation} className="w-full">
+            <LocateFixed className="mr-2 h-4 w-4" />
+            {isFetchingLocation ? 'Locating...' : 'Use My Location'}
+          </Button>
+          <Button onClick={handleConfirm} disabled={!markerPosition || isGeocoding} className="w-full">
+            {isGeocoding ? "Finding Address..." : "Confirm Location"}
+          </Button>
         </div>
       </div>
 
-      <p className="text-xs text-muted-foreground text-center">
-        Your blue dot location will refine over time. Drag the red pin to the exact spot.
-      </p>
-       <div className="grid grid-cols-2 gap-2">
-        <Button variant="outline" onClick={handleUseCurrentLocation} disabled={isFetchingLocation}>
-          <LocateFixed className="mr-2 h-4 w-4" />
-          {isFetchingLocation ? 'Locating...' : 'Use My Location'}
-        </Button>
-        <Button onClick={handleConfirm} disabled={!markerPosition || isGeocoding}>
-          {isGeocoding ? "Finding Address..." : "Confirm Location"}
-        </Button>
+      {/* Right Panel */}
+      <div className="w-full md:w-3/4 h-[300px] md:h-full">
+        <div className="w-full h-full rounded-lg overflow-hidden border">
+          <GoogleMap
+            mapContainerStyle={{ width: '100%', height: '100%' }}
+            center={defaultCenter}
+            zoom={12}
+            onLoad={onLoad}
+            onUnmount={onUnmount}
+            onClick={handleMapClick}
+            options={{ streetViewControl: false, mapTypeControl: false, fullscreenControl: false }}
+          >
+            {currentLocation && (
+              <Marker position={currentLocation} icon={blueDotIcon} zIndex={1} />
+            )}
+            {markerPosition && <Marker position={markerPosition} draggable={true} onDragEnd={handleMapClick} zIndex={2} />}
+          </GoogleMap>
+        </div>
       </div>
     </div>
   ) : (
