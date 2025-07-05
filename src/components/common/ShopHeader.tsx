@@ -3,7 +3,7 @@
 "use client";
 
 import Link from "next/link";
-import { ShoppingCart, Leaf, User, LogOut, LayoutDashboard, Search } from "lucide-react";
+import { ShoppingCart, Leaf, User, LogOut, LayoutDashboard, Search, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CartSheet } from "@/components/shop/CartSheet";
 import { useCart } from "@/hooks/use-cart";
@@ -184,10 +184,16 @@ export function ShopHeader() {
                         <User className="mr-2 h-4 w-4" />
                         <span>Profile</span>
                       </DropdownMenuItem>
-                      {profile?.adminRole && (
+                      {profile?.adminRole && profile.adminRole !== 'delivery' && (
                         <DropdownMenuItem onClick={() => router.push('/admin')}>
                             <LayoutDashboard className="mr-2 h-4 w-4" />
                             <span>Admin Dashboard</span>
+                        </DropdownMenuItem>
+                      )}
+                      {profile?.adminRole === 'delivery' && (
+                        <DropdownMenuItem onClick={() => router.push('/delivery')}>
+                            <Truck className="mr-2 h-4 w-4" />
+                            <span>Delivery Dashboard</span>
                         </DropdownMenuItem>
                       )}
                     </DropdownMenuGroup>

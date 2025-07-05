@@ -58,7 +58,7 @@ export interface OrderItem {
   price: number;
   quantity: number;
   imageUrl: string;
-  variantValue?: string;
+  variantValue: string | null;
 }
 
 export interface Order {
@@ -75,6 +75,8 @@ export interface Order {
   paymentMethod: 'COD' | 'Online';
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   createdAt: Date;
+  deliveryPersonId?: string | null;
+  deliveryPersonName?: string | null;
 }
 
 export interface Review {
@@ -108,7 +110,7 @@ export interface UserProfile {
     name: string;
     email: string;
     phone: string;
-    adminRole: 'main' | 'standard' | null;
+    adminRole: 'main' | 'standard' | 'delivery' | null;
 }
 
 export interface AttributeSet {

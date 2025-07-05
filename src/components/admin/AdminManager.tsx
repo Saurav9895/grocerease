@@ -11,9 +11,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserCog, Trash2 } from "lucide-react";
+import { ShieldCheck, UserCog, Trash2, Truck } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthProvider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 export function AdminManager() {
   const { user: currentUser } = useAuth();
@@ -22,6 +23,7 @@ export function AdminManager() {
   const [admins, setAdmins] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingAdmins, setIsFetchingAdmins] = useState(true);
+  const [roleToGrant, setRoleToGrant] = useState<'standard' | 'delivery'>('standard');
 
   const fetchAdmins = async () => {
     setIsFetchingAdmins(true);
@@ -34,7 +36,7 @@ export function AdminManager() {
     fetchAdmins();
   }, []);
 
-  const handleGrantAdmin = async (e: React.FormEvent) => {
+  const handleGrantRole = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -42,46 +44,48 @@ export function AdminManager() {
       const userToUpdate = await findUserByEmail(email);
       if (!userToUpdate) {
         toast({ variant: "destructive", title: "User not found", description: `No user with the email ${email} exists.` });
+        setIsLoading(false);
         return;
       }
       
       if (userToUpdate.adminRole) {
-        toast({ variant: "destructive", title: "Already an Admin", description: `${userToUpdate.name} already has an admin role.` });
+        toast({ variant: "destructive", title: "Already has a Role", description: `${userToUpdate.name} already has an admin or delivery role.` });
+        setIsLoading(false);
         return;
       }
 
-      await updateUserAdminRole(userToUpdate.id, 'standard');
-      toast({ title: "Success", description: `${userToUpdate.name} has been made a standard admin.` });
+      await updateUserAdminRole(userToUpdate.id, roleToGrant);
+      toast({ title: "Success", description: `${userToUpdate.name} has been made a ${roleToGrant} user.` });
       setEmail("");
       fetchAdmins();
     } catch (error) {
-      console.error("Error setting admin status:", error);
+      console.error("Error setting role:", error);
       toast({ variant: "destructive", title: "Error", description: "Could not update the user's role." });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleRevokeAdmin = async (userId: string, userName: string) => {
+  const handleRevokeRole = async (userId: string, userName: string) => {
     try {
         await updateUserAdminRole(userId, null);
-        toast({ title: "Admin Removed", description: `${userName} is no longer an admin.` });
+        toast({ title: "Role Removed", description: `${userName} is no longer an admin or delivery person.` });
         fetchAdmins();
     } catch (error) {
-        console.error("Error removing admin role:", error);
-        toast({ variant: "destructive", title: "Error", description: "Could not remove admin role." });
+        console.error("Error removing role:", error);
+        toast({ variant: "destructive", title: "Error", description: "Could not remove user role." });
     }
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Admin Management</CardTitle>
-        <CardDescription>Grant or revoke admin privileges for other users.</CardDescription>
+        <CardTitle>User Role Management</CardTitle>
+        <CardDescription>Grant or revoke special roles for users.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
-        <form onSubmit={handleGrantAdmin} className="space-y-4 p-4 border rounded-lg">
-          <h3 className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4"/>Grant Standard Admin Access</h3>
+        <form onSubmit={handleGrantRole} className="space-y-4 p-4 border rounded-lg">
+          <h3 className="font-medium flex items-center gap-2"><UserCog className="h-4 w-4"/>Grant User Role</h3>
           <div className="flex flex-col sm:flex-row items-end gap-2">
             <div className="flex-1 w-full">
               <Label htmlFor="email">User Email</Label>
@@ -94,12 +98,24 @@ export function AdminManager() {
                 required
               />
             </div>
-            <Button type="submit" disabled={isLoading}>{isLoading ? "Granting..." : "Grant Admin"}</Button>
+             <div className="w-full sm:w-auto">
+              <Label htmlFor="role-select">Role</Label>
+              <Select value={roleToGrant} onValueChange={(value) => setRoleToGrant(value as 'standard' | 'delivery')}>
+                <SelectTrigger id="role-select" className="w-full sm:w-[180px]">
+                  <SelectValue placeholder="Select a role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="standard">Standard Admin</SelectItem>
+                  <SelectItem value="delivery">Delivery Person</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <Button type="submit" disabled={isLoading}>{isLoading ? "Granting..." : "Grant Role"}</Button>
           </div>
         </form>
 
         <div>
-          <h3 className="font-medium mb-2">Current Admins</h3>
+          <h3 className="font-medium mb-2">Current Staff</h3>
           <div className="space-y-2">
             {isFetchingAdmins ? (
               <>
@@ -114,26 +130,26 @@ export function AdminManager() {
                             <p className="text-sm text-muted-foreground">{admin.email}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant={admin.adminRole === 'main' ? "destructive" : "secondary"} className="flex items-center gap-1">
-                                <ShieldCheck className="h-3 w-3" />
-                                {admin.adminRole === 'main' ? 'Main Admin' : 'Standard Admin'}
+                            <Badge variant={admin.adminRole === 'main' ? "destructive" : admin.adminRole === 'standard' ? "secondary" : "default"} className="flex items-center gap-1">
+                                {admin.adminRole === 'delivery' ? <Truck className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                {admin.adminRole === 'main' ? 'Main Admin' : admin.adminRole === 'standard' ? 'Admin' : 'Delivery'}
                             </Badge>
-                            {admin.adminRole === 'standard' && admin.id !== currentUser?.uid && (
+                            {(admin.adminRole === 'standard' || admin.adminRole === 'delivery') && admin.id !== currentUser?.uid && (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
                                             <Trash2 className="h-4 w-4"/>
-                                            <span className="sr-only">Revoke Admin</span>
+                                            <span className="sr-only">Revoke Role</span>
                                         </Button>
                                     </AlertDialogTrigger>
                                     <AlertDialogContent>
                                         <AlertDialogHeader>
-                                            <AlertDialogTitle>Revoke admin rights for {admin.name}?</AlertDialogTitle>
-                                            <AlertDialogDescription>This will revoke all admin privileges for this user. They will become a regular customer.</AlertDialogDescription>
+                                            <AlertDialogTitle>Revoke role for {admin.name}?</AlertDialogTitle>
+                                            <AlertDialogDescription>This will revoke all special privileges for this user. They will become a regular customer.</AlertDialogDescription>
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                             <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                            <AlertDialogAction onClick={() => handleRevokeAdmin(admin.id, admin.name)}>Confirm</AlertDialogAction>
+                                            <AlertDialogAction onClick={() => handleRevokeRole(admin.id, admin.name)}>Confirm</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
@@ -142,7 +158,7 @@ export function AdminManager() {
                     </div>
                 ))
             ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No admins found.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No admins or delivery staff found.</p>
             )}
           </div>
         </div>

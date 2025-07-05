@@ -52,6 +52,8 @@ function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
         paymentMethod: data.paymentMethod,
         status: data.status,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+        deliveryPersonId: data.deliveryPersonId || null,
+        deliveryPersonName: data.deliveryPersonName || null,
     };
 }
 
@@ -657,7 +659,7 @@ export async function findUserByEmail(email: string): Promise<(UserProfile & { a
   }
 }
 
-export async function updateUserAdminRole(userId: string, role: 'standard' | null): Promise<void> {
+export async function updateUserAdminRole(userId: string, role: 'standard' | 'delivery' | null): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
     await updateDoc(userRef, { adminRole: role });
@@ -670,7 +672,7 @@ export async function updateUserAdminRole(userId: string, role: 'standard' | nul
 export async function getAdminUsers(): Promise<UserProfile[]> {
   try {
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("adminRole", "in", ["main", "standard"]));
+    const q = query(usersRef, where("adminRole", "in", ["main", "standard", "delivery"]));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(docToUserProfile);
   } catch (error) {
@@ -678,6 +680,45 @@ export async function getAdminUsers(): Promise<UserProfile[]> {
     return [];
   }
 }
+
+export async function getDeliveryPersons(): Promise<UserProfile[]> {
+  try {
+    const usersRef = collection(db, "users");
+    const q = query(usersRef, where("adminRole", "==", "delivery"));
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs.map(docToUserProfile);
+  } catch (error) {
+    console.error("Error fetching delivery persons:", error);
+    return [];
+  }
+}
+
+export async function assignDeliveryPerson(orderId: string, deliveryPersonId: string, deliveryPersonName: string): Promise<void> {
+    try {
+        const orderRef = doc(db, "orders", orderId);
+        await updateDoc(orderRef, {
+            deliveryPersonId,
+            deliveryPersonName,
+        });
+    } catch (error) {
+        console.error("Error assigning delivery person:", error);
+        throw error;
+    }
+}
+
+export async function getOrdersForDeliveryPerson(deliveryPersonId: string): Promise<Order[]> {
+    if (!deliveryPersonId) return [];
+    try {
+        const ordersCol = collection(db, 'orders');
+        const q = query(ordersCol, where('deliveryPersonId', '==', deliveryPersonId), orderBy('createdAt', 'desc'));
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(docToOrder);
+    } catch (error) {
+        console.error("Error fetching orders for delivery person:", error);
+        return [];
+    }
+}
+
 
 // == Attribute Management Functions ==
 

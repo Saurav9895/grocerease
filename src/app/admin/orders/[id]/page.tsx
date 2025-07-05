@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getOrderById } from "@/lib/data";
+import { getOrderById, getDeliveryPersons, assignDeliveryPerson } from "@/lib/data";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import type { Order } from "@/lib/types";
+import type { Order, UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
 
@@ -23,6 +23,7 @@ import { ArrowLeft, User, Home, CreditCard, Phone, Printer, MapPin } from "lucid
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderReceipt } from "@/components/admin/OrderReceipt";
+import { Label } from "@/components/ui/label";
 
 type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 const orderStatuses: OrderStatus[] = ['Pending', 'Processing', 'Shipped', 'Delivered', 'Cancelled'];
@@ -39,6 +40,10 @@ export default function OrderDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | undefined>(undefined);
+  
+  const [deliveryPersons, setDeliveryPersons] = useState<UserProfile[]>([]);
+  const [selectedDeliveryPersonId, setSelectedDeliveryPersonId] = useState<string>('');
+  const [isAssigning, setIsAssigning] = useState(false);
 
   const fetchOrder = async (orderId: string) => {
     setIsLoading(true);
@@ -46,6 +51,7 @@ export default function OrderDetailPage() {
     setOrder(fetchedOrder);
     if (fetchedOrder) {
       setSelectedStatus(fetchedOrder.status);
+      setSelectedDeliveryPersonId(fetchedOrder.deliveryPersonId || '');
     }
     setIsLoading(false);
   };
@@ -53,6 +59,11 @@ export default function OrderDetailPage() {
   useEffect(() => {
     if (user && typeof id === 'string') {
       fetchOrder(id);
+      const fetchDeliveryPersons = async () => {
+        const persons = await getDeliveryPersons();
+        setDeliveryPersons(persons);
+      };
+      fetchDeliveryPersons();
     }
   }, [id, user]);
   
@@ -79,6 +90,33 @@ export default function OrderDetailPage() {
       });
     } finally {
       setIsUpdating(false);
+    }
+  };
+
+  const handleAssignDeliveryPerson = async () => {
+    if (!order || !selectedDeliveryPersonId) return;
+
+    const selectedPerson = deliveryPersons.find(p => p.id === selectedDeliveryPersonId);
+    if (!selectedPerson) return;
+    
+    setIsAssigning(true);
+    try {
+        await assignDeliveryPerson(order.id, selectedPerson.id, selectedPerson.name);
+        await fetchOrder(order.id);
+
+        toast({
+            title: "Delivery Person Assigned",
+            description: `${selectedPerson.name} has been assigned to this order.`,
+        });
+    } catch (error) {
+        console.error("Error assigning delivery person:", error);
+        toast({
+            variant: "destructive",
+            title: "Assignment Failed",
+            description: "Could not assign the delivery person.",
+        });
+    } finally {
+        setIsAssigning(false);
     }
   };
   
@@ -212,6 +250,37 @@ export default function OrderDetailPage() {
                   <Button onClick={handleStatusUpdate} disabled={isUpdating || selectedStatus === order.status}>
                       {isUpdating ? "Updating..." : "Update Status"}
                   </Button>
+              </CardFooter>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Assign Delivery</CardTitle>
+                {order.deliveryPersonName && (
+                  <CardDescription>
+                    Currently assigned to: <b>{order.deliveryPersonName}</b>
+                  </CardDescription>
+                )}
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <Label htmlFor="delivery-person-select">Delivery Person</Label>
+                  <Select value={selectedDeliveryPersonId} onValueChange={setSelectedDeliveryPersonId}>
+                    <SelectTrigger id="delivery-person-select">
+                      <SelectValue placeholder="Select a person..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {deliveryPersons.map(person => (
+                        <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+              <CardFooter>
+                 <Button className="w-full" onClick={handleAssignDeliveryPerson} disabled={isAssigning || !selectedDeliveryPersonId || selectedDeliveryPersonId === order.deliveryPersonId}>
+                    {isAssigning ? "Assigning..." : "Assign"}
+                 </Button>
               </CardFooter>
             </Card>
 
