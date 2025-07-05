@@ -174,8 +174,12 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                     </Button>
                 </DialogTrigger>
                 <DialogContent 
-                    className="sm:max-w-2xl p-0"
+                    className="sm:max-w-4xl p-0"
                 >
+                    <DialogHeader className="sr-only">
+                        <DialogTitle>Select Delivery Location</DialogTitle>
+                        <DialogDescription>Use the map to pinpoint your exact delivery address.</DialogDescription>
+                    </DialogHeader>
                     {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
                 </DialogContent>
             </Dialog>

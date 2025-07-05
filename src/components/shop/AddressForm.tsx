@@ -128,7 +128,13 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
                     Set Location with Map
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl p-0">
+            <DialogContent className="sm:max-w-4xl p-0">
+                <DialogHeader className="sr-only">
+                    <DialogTitle>Set Location</DialogTitle>
+                    <DialogDescription>
+                        Drag the map to pinpoint your address or use the search bar.
+                    </DialogDescription>
+                </DialogHeader>
                 {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
             </DialogContent>
         </Dialog>
