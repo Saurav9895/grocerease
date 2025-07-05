@@ -46,11 +46,23 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
         place.address_components.find(c => c.types.includes('locality')) ||
         place.address_components[0];
     
-    const main_text = nameComponent.long_name;
+    let main_text = nameComponent.long_name;
+    let secondary_text = place.formatted_address;
+    
+    // Check if the searched term is part of the result and make it the main text
+    // A bit of a heuristic, but can improve relevance.
+    if (nameComponent.types.includes('plus_code')) {
+        const est = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
+        if(est) {
+            main_text = est;
+            secondary_text = place.formatted_address.replace(`${est}, `, '');
+        } else {
+             secondary_text = place.formatted_address.replace(`${main_text}, `, '');
+        }
+    } else {
+        secondary_text = place.formatted_address.replace(new RegExp(`^${main_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, )?`), '').trim();
+    }
 
-    const secondary_text = place.formatted_address
-        .replace(new RegExp(`^${main_text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(, )?`), '')
-        .trim();
 
     return { main_text, secondary_text: secondary_text === main_text ? '' : secondary_text };
 }
@@ -93,10 +105,10 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       const streetNumber = get('street_number');
       const route = get('route');
       
-      let streetAddress = route ? [streetNumber, route].filter(Boolean).join(' ') : (get('establishment') || get('point_of_interest'));
-
+      let streetAddress = route ? [streetNumber, route].filter(Boolean).join(' ') : '';
+      
       if (!streetAddress) {
-          streetAddress = get('sublocality_level_1') || get('sublocality');
+          streetAddress = get('establishment') || get('point_of_interest') || get('sublocality_level_1') || get('sublocality');
       }
       
       parsed.street = streetAddress;
@@ -283,7 +295,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   }
   
   return isLoaded ? (
-    <div className="relative h-[70vh] w-full bg-background">
+    <div className="relative h-[450px] w-full bg-background overflow-hidden">
       <div className={cn("absolute inset-0 z-0", viewMode === 'search' && 'invisible')}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
@@ -430,6 +442,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       )}
     </div>
   ) : (
-    <Skeleton className="h-[70vh] w-full" />
+    <Skeleton className="h-[450px] w-full" />
   );
 }

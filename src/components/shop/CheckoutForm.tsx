@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -22,7 +23,7 @@ import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
     ssr: false,
-    loading: () => <Skeleton className="h-[70vh] w-full" />
+    loading: () => <Skeleton className="h-[450px] w-full" />
 });
 
 const addressSchema = z.object({
@@ -174,7 +175,7 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                     </Button>
                 </DialogTrigger>
                 <DialogContent 
-                    className="sm:max-w-4xl p-0"
+                    className="sm:max-w-xl p-0"
                 >
                     <DialogHeader className="sr-only">
                         <DialogTitle>Select Delivery Location</DialogTitle>
