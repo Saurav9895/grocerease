@@ -43,10 +43,10 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
     const neighborhood = place.address_components.find(c => c.types.includes('neighborhood'))?.long_name;
     const sublocality = place.address_components.find(c => c.types.includes('sublocality_level_1'))?.long_name;
     
-    const main_text = establishment || pointOfInterest || premise || route || neighborhood || sublocality || place.address_components[0].long_name;
+    const main_text = establishment || pointOfInterest || premise || place.formatted_address.split(',')[0];
 
     const secondary_text_parts = place.formatted_address.split(', ');
-    const secondary_text = secondary_text_parts.filter(part => part !== main_text).join(', ');
+    const secondary_text = secondary_text_parts.slice(1).join(', ');
 
     return { main_text, secondary_text };
 }
@@ -93,7 +93,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
 
       let streetAddress = route;
       if (!streetAddress) {
-        streetAddress = premise || establishment || pointOfInterest || get('sublocality_level_1') || get('sublocality');
+        streetAddress = establishment || pointOfInterest || premise || get('sublocality_level_1') || get('sublocality');
       }
       
       parsed.street = streetAddress;
@@ -359,7 +359,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
        )}
 
       {viewMode === 'search' && (
-        <div className="absolute inset-0 p-4 flex flex-col h-full bg-background z-20">
+        <div className="absolute inset-0 px-4 pt-12 pb-4 flex flex-col h-full bg-background z-20">
             <div className="flex items-center gap-2 mb-4 flex-shrink-0">
                 <Button variant="ghost" size="icon" onClick={() => setViewMode('map')}>
                     <ArrowLeft className="h-5 w-5" />
