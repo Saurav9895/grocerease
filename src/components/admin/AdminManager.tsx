@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -132,7 +133,7 @@ export function AdminManager() {
                         <div className="flex items-center gap-2">
                             <Badge variant={admin.adminRole === 'main' ? "destructive" : admin.adminRole === 'standard' ? "secondary" : "default"} className="flex items-center gap-1">
                                 {admin.adminRole === 'delivery' ? <Truck className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-                                {admin.adminRole === 'main' ? 'Main Admin' : admin.adminRole === 'standard' ? 'Admin' : 'Delivery'}
+                                {admin.adminRole === 'main' ? 'Main Admin' : admin.adminRole === 'standard' ? 'Admin' : 'Delivery Person'}
                             </Badge>
                             {(admin.adminRole === 'standard' || admin.adminRole === 'delivery') && admin.id !== currentUser?.uid && (
                                 <AlertDialog>

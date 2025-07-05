@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -86,7 +87,7 @@ export function DeliverySidebar() {
             </Avatar>
             <div className="flex flex-col truncate">
                 <span className="text-sm font-semibold truncate">{profile?.name || user.email}</span>
-                <span className="text-xs text-muted-foreground capitalize">{profile?.adminRole}</span>
+                <span className="text-xs text-muted-foreground">Delivery Person</span>
             </div>
           </div>
         )}

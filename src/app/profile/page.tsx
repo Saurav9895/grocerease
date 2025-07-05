@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { List, LogOut, Settings, Phone, ShieldCheck, KeyRound } from "lucide-react";
+import { List, LogOut, Settings, Phone, ShieldCheck, KeyRound, Truck } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AddressManager } from "@/components/shop/AddressManager";
 import { auth } from "@/lib/firebase";
@@ -118,10 +118,18 @@ function ProfilePageContent() {
                                 <CardTitle className="flex items-center gap-2">
                                     {profile?.name || "Valued Customer"}
                                     {profile?.adminRole && (
-                                      <Badge variant={profile.adminRole === 'main' ? 'destructive' : 'secondary'} className="flex items-center gap-1">
-                                        <ShieldCheck className="h-3 w-3" />
-                                        {profile.adminRole === 'main' ? 'Main Admin' : 'Admin'}
-                                      </Badge>
+                                        <Badge variant={
+                                            profile.adminRole === 'main' ? 'destructive' :
+                                            profile.adminRole === 'delivery' ? 'default' :
+                                            'secondary'
+                                        } className="flex items-center gap-1">
+                                            {profile.adminRole === 'delivery' ? <Truck className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                                            {
+                                                profile.adminRole === 'main' ? 'Main Admin' :
+                                                profile.adminRole === 'delivery' ? 'Delivery Person' :
+                                                'Admin'
+                                            }
+                                        </Badge>
                                     )}
                                 </CardTitle>
                                 <CardDescription>{profile?.email}</CardDescription>
