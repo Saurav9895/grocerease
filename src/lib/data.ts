@@ -483,7 +483,7 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         price: item.price,
         quantity: item.quantity,
         imageUrl: item.imageUrl,
-        variantValue: item.variantValue,
+        variantValue: item.variantValue || null,
       }));
 
       const finalOrderData = {
