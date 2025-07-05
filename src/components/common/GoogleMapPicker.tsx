@@ -194,7 +194,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: GoogleMapPickerProps) {
   const onPlaceChanged = React.useCallback(() => {
     if (autocomplete !== null) {
       const place = autocomplete.getPlace();
-      if (place.geometry && place.geometry.location) {
+      if (place && place.geometry && place.geometry.location) {
         mapRef.current?.panTo(place.geometry.location);
         mapRef.current?.setZoom(17);
         setViewMode('map');
