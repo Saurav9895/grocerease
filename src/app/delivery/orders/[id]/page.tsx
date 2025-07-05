@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, Phone, MapPin } from "lucide-react";
+import { ArrowLeft, User, Home, Phone, MapPin, CreditCard } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -194,6 +194,17 @@ export default function DeliveryOrderDetailPage() {
                             )}
                         </div>
                     </div>
+                    <Separator />
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                          <CreditCard className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Payment: {order.paymentMethod}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                          <span className="font-medium text-base">Total to Collect:</span>
+                          <span className="font-bold text-base text-primary">Rs{order.total.toFixed(2)}</span>
+                      </div>
+                    </div>
                 </CardContent>
               </Card>
 
@@ -293,6 +304,11 @@ function DeliverySkeleton() {
           <CardContent className="space-y-4">
             <Skeleton className="h-5 w-full" />
             <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-px w-full" />
+            <div className="space-y-2 pt-2">
+                <Skeleton className="h-5 w-3/4" />
+                <Skeleton className="h-6 w-1/2" />
+            </div>
           </CardContent>
         </Card>
         <Card>
