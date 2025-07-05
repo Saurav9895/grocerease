@@ -323,7 +323,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
                 <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
             </div>
 
-            <div className="absolute inset-x-4 bottom-4 z-10">
+            <div className="absolute inset-x-4 bottom-8 z-10">
               <div className="pointer-events-auto rounded-lg bg-background/90 p-4 shadow-lg backdrop-blur-sm">
                 <div className="space-y-1">
                   <p className="font-semibold text-primary">Select delivery location</p>
@@ -350,7 +350,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
 
       {viewMode === 'search' && (
         <div className="absolute inset-0 pt-4 px-4 pb-4 flex flex-col h-full bg-background z-20">
-            <div className="flex items-center gap-2 mb-4 flex-shrink-0">
+            <div className="flex items-center gap-2 mb-4 flex-shrink-0 pt-10">
                 <Button variant="ghost" size="icon" onClick={() => setViewMode('map')}>
                     <ArrowLeft className="h-5 w-5" />
                 </Button>
