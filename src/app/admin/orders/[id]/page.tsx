@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, CreditCard, Phone, Printer, MapPin } from "lucide-react";
+import { ArrowLeft, User, Home, CreditCard, Phone, Printer, MapPin, KeyRound } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderReceipt } from "@/components/admin/OrderReceipt";
@@ -219,6 +219,15 @@ export default function OrderDetailPage() {
                   <span>Status:</span>
                   <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
                 </div>
+                {order.status === 'Shipped' && order.deliveryOtp && (
+                  <div className="flex justify-between items-center pt-2 border-t mt-2">
+                    <div className="flex items-center gap-2">
+                      <KeyRound className="w-4 h-4 text-muted-foreground" />
+                      <span className="font-medium">Delivery OTP</span>
+                    </div>
+                    <Badge variant="outline" className="text-base font-mono tracking-widest">{order.deliveryOtp}</Badge>
+                  </div>
+                )}
                 <Separator />
                  <div className="flex justify-between">
                   <span>Subtotal:</span>
