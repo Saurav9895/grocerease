@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,14 +13,15 @@ export default function AdminDeliveriesPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
+  const fetchOrders = async () => {
+    setIsLoading(true);
+    const deliveredOrders = await getDeliveredOrders();
+    setOrders(deliveredOrders);
+    setIsLoading(false);
+  };
+
   useEffect(() => {
     if (user) {
-      const fetchOrders = async () => {
-        setIsLoading(true);
-        const deliveredOrders = await getDeliveredOrders();
-        setOrders(deliveredOrders);
-        setIsLoading(false);
-      };
       fetchOrders();
     }
   }, [user]);
@@ -41,7 +43,7 @@ export default function AdminDeliveriesPage() {
             </div>
         </div>
       ) : (
-        <DeliveriesTable orders={orders} />
+        <DeliveriesTable orders={orders} onDataChanged={fetchOrders} />
       )}
     </div>
   );
