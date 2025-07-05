@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useEffect } from "react";
@@ -129,7 +128,15 @@ export function AddressForm({ address, onSuccess }: AddressFormProps) {
                     Select Address on Map
                 </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-2xl">
+            <DialogContent 
+              className="sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+              onPointerDownOutside={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest('.pac-container')) {
+                  e.preventDefault();
+                }
+              }}
+            >
                 <DialogHeader>
                     <DialogTitle>Select Delivery Location</DialogTitle>
                     <DialogDescription>

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCart } from "@/hooks/use-cart";
@@ -174,7 +173,15 @@ export function CheckoutForm({ deliveryFee, discountAmount, promoCode, total }: 
                         Select on Map
                     </Button>
                 </DialogTrigger>
-                <DialogContent className="sm:max-w-2xl">
+                <DialogContent 
+                    className="sm:max-w-2xl"
+                    onPointerDownOutside={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest('.pac-container')) {
+                            e.preventDefault();
+                        }
+                    }}
+                >
                     <DialogHeader>
                         <DialogTitle>Select Delivery Location</DialogTitle>
                         <DialogDescription>
