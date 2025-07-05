@@ -205,7 +205,7 @@ export default function AdminDashboardPage() {
           </CardContent>
           <CardFooter>
              <Button asChild variant="outline" className="w-full">
-                <Link href="/admin/deliveries">View Delivery Log</Link>
+                <Link href="/admin/submissions">View Submissions</Link>
             </Button>
           </CardFooter>
         </Card>

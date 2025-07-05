@@ -1,5 +1,3 @@
-
-
 "use client";
 
 import Link from "next/link";
@@ -14,7 +12,7 @@ import {
   SidebarFooter,
   SidebarSeparator,
 } from "@/components/ui/sidebar";
-import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home, Settings, ClipboardList, History } from "lucide-react";
+import { Leaf, LayoutDashboard, Package, ShoppingCart, LayoutList, LogOut, Home, Settings, ClipboardList, History, DollarSign } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/context/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
@@ -114,11 +112,23 @@ export function AdminSidebar() {
             <SidebarMenuButton
               asChild
               isActive={pathname.startsWith("/admin/deliveries")}
-              tooltip="Deliveries"
+              tooltip="Delivery Log"
             >
               <Link href="/admin/deliveries">
                 <History />
-                <span>Deliveries</span>
+                <span>Delivery Log</span>
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton
+              asChild
+              isActive={pathname.startsWith("/admin/submissions")}
+              tooltip="Submissions"
+            >
+              <Link href="/admin/submissions">
+                <DollarSign />
+                <span>Submissions</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
