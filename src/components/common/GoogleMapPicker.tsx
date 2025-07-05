@@ -13,7 +13,6 @@ import { useToast } from '@/hooks/use-toast';
 import type { Address } from '@/lib/types';
 import { ArrowLeft, LocateFixed, MapPin, Search, Loader2 } from 'lucide-react';
 import { Input } from '../ui/input';
-import { Card, CardContent, CardHeader } from '../ui/card';
 import { cn } from '@/lib/utils';
 
 // Default center (Kathmandu)
@@ -35,7 +34,7 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
     if (!place.address_components || place.address_components.length === 0) {
         return { main_text: place.formatted_address, secondary_text: "" };
     }
-
+    
     const establishment = place.address_components.find(c => c.types.includes('establishment'))?.long_name;
     const pointOfInterest = place.address_components.find(c => c.types.includes('point_of_interest'))?.long_name;
     const premise = place.address_components.find(c => c.types.includes('premise'))?.long_name;
@@ -44,10 +43,8 @@ const formatSuggestionForDisplay = (place: google.maps.GeocoderResult) => {
     let secondary_text = place.formatted_address;
 
     if (main_text) {
-        // If we have a specific name, the rest of the formatted address can be the secondary text
         secondary_text = place.formatted_address.replace(`${main_text}, `, '');
     } else {
-        // If no specific name, use the first part of the address as main text
         const secondary_text_parts = place.formatted_address.split(',');
         main_text = secondary_text_parts[0];
         secondary_text = secondary_text_parts.slice(1).join(', ');
@@ -76,11 +73,9 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   const [viewMode, setViewMode] = React.useState<'map' | 'search'>('map');
   const [currentUserPosition, setCurrentUserPosition] = React.useState<google.maps.LatLngLiteral | null>(null);
   
-  // Custom search state
   const [searchQuery, setSearchQuery] = React.useState('');
   const [suggestions, setSuggestions] = React.useState<google.maps.GeocoderResult[]>([]);
   const [isSearching, setIsSearching] = React.useState(false);
-
 
   const mapRef = React.useRef<google.maps.Map | null>(null);
 
@@ -239,7 +234,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
         try {
             const request: google.maps.GeocoderRequest = {
                 address: query,
-                bounds: map?.getBounds(), // Prioritize results within the current map view
+                bounds: map?.getBounds(),
             };
             const { results } = await geocoder.geocode(request);
             setSuggestions(results);
@@ -286,7 +281,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   
   return isLoaded ? (
     <div className="relative h-[350px] w-full bg-background overflow-hidden">
-      <div className={cn("absolute inset-0 z-0", viewMode === 'search' && 'invisible')}>
+      <div className={cn("absolute inset-0 z-0")}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
             center={defaultCenter}
@@ -317,48 +312,42 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
         </GoogleMap>
       </div>
 
-       {viewMode === 'map' && (
-         <>
-            <div className="absolute top-1/2 left-1/2 z-[1] -translate-x-1/2 -translate-y-1/2 pointer-events-none">
-                <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
-            </div>
-
-            <div className="absolute top-4 right-4 z-[1]">
+       <div className={cn("absolute inset-0 flex flex-col justify-between pointer-events-none", viewMode === 'search' && 'hidden')}>
+            <div className="flex justify-end p-4 pointer-events-auto">
                 <Button variant="secondary" size="icon" onClick={handleUseCurrentLocation} disabled={isLocating} className="h-12 w-12 rounded-full shadow-lg">
                     <LocateFixed className="h-6 w-6" />
                 </Button>
             </div>
-
-            <div className="absolute bottom-0 left-0 right-0 z-[1] p-4 bg-gradient-to-t from-background via-background/90 to-transparent">
-                <Card className="shadow-lg">
-                    <CardHeader>
-                        <div className="space-y-1">
-                            <p className="font-semibold text-primary">Select delivery location</p>
-                            <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
-                                {isGeocoding ? 'Loading address...' : displayAddress}
-                            </p>
-                        </div>
-                    </CardHeader>
-                    <CardContent className="p-4 pt-0 grid grid-cols-2 gap-2">
-                        <Button
-                            variant="outline"
-                            className="w-full justify-center font-normal"
-                            onClick={() => setViewMode('search')}
-                        >
-                            <Search className="mr-2 h-4 w-4" />
-                            <span>Search</span>
-                        </Button>
-                        <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
-                            {isGeocoding ? "Locating..." : "Confirm"}
-                        </Button>
-                    </CardContent>
-                </Card>
+            
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+                <MapPin className="h-10 w-10 text-primary drop-shadow-lg" style={{transform: 'translateY(-50%)'}} />
             </div>
-         </>
-       )}
+
+            <div className="p-4 pointer-events-auto bg-background/90 backdrop-blur-sm">
+                <div className="space-y-1">
+                    <p className="font-semibold text-primary">Select delivery location</p>
+                    <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
+                        {isGeocoding ? 'Loading address...' : displayAddress}
+                    </p>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                    <Button
+                        variant="secondary"
+                        className="w-full justify-center font-normal"
+                        onClick={() => setViewMode('search')}
+                    >
+                        <Search className="mr-2 h-4 w-4" />
+                        <span>Search</span>
+                    </Button>
+                    <Button onClick={handleConfirm} disabled={!selectedAddressDetails || isGeocoding} className="w-full">
+                        {isGeocoding ? "Locating..." : "Confirm"}
+                    </Button>
+                </div>
+            </div>
+       </div>
 
       {viewMode === 'search' && (
-        <div className="absolute inset-0 px-4 pt-12 pb-4 flex flex-col h-full bg-background z-20">
+        <div className="absolute inset-0 pt-4 px-4 pb-4 flex flex-col h-full bg-background z-20">
             <div className="flex items-center gap-2 mb-4 flex-shrink-0">
                 <Button variant="ghost" size="icon" onClick={() => setViewMode('map')}>
                     <ArrowLeft className="h-5 w-5" />
