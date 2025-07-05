@@ -14,7 +14,7 @@ export default function AdminLayout({
       <AdminAuthGuard>
         <div className="flex min-h-screen bg-background">
           <AdminSidebar />
-           <div className="flex flex-1 flex-col">
+           <div className="flex flex-1 flex-col overflow-hidden">
             <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4 md:hidden">
               <SidebarTrigger />
               <Link href="/admin" className="flex items-center gap-2 font-semibold">
