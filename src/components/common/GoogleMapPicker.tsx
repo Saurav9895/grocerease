@@ -286,34 +286,36 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   
   return isLoaded ? (
     <div className="relative h-[70vh] w-full bg-background">
-      <GoogleMap
-          mapContainerClassName="w-full h-full"
-          center={defaultCenter}
-          zoom={12}
-          onLoad={onLoad}
-          onUnmount={onUnmount}
-          onIdle={handleMapIdle}
-          options={{ 
-              streetViewControl: false, 
-              mapTypeControl: false, 
-              fullscreenControl: false,
-              zoomControl: false,
-          }}
-      >
-          {currentUserPosition && (
-              <MarkerF
-              position={currentUserPosition}
-              icon={{
-                  path: google.maps.SymbolPath.CIRCLE,
-                  fillColor: '#4285F4',
-                  fillOpacity: 1,
-                  scale: 8,
-                  strokeColor: 'white',
-                  strokeWeight: 2,
-              }}
-              />
-          )}
-      </GoogleMap>
+      <div className={cn("absolute inset-0 z-0", viewMode === 'search' ? 'invisible' : 'visible')}>
+        <GoogleMap
+            mapContainerClassName="w-full h-full"
+            center={defaultCenter}
+            zoom={12}
+            onLoad={onLoad}
+            onUnmount={onUnmount}
+            onIdle={handleMapIdle}
+            options={{ 
+                streetViewControl: false, 
+                mapTypeControl: false, 
+                fullscreenControl: false,
+                zoomControl: false,
+            }}
+        >
+            {currentUserPosition && (
+                <MarkerF
+                position={currentUserPosition}
+                icon={{
+                    path: google.maps.SymbolPath.CIRCLE,
+                    fillColor: '#4285F4',
+                    fillOpacity: 1,
+                    scale: 8,
+                    strokeColor: 'white',
+                    strokeWeight: 2,
+                }}
+                />
+            )}
+        </GoogleMap>
+      </div>
 
        {viewMode === 'map' && (
          <>
