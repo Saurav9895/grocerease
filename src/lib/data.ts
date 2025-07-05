@@ -56,6 +56,8 @@ function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
         deliveryPersonId: data.deliveryPersonId || null,
         deliveryPersonName: data.deliveryPersonName || null,
         deliveryOtp: data.deliveryOtp || null,
+        paymentSubmitted: data.paymentSubmitted || false,
+        deliveredAt: (data.deliveredAt as Timestamp)?.toDate() || null,
     };
 }
 
@@ -799,7 +801,11 @@ export async function verifyOtpAndCompleteOrder(orderId: string, otp: string): P
     const order = docToOrder(orderSnap);
     
     if (order.deliveryOtp === otp) {
-      await updateDoc(orderRef, { status: 'Delivered' });
+      await updateDoc(orderRef, {
+        status: 'Delivered',
+        deliveredAt: serverTimestamp(),
+        paymentSubmitted: order.paymentMethod === 'Online',
+      });
       return true;
     } else {
       return false;
@@ -807,5 +813,37 @@ export async function verifyOtpAndCompleteOrder(orderId: string, otp: string): P
   } catch (error) {
     console.error("Error verifying OTP and completing order:", error);
     throw error;
+  }
+}
+
+
+export async function markPaymentAsSubmitted(orderId: string): Promise<void> {
+    const orderRef = doc(db, "orders", orderId);
+    try {
+        await updateDoc(orderRef, {
+            paymentSubmitted: true,
+        });
+    } catch (error) {
+        console.error("Error marking payment as submitted:", error);
+        throw error;
+    }
+}
+
+export async function getDeliveredOrders(options: { limit?: number } = {}): Promise<Order[]> {
+  try {
+    const ordersCol = collection(db, 'orders');
+    const constraints: any[] = [
+        where('status', '==', 'Delivered'),
+        orderBy('deliveredAt', 'desc')
+    ];
+    if (options.limit) {
+        constraints.push(limit(options.limit));
+    }
+    const q = query(ordersCol, ...constraints);
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToOrder);
+  } catch (error) {
+    console.error("Error fetching delivered orders:", error);
+    return [];
   }
 }

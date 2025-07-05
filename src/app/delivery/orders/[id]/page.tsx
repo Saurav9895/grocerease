@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getOrderById, updateOrderStatus, verifyOtpAndCompleteOrder } from "@/lib/data";
+import { getOrderById, updateOrderStatus, verifyOtpAndCompleteOrder, markPaymentAsSubmitted } from "@/lib/data";
 import type { Order } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, Phone, MapPin, CreditCard } from "lucide-react";
+import { ArrowLeft, User, Home, Phone, MapPin, CreditCard, CheckCircle2 } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ export default function DeliveryOrderDetailPage() {
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | undefined>(undefined);
   const [isOtpDialogOpen, setIsOtpDialogOpen] = useState(false);
   const [otpInput, setOtpInput] = useState('');
+  const [isSubmittingPayment, setIsSubmittingPayment] = useState(false);
 
   const fetchOrder = async (orderId: string) => {
     setIsLoading(true);
@@ -128,6 +129,28 @@ export default function DeliveryOrderDetailPage() {
     }
   };
   
+  const handleMarkPaymentSubmitted = async () => {
+    if (!order) return;
+    setIsSubmittingPayment(true);
+    try {
+        await markPaymentAsSubmitted(order.id);
+        await fetchOrder(order.id);
+        toast({
+            title: "Payment Submitted",
+            description: "The collected amount has been marked as submitted.",
+        });
+    } catch (error) {
+        console.error("Error submitting payment:", error);
+        toast({
+            variant: "destructive",
+            title: "Submission Failed",
+            description: "Could not mark the payment as submitted.",
+        });
+    } finally {
+        setIsSubmittingPayment(false);
+    }
+  };
+  
   if (isLoading) {
     return <DeliverySkeleton />;
   }
@@ -167,46 +190,75 @@ export default function DeliveryOrderDetailPage() {
           </div>
 
           <div className="grid md:grid-cols-2 gap-6 items-start">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Customer & Shipping</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4 text-sm">
-                    <div className="flex items-center gap-2">
-                        <User className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{order.customerName}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4 text-muted-foreground" />
-                        <span>{order.address.phone}</span>
-                    </div>
-                    <div className="flex items-start gap-2">
-                        <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />
-                        <div className="text-muted-foreground">
-                            <p>{order.address.apartment}, {order.address.street}</p>
-                            <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
-                            <p>{order.address.country}</p>
-                            {order.address.googleMapsUrl && (
-                              <a href={order.address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center gap-1 mt-2">
-                                  <MapPin className="w-4 h-4" />
-                                  View on Map
-                              </a>
-                            )}
-                        </div>
-                    </div>
-                    <Separator />
-                    <div className="space-y-2">
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Customer & Shipping</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
                       <div className="flex items-center gap-2">
-                          <CreditCard className="w-4 h-4 text-muted-foreground" />
-                          <span className="font-medium">Payment: {order.paymentMethod}</span>
+                          <User className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">{order.customerName}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                          <span className="font-medium text-base">Total to Collect:</span>
-                          <span className="font-bold text-base text-primary">Rs{order.total.toFixed(2)}</span>
+                      <div className="flex items-center gap-2">
+                          <Phone className="w-4 h-4 text-muted-foreground" />
+                          <span>{order.address.phone}</span>
                       </div>
-                    </div>
-                </CardContent>
-              </Card>
+                      <div className="flex items-start gap-2">
+                          <Home className="w-4 h-4 mt-0.5 text-muted-foreground" />
+                          <div className="text-muted-foreground">
+                              <p>{order.address.apartment}, {order.address.street}</p>
+                              <p>{order.address.city}, {order.address.state} {order.address.zip}</p>
+                              <p>{order.address.country}</p>
+                              {order.address.googleMapsUrl && (
+                                <a href={order.address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center gap-1 mt-2">
+                                    <MapPin className="w-4 h-4" />
+                                    View on Map
+                                </a>
+                              )}
+                          </div>
+                      </div>
+                      <Separator />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <CreditCard className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium">Payment: {order.paymentMethod}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <span className="font-medium text-base">Total to Collect:</span>
+                            <span className="font-bold text-base text-primary">Rs{order.total.toFixed(2)}</span>
+                        </div>
+                      </div>
+                  </CardContent>
+                </Card>
+                {order.status === 'Delivered' && order.paymentMethod === 'COD' && (
+                  <Card>
+                    <CardHeader>
+                        <CardTitle>Cash Collection</CardTitle>
+                        <CardDescription>
+                            Submit the cash collected for this order.
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        {order.paymentSubmitted ? (
+                            <div className="flex items-center gap-2 text-green-600">
+                                <CheckCircle2 className="h-5 w-5" />
+                                <span className="font-semibold">Payment has been submitted.</span>
+                            </div>
+                        ) : (
+                            <p>Total amount to submit: <span className="font-bold">Rs{order.total.toFixed(2)}</span></p>
+                        )}
+                    </CardContent>
+                    {!order.paymentSubmitted && (
+                        <CardFooter>
+                            <Button className="w-full" onClick={handleMarkPaymentSubmitted} disabled={isSubmittingPayment}>
+                                {isSubmittingPayment ? 'Submitting...' : 'Mark Payment as Submitted'}
+                            </Button>
+                        </CardFooter>
+                    )}
+                  </Card>
+                )}
+              </div>
 
               <Card>
                 <CardHeader>

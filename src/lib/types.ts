@@ -78,6 +78,8 @@ export interface Order {
   deliveryPersonId?: string | null;
   deliveryPersonName?: string | null;
   deliveryOtp?: string | null;
+  paymentSubmitted?: boolean;
+  deliveredAt?: Date | null;
 }
 
 export interface Review {

@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOrders, getProducts, getCategories } from "@/lib/data";
+import { getOrders, getProducts, getCategories, getDeliveredOrders } from "@/lib/data";
 import type { Order, Product, Category } from "@/lib/types";
 import { useAuth } from "@/context/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { DollarSign, Package, ShoppingCart, Users, ClipboardCheck, BarChartBig, LayoutList } from "lucide-react";
+import { DollarSign, Package, ShoppingCart, Users, ClipboardCheck, BarChartBig, LayoutList, History, CheckCircle2, CircleDashed } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -22,21 +22,23 @@ export default function AdminDashboardPage() {
     recentProducts: Product[],
     allOrders: Order[],
     allProducts: Product[],
-    allCategories: Category[]
+    allCategories: Category[],
+    recentDeliveries: Order[]
   } | null>(null);
 
   useEffect(() => {
     if (user) {
       const fetchData = async () => {
         setIsLoading(true);
-        const [recentOrders, recentProducts, allOrders, allProducts, allCategories] = await Promise.all([
+        const [recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries] = await Promise.all([
           getOrders({ limit: 5 }),
           getProducts({ limit: 5 }),
           getOrders(),
           getProducts(),
           getCategories(),
+          getDeliveredOrders({ limit: 5 }),
         ]);
-        setData({ recentOrders, recentProducts, allOrders, allProducts, allCategories });
+        setData({ recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries });
         setIsLoading(false);
       };
       fetchData();
@@ -61,7 +63,7 @@ export default function AdminDashboardPage() {
     );
   }
   
-  const { recentOrders, recentProducts, allOrders, allProducts, allCategories } = data;
+  const { recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries } = data;
   const totalRevenue = allOrders.reduce((sum, order) => sum + order.total, 0);
   const totalSales = allOrders.length;
   const totalProducts = allProducts.length;
@@ -164,26 +166,46 @@ export default function AdminDashboardPage() {
         
         <Card>
           <CardHeader>
-            <CardTitle>Recent Products</CardTitle>
-            <CardDescription>Latest 5 products added to Firestore.</CardDescription>
+            <CardTitle>Recent Deliveries</CardTitle>
+            <CardDescription>Latest 5 completed deliveries.</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-             {recentProducts.map(product => (
-                <div key={product.id} className="flex justify-between items-center">
-                    <div>
-                        <p className="font-medium">{product.name}</p>
-                        <p className="text-sm text-muted-foreground">{allCategories.find(c => c.id === product.category)?.name || 'Uncategorized'}</p>
-                    </div>
-                    <Badge variant="outline" className="flex items-center gap-2">
-                        <Package className="h-3 w-3" />
-                        Stock: {product.stock}
-                    </Badge>
-                </div>
-             ))}
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Order</TableHead>
+                  <TableHead>Delivery Person</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Status</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {recentDeliveries.map(order => (
+                  <TableRow key={order.id}>
+                    <TableCell className="font-medium">
+                        <Link href={`/admin/orders/${order.id}`} className="hover:underline text-primary">{order.id.substring(0, 7)}...</Link>
+                    </TableCell>
+                    <TableCell>{order.deliveryPersonName}</TableCell>
+                    <TableCell>Rs{order.total.toFixed(2)}</TableCell>
+                    <TableCell>
+                       {order.paymentSubmitted ? (
+                        <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-white">
+                            <CheckCircle2 className="mr-1 h-3 w-3" /> Submitted
+                        </Badge>
+                      ) : (
+                         <Badge variant="secondary">
+                            <CircleDashed className="mr-1 h-3 w-3" /> Pending
+                        </Badge>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           </CardContent>
           <CardFooter>
-            <Button asChild variant="outline" className="w-full">
-                <Link href="/admin/products">View All Products</Link>
+             <Button asChild variant="outline" className="w-full">
+                <Link href="/admin/deliveries">View Delivery Log</Link>
             </Button>
           </CardFooter>
         </Card>
