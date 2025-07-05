@@ -278,7 +278,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
   }
   
   return isLoaded ? (
-    <div className="relative h-[350px] w-full bg-background overflow-hidden">
+    <div className="relative h-[400px] w-full bg-background overflow-hidden">
       <div className={cn("absolute inset-0 z-0")}>
         <GoogleMap
             mapContainerClassName="w-full h-full"
@@ -322,14 +322,14 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
             </div>
 
             <div className="absolute inset-x-0 bottom-0 z-10">
-              <div className="pointer-events-auto rounded-t-lg bg-background/90 p-4 shadow-lg backdrop-blur-sm">
+              <div className="pointer-events-auto rounded-t-lg bg-background/90 p-3 shadow-lg backdrop-blur-sm">
                 <div className="space-y-1">
                   <p className="font-semibold text-primary">Select delivery location</p>
-                  <p className={cn("text-sm text-muted-foreground", isGeocoding && "animate-pulse")}>
+                  <p className={cn("text-sm text-muted-foreground truncate", isGeocoding && "animate-pulse")}>
                     {isGeocoding ? 'Loading address...' : displayAddress}
                   </p>
                 </div>
-                <div className="mt-4 grid grid-cols-2 gap-2">
+                <div className="mt-3 grid grid-cols-2 gap-2">
                   <Button
                     variant="secondary"
                     className="w-full justify-center font-normal"
@@ -415,6 +415,6 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       )}
     </div>
   ) : (
-    <Skeleton className="h-[350px] w-full" />
+    <Skeleton className="h-[400px] w-full" />
   );
 }
