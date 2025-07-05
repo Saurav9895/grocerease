@@ -32,36 +32,15 @@ function debounce<F extends (...args: any[]) => any>(func: F, waitFor: number) {
 }
 
 const getPrimaryPlaceName = (place: google.maps.GeocoderResult): string => {
-  // Ordered list of types to check for the most specific name.
-  const nameOrder: string[] = [
-    'point_of_interest',
-    'establishment',
-    'premise',
-    'natural_feature',
-    'park',
-    'airport',
-    'university',
-    'transit_station',
-    'neighborhood',
-    'sublocality_level_1',
-    'sublocality',
-    'route', // Street name
-    'locality', // City
-    'administrative_area_level_1', // State
-  ];
-  for (const type of nameOrder) {
-    const component = place.address_components.find(c => c.types.includes(type));
-    if (component) {
-      return component.long_name;
+    // The first part of the formatted_address usually contains the most specific name (e.g., "BP Eye Hospital").
+    const primaryName = place.formatted_address?.split(',')[0];
+    
+    if (primaryName) {
+      return primaryName;
     }
-  }
-  
-  // Fallback to the first part of the formatted address if a good component type isn't found
-  const primaryNameFromFormatted = place.formatted_address?.split(',')[0];
-  if(primaryNameFromFormatted) return primaryNameFromFormatted;
-  
-  // Final fallback
-  return place.address_components[0]?.long_name || place.formatted_address || 'Unnamed place';
+    
+    // Fallback if formatted_address is unusual
+    return place.address_components[0]?.long_name || 'Unnamed place';
 };
 
 
