@@ -1,115 +1,121 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
     // Helper functions
-    function isSignedIn() {
-      return request.auth != null;
+    function getUserData(userId) {
+      return get(/databases/$(database)/documents/users/$(userId)).data;
     }
 
-    function getUserData(userId) {
-      let userDoc = get(/databases/$(database)/documents/users/$(userId));
-      return userDoc.exists ? userDoc.data : null;
+    function isUserAuthenticated(userId) {
+      return request.auth != null && request.auth.uid == userId;
     }
     
-    function isMainAdmin(userId) {
+    function isProfileOwner(userId) {
+      return isUserAuthenticated(userId);
+    }
+    
+    function userHasRole(userId, role) {
       let userData = getUserData(userId);
-      return isSignedIn() && userData != null && userData.adminRole == 'main';
+      return userData != null && userData.adminRole == role;
     }
 
-    function isStandardAdmin(userId) {
-      let userData = getUserData(userId);
-      return isSignedIn() && userData != null && userData.adminRole == 'standard';
+    function isMainAdmin(userId) {
+      return userHasRole(userId, 'main');
+    }
+    
+    function isAdmin(userId) {
+        let userData = getUserData(userId);
+        return userData != null && (userData.adminRole == 'main' || userData.adminRole == 'standard');
     }
     
     function isVendor(userId) {
-      let userData = getUserData(userId);
-      return isSignedIn() && userData != null && userData.adminRole == 'vendor';
-    }
-    
-    function isDeliveryPerson(userId) {
-        let userData = getUserData(userId);
-        return isSignedIn() && userData != null && userData.adminRole == 'delivery';
+        return userHasRole(userId, 'vendor');
     }
 
+    function isDeliveryPerson(userId) {
+        return userHasRole(userId, 'delivery');
+    }
+    
     function isStaff(userId) {
-      return isMainAdmin(userId) || isStandardAdmin(userId) || isDeliveryPerson(userId);
+        let userData = getUserData(userId);
+        return userData != null && userData.adminRole != null;
     }
-    
-    function isOwner(userId) {
-      return request.auth.uid == userId;
-    }
-    
-    // USERS collection
+
+    // Collection Rules
     match /users/{userId} {
-      allow read, update: if isSignedIn() && (isOwner(userId) || isMainAdmin(request.auth.uid));
-      allow create: if isSignedIn();
+      allow read: if isProfileOwner(userId) || isMainAdmin(request.auth.uid);
+      allow write: if isProfileOwner(userId);
+      allow create: if request.auth.uid == userId;
+      // Main admin can update roles
+      allow update: if isProfileOwner(userId) || isMainAdmin(request.auth.uid);
     }
     
-    // PRODUCTS collection
     match /products/{productId} {
-      allow read: if true;
-      allow create: if isSignedIn() && (isMainAdmin(request.auth.uid) || isVendor(request.auth.uid));
-      // Only the vendor who owns the product or a main admin can update/delete it.
-      allow update, delete: if isSignedIn() && (isMainAdmin(request.auth.uid) || (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId));
-      
-      // Reviews subcollection
-      match /reviews/{reviewId} {
         allow read: if true;
-        allow create: if isSignedIn();
-      }
+        allow create: if isVendor(request.auth.uid) && request.resource.data.vendorId == getUserData(request.auth.uid).vendorId;
+        allow update: if isMainAdmin(request.auth.uid) || (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId);
+        allow delete: if isMainAdmin(request.auth.uid) || (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId);
     }
-    
-    // CATEGORIES collection
+
+    match /products/{productId}/reviews/{reviewId} {
+        allow read: if true;
+        allow create: if request.auth != null;
+    }
+
     match /categories/{categoryId} {
         allow read: if true;
-        allow create, update: if isSignedIn() && (isMainAdmin(request.auth.uid) || isVendor(request.auth.uid) || isStandardAdmin(request.auth.uid));
-        allow delete: if isMainAdmin(request.auth.uid);
+        allow create: if request.auth != null && (
+                        isMainAdmin(request.auth.uid) || 
+                        (isVendor(request.auth.uid) && request.resource.data.vendorId == getUserData(request.auth.uid).vendorId)
+                      );
+        allow update: if request.auth != null && (
+                        isMainAdmin(request.auth.uid) ||
+                        (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId)
+                      );
+        allow delete: if request.auth != null && isMainAdmin(request.auth.uid);
     }
-
-    // ATTRIBUTES collection
+    
     match /attributes/{attributeId} {
         allow read: if true;
-        allow create, update: if isSignedIn() && (isMainAdmin(request.auth.uid) || isVendor(request.auth.uid) || isStandardAdmin(request.auth.uid));
-        allow delete: if isMainAdmin(request.auth.uid);
+        allow create: if request.auth != null && (
+                        isMainAdmin(request.auth.uid) || 
+                        (isVendor(request.auth.uid) && request.resource.data.vendorId == getUserData(request.auth.uid).vendorId)
+                      );
+        allow update: if request.auth != null && (
+                        isMainAdmin(request.auth.uid) ||
+                        (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId)
+                      );
+        allow delete: if request.auth != null && isMainAdmin(request.auth.uid);
     }
-    
-    // ORDERS collection
-    match /orders/{orderId} {
-      // Users can read their own orders.
-      // Vendors can read orders containing their products.
-      // Staff (admins/delivery) can read all orders.
-      allow read: if isSignedIn() && 
-                    (isOwner(resource.data.userId) || 
-                     isStaff(request.auth.uid) ||
-                     (isVendor(request.auth.uid) && getUserData(request.auth.uid).vendorId in resource.data.vendorIds));
 
-      allow create: if isSignedIn();
-      
-      // Only staff can update orders (e.g., change status, assign delivery).
-      allow update: if isSignedIn() && isStaff(request.auth.uid);
+    match /orders/{orderId} {
+      allow read: if request.auth != null && (
+                    resource.data.userId == request.auth.uid || 
+                    isStaff(request.auth.uid)
+                  );
+      allow create: if request.auth != null;
+      allow update: if request.auth != null && isStaff(request.auth.uid);
     }
     
-    // VENDORS collection
+    match /settings/{docId} {
+        allow read: if true;
+        allow write: if isMainAdmin(request.auth.uid);
+    }
+    
+    match /promocodes/{codeId} {
+        allow read: if true;
+        allow write: if isMainAdmin(request.auth.uid);
+    }
+
     match /vendors/{vendorId} {
       allow read: if true;
-      // Only main admins can create vendors (via the role assignment).
-      // Only the owner of the vendor profile or a main admin can update it.
-      allow create, update: if isSignedIn() && (isMainAdmin(request.auth.uid) || isOwner(resource.data.ownerId));
-    }
-
-    // SETTINGS collection
-    match /settings/{settingId} {
-        allow read: if true;
-        allow write: if isMainAdmin(request.auth.uid);
-    }
-    
-    // PROMOCODES collection
-    match /promocodes/{promoId} {
-        allow read: if true;
-        allow write: if isMainAdmin(request.auth.uid);
+      allow update: if request.auth != null && (
+                      isMainAdmin(request.auth.uid) ||
+                      (isVendor(request.auth.uid) && request.resource.data.ownerId == request.auth.uid)
+                    );
+      allow create: if request.auth != null && isMainAdmin(request.auth.uid);
     }
   }
 }
