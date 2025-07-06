@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/table";
 import type { Vendor } from "@/lib/types";
 import { format } from "date-fns";
+import { MapPin } from "lucide-react";
 
 export interface VendorWithProductCount extends Vendor {
     productCount: number;
@@ -29,6 +30,7 @@ export function VendorsTable({ vendors }: VendorsTableProps) {
           <TableRow>
             <TableHead>Vendor Name</TableHead>
             <TableHead>Owner Email</TableHead>
+            <TableHead>Location</TableHead>
             <TableHead className="text-center">Products</TableHead>
             <TableHead>Joined On</TableHead>
           </TableRow>
@@ -39,13 +41,33 @@ export function VendorsTable({ vendors }: VendorsTableProps) {
               <TableRow key={vendor.id}>
                 <TableCell className="font-medium">{vendor.name}</TableCell>
                 <TableCell>{vendor.ownerEmail}</TableCell>
+                <TableCell>
+                  {vendor.address && (vendor.address.street || vendor.address.city) ? (
+                    <div className="text-sm">
+                      <p className="truncate max-w-xs">{vendor.address.street}, {vendor.address.city}</p>
+                      {vendor.address.googleMapsUrl && (
+                        <a 
+                          href={vendor.address.googleMapsUrl} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="text-primary hover:underline text-xs flex items-center gap-1 mt-1"
+                        >
+                          <MapPin className="h-3 w-3" />
+                          View on Map
+                        </a>
+                      )}
+                    </div>
+                  ) : (
+                    <span className="text-muted-foreground text-xs">Not set</span>
+                  )}
+                </TableCell>
                 <TableCell className="text-center">{vendor.productCount}</TableCell>
                 <TableCell>{format(vendor.createdAt, 'PP')}</TableCell>
               </TableRow>
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={4} className="text-center h-24">
+              <TableCell colSpan={5} className="text-center h-24">
                 No vendors found.
               </TableCell>
             </TableRow>
