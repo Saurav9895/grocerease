@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { getCategories, getAttributes } from "@/lib/data";
+import { getCategories, getAttributes, createCategory } from "@/lib/data";
 import type { Product, Category, AttributeSet } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
@@ -20,6 +20,7 @@ import { PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Checkbox } from "../ui/checkbox";
 import { useAuth } from "@/context/AuthProvider";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -63,11 +64,17 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   // Base product state
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || 'https://placehold.co/600x400.png');
   const [attributes, setAttributes] = useState<Attribute[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   // Variant state
   const [isVariant, setIsVariant] = useState(false);
   const [variantAttributeName, setVariantAttributeName] = useState('');
   const [variants, setVariants] = useState<VariantRow[]>([]);
+
+  // Category creation state
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
 
 
   useEffect(() => {
@@ -86,6 +93,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     if (product) {
       setImageUrl(product.imageUrl);
       setAttributes(product.attributes ? Object.entries(product.attributes).map(([key, value], index) => ({ id: index, key, value })) : []);
+      setSelectedCategory(product.category);
       
       setIsVariant(product.isVariant || false);
       setVariantAttributeName(product.variantAttributeName || '');
@@ -107,11 +115,38 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       // Reset form for new product
       setImageUrl('https://placehold.co/600x400.png');
       setAttributes([]);
+      setSelectedCategory('');
       setIsVariant(false);
       setVariantAttributeName('');
       setVariants([]);
     }
   }, [product]);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      toast({ variant: 'destructive', title: 'Category name cannot be empty.' });
+      return;
+    }
+    setIsCreatingCategory(true);
+    try {
+      const newCategoryId = await createCategory({ name: newCategoryName });
+      toast({ title: 'Category Created', description: `"${newCategoryName}" has been successfully created.` });
+      
+      // Refetch categories and set the new one as selected
+      const freshCategories = await getCategories();
+      setCategories(freshCategories);
+      setSelectedCategory(newCategoryId);
+
+      setNewCategoryName('');
+      setIsCategoryDialogOpen(false);
+    } catch (error) {
+      console.error('Error creating category:', error);
+      toast({ variant: 'destructive', title: 'Creation Failed', description: 'Could not create the new category.' });
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
+
 
   const handleAddAttribute = () => {
     setAttributes(prev => [...prev, { id: Date.now(), key: '', value: '' }]);
@@ -316,16 +351,42 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select name="category" defaultValue={product?.category}>
-                    <SelectTrigger id="category">
-                        <SelectValue placeholder="Select a category" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {categories.map(cat => (
-                            <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
+                <div className="flex items-center gap-2">
+                    <Select name="category" value={selectedCategory} onValueChange={setSelectedCategory} required>
+                        <SelectTrigger id="category">
+                            <SelectValue placeholder="Select a category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {categories.map(cat => (
+                                <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                     <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                        <DialogTrigger asChild>
+                            <Button type="button" variant="outline" size="icon" className="shrink-0">
+                                <PlusCircle className="h-4 w-4"/>
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Create New Category</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-2 py-4">
+                                <Label htmlFor="new-category-name">Category Name</Label>
+                                <Input
+                                    id="new-category-name"
+                                    value={newCategoryName}
+                                    onChange={(e) => setNewCategoryName(e.target.value)}
+                                    placeholder="e.g., Organic Snacks"
+                                />
+                            </div>
+                            <Button type="button" onClick={handleCreateCategory} disabled={isCreatingCategory}>
+                                {isCreatingCategory ? "Creating..." : "Create Category"}
+                            </Button>
+                        </DialogContent>
+                    </Dialog>
+                </div>
               </div>
             </div>
           </Card>

@@ -2,6 +2,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
@@ -119,6 +120,31 @@ export async function getCategories(): Promise<Category[]> {
     console.error("Error fetching categories:", error);
     return [];
   }
+}
+
+export async function createCategory(data: { name: string; description?: string; imageUrl?: string }): Promise<string> {
+  try {
+    const dataToSave = {
+      name: data.name,
+      description: data.description || `Products in the ${data.name} category.`,
+      imageUrl: data.imageUrl || 'https://placehold.co/300x200.png',
+    };
+    const docRef = await addDoc(collection(db, "categories"), dataToSave);
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating category:", error);
+    throw error;
+  }
+}
+
+export async function updateCategory(id: string, data: Partial<Omit<Category, 'id'>>): Promise<void> {
+    try {
+        const categoryRef = doc(db, "categories", id);
+        await updateDoc(categoryRef, data);
+    } catch (error) {
+        console.error("Error updating category:", error);
+        throw error;
+    }
 }
 
 export async function getCategoryById(id: string): Promise<Category | null> {

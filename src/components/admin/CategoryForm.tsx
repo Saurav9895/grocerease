@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -9,9 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import type { Category } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
-import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, updateDoc } from "firebase/firestore";
-
+import { createCategory, updateCategory } from "@/lib/data";
 
 interface CategoryFormProps {
   category?: Category | null;
@@ -19,7 +18,6 @@ interface CategoryFormProps {
 }
 
 const categorySchema = z.object({
-  id: z.string().optional(),
   name: z.string().min(2, "Name must be at least 2 characters."),
   description: z.string().optional(),
   imageUrl: z.string().url("Please enter a valid image URL."),
@@ -58,10 +56,9 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
 
     try {
       if (isEditing && category) {
-        const categoryRef = doc(db, "categories", category.id);
-        await updateDoc(categoryRef, validatedFields.data);
+        await updateCategory(category.id, validatedFields.data);
       } else {
-        await addDoc(collection(db, "categories"), validatedFields.data);
+        await createCategory(validatedFields.data);
       }
 
       toast({
@@ -93,7 +90,6 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="grid md:grid-cols-2 gap-6">
-      {isEditing && <input type="hidden" name="id" value={category.id} />}
       
       {/* Left Column */}
       <div className="space-y-4">
