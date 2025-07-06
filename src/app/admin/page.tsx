@@ -2,11 +2,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getOrders, getProducts, getCategories, getDeliveredOrders } from "@/lib/data";
-import type { Order, Product, Category } from "@/lib/types";
+import { getOrders, getProducts, getCategories, getDeliveredOrders, getVendors } from "@/lib/data";
+import type { Order, Product, Category, Vendor } from "@/lib/types";
 import { useAuth } from "@/context/AuthProvider";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
-import { DollarSign, Package, ShoppingCart, Users, ClipboardCheck, BarChartBig, LayoutList, History, CheckCircle2, CircleDashed } from "lucide-react";
+import { DollarSign, Package, ShoppingCart, Users, ClipboardCheck, BarChartBig, LayoutList, History, CheckCircle2, CircleDashed, Store } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -23,7 +23,8 @@ export default function AdminDashboardPage() {
     allOrders: Order[],
     allProducts: Product[],
     allCategories: Category[],
-    recentDeliveries: Order[]
+    recentDeliveries: Order[],
+    allVendors: Vendor[],
   } | null>(null);
 
   useEffect(() => {
@@ -32,20 +33,22 @@ export default function AdminDashboardPage() {
         setIsLoading(true);
 
         const isVendor = profile.adminRole === 'vendor';
+        const isMainAdmin = profile.adminRole === 'main';
         const fetchOptions = {
           vendorId: isVendor ? profile.vendorId : undefined,
         };
         
-        const [recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries] = await Promise.all([
+        const [recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries, allVendors] = await Promise.all([
           getOrders({ limit: 5, ...fetchOptions }),
           getProducts({ limit: 5, ...fetchOptions }),
           getOrders(fetchOptions),
           getProducts(fetchOptions),
           getCategories(),
           getDeliveredOrders({ limit: 5, ...fetchOptions }),
+          isMainAdmin ? getVendors() : Promise.resolve([]),
         ]);
 
-        setData({ recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries });
+        setData({ recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries, allVendors });
         setIsLoading(false);
       };
       fetchData();
@@ -70,10 +73,11 @@ export default function AdminDashboardPage() {
     );
   }
   
-  const { recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries } = data;
+  const { recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries, allVendors } = data;
   const totalRevenue = allOrders.reduce((sum, order) => sum + order.total, 0);
   const totalSales = allOrders.length;
   const totalProducts = allProducts.length;
+  const totalVendors = allVendors.length;
   
   const uniqueCustomerIds = [...new Set(allOrders.map(o => o.userId))];
   const totalCustomers = uniqueCustomerIds.length;
@@ -123,16 +127,18 @@ export default function AdminDashboardPage() {
             <p className="text-xs text-muted-foreground">+5% (Mock)</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">New Orders</CardTitle>
-            <BarChartBig className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalSales}</div>
-            <p className="text-xs text-muted-foreground">-2% (Mock)</p>
-          </CardContent>
-        </Card>
+        {profile?.adminRole === 'main' && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Vendors</CardTitle>
+              <Store className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">+{totalVendors}</div>
+              <p className="text-xs text-muted-foreground">+2 since last month (Mock)</p>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       <div className="grid gap-8 md:grid-cols-2">

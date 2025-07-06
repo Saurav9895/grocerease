@@ -1,12 +1,4 @@
 
-
-
-
-
-
-
-
-
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint, writeBatch } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
@@ -1033,6 +1025,18 @@ export async function getVendorById(vendorId: string): Promise<Vendor | null> {
         console.error("Error fetching vendor:", error);
         return null;
     }
+}
+
+export async function getVendors(): Promise<Vendor[]> {
+  try {
+    const vendorsCol = collection(db, 'vendors');
+    const q = query(vendorsCol, orderBy('createdAt', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(docToVendor);
+  } catch (error) {
+    console.error("Error fetching vendors:", error);
+    return [];
+  }
 }
 
 export async function updateVendorDetails(vendorId: string, data: { name: string; description: string }): Promise<void> {

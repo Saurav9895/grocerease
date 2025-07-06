@@ -241,6 +241,7 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
               <TableHead className="w-[80px]">Image</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Category</TableHead>
+              <TableHead>Vendor</TableHead>
               <TableHead className="text-right">Price</TableHead>
               <TableHead className="text-right">Stock</TableHead>
               <TableHead className="w-[50px]">Actions</TableHead>
@@ -266,6 +267,7 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
                     </Link>
                   </TableCell>
                   <TableCell><Badge variant="outline">{categoryMap.get(product.category) || product.category}</Badge></TableCell>
+                  <TableCell>{product.vendorName}</TableCell>
                   <TableCell className="text-right">Rs{product.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">{product.stock}</TableCell>
                   <TableCell>
@@ -303,7 +305,7 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center h-24">
+                <TableCell colSpan={8} className="text-center h-24">
                   No products found. Add one to get started!
                 </TableCell>
               </TableRow>
