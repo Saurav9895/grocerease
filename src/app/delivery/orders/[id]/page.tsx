@@ -273,7 +273,7 @@ export default function DeliveryOrderDetailPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Product</TableHead>
-                    <TableHead>Vendor</TableHead>
+                    <TableHead>Vendor &amp; Pickup Location</TableHead>
                     <TableHead>Quantity</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -286,11 +286,14 @@ export default function DeliveryOrderDetailPage() {
                         <span className="font-medium">{item.name}</span>
                       </TableCell>
                       <TableCell>
-                        {item.vendorName}
+                        <p className="font-medium">{item.vendorName}</p>
                         {vendor?.address?.street && (
                             <div className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
                                 <Building className="h-3 w-3 mt-0.5 shrink-0" />
-                                <span>Pickup: {vendor.address.street}, {vendor.address.city}</span>
+                                <div>
+                                    <p>{vendor.address.apartment && `${vendor.address.apartment}, `}{vendor.address.street}</p>
+                                    <p>{vendor.address.city}, {vendor.address.state} {vendor.address.zip}</p>
+                                </div>
                             </div>
                         )}
                       </TableCell>

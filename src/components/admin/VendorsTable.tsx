@@ -44,7 +44,8 @@ export function VendorsTable({ vendors }: VendorsTableProps) {
                 <TableCell>
                   {vendor.address && (vendor.address.street || vendor.address.city) ? (
                     <div className="text-sm">
-                      <p className="truncate max-w-xs">{vendor.address.street}, {vendor.address.city}</p>
+                        <p className="font-medium">{vendor.address.apartment && `${vendor.address.apartment}, `}{vendor.address.street}</p>
+                        <p className="text-muted-foreground">{vendor.address.city}, {vendor.address.state} {vendor.address.zip}</p>
                       {vendor.address.googleMapsUrl && (
                         <a 
                           href={vendor.address.googleMapsUrl} 
