@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Store, MapPin } from "lucide-react";
 import { Separator } from "../ui/separator";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
 import dynamic from 'next/dynamic';
 
 const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
