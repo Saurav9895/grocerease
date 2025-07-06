@@ -27,7 +27,11 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
 
             <div className="flex-grow flex flex-col justify-center text-left">
-              <p className="text-xs text-muted-foreground">{product.vendorName}</p>
+              <p className="text-xs text-muted-foreground">
+                <Link href={`/vendor/${product.vendorId}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
+                    {product.vendorName}
+                </Link>
+              </p>
               <h3 className="text-lg font-bold leading-tight">{product.name}</h3>
             </div>
 

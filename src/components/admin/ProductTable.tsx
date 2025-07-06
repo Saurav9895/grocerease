@@ -267,7 +267,11 @@ export function ProductTable({ products, categories, onDataChanged }: ProductTab
                     </Link>
                   </TableCell>
                   <TableCell><Badge variant="outline">{categoryMap.get(product.category) || product.category}</Badge></TableCell>
-                  <TableCell>{product.vendorName}</TableCell>
+                  <TableCell>
+                    <Link href={`/vendor/${product.vendorId}`} target="_blank" className="hover:underline text-primary">
+                      {product.vendorName}
+                    </Link>
+                  </TableCell>
                   <TableCell className="text-right">Rs{product.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">{product.stock}</TableCell>
                   <TableCell>

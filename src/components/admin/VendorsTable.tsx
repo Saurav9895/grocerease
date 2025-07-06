@@ -12,6 +12,7 @@ import {
 import type { Vendor } from "@/lib/types";
 import { format } from "date-fns";
 import { MapPin } from "lucide-react";
+import Link from "next/link";
 
 export interface VendorWithProductCount extends Vendor {
     productCount: number;
@@ -39,7 +40,11 @@ export function VendorsTable({ vendors }: VendorsTableProps) {
           {vendors.length > 0 ? (
             vendors.map((vendor) => (
               <TableRow key={vendor.id}>
-                <TableCell className="font-medium">{vendor.name}</TableCell>
+                <TableCell className="font-medium">
+                  <Link href={`/vendor/${vendor.id}`} className="hover:underline text-primary" target="_blank" rel="noopener noreferrer">
+                    {vendor.name}
+                  </Link>
+                </TableCell>
                 <TableCell>{vendor.ownerEmail}</TableCell>
                 <TableCell>
                   {vendor.address && (vendor.address.street || vendor.address.city) ? (
