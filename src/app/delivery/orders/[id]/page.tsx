@@ -259,30 +259,32 @@ export default function DeliveryOrderDetailPage() {
           </div>
 
           <Card>
-                <CardHeader>
-                  <CardTitle>Order Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Quantity</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {order.items.map(item => (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <span className="font-medium">{item.name}</span>
-                          </TableCell>
-                          <TableCell>x{item.quantity}</TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </CardContent>
-              </Card>
+            <CardHeader>
+              <CardTitle>Order Items</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Product</TableHead>
+                    <TableHead>Vendor</TableHead>
+                    <TableHead>Quantity</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {order.items.map(item => (
+                    <TableRow key={item.id}>
+                      <TableCell>
+                        <span className="font-medium">{item.name}</span>
+                      </TableCell>
+                      <TableCell>{item.vendorName}</TableCell>
+                      <TableCell>x{item.quantity}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
       </div>
       <AlertDialog open={isOtpDialogOpen} onOpenChange={setIsOtpDialogOpen}>
         <AlertDialogContent>
