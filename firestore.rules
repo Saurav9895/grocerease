@@ -1,121 +1,94 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // Helper functions
-    function getUserData(userId) {
-      return get(/databases/$(database)/documents/users/$(userId)).data;
+    // --- Helper Functions ---
+    function isAuthed() {
+      return request.auth != null;
     }
 
-    function isUserAuthenticated(userId) {
-      return request.auth != null && request.auth.uid == userId;
-    }
-    
-    function isProfileOwner(userId) {
-      return isUserAuthenticated(userId);
-    }
-    
-    function userHasRole(userId, role) {
-      let userData = getUserData(userId);
-      return userData != null && userData.adminRole == role;
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
     }
 
-    function isMainAdmin(userId) {
-      return userHasRole(userId, 'main');
-    }
-    
-    function isAdmin(userId) {
-        let userData = getUserData(userId);
-        return userData != null && (userData.adminRole == 'main' || userData.adminRole == 'standard');
-    }
-    
-    function isVendor(userId) {
-        return userHasRole(userId, 'vendor');
+    function getUserData() {
+      return getUserDoc().data;
     }
 
-    function isDeliveryPerson(userId) {
-        return userHasRole(userId, 'delivery');
-    }
-    
-    function isStaff(userId) {
-        let userData = getUserData(userId);
-        return userData != null && userData.adminRole != null;
+    function isOwner(userId) {
+      return request.auth.uid == userId;
     }
 
-    // Collection Rules
-    match /users/{userId} {
-      allow read: if isProfileOwner(userId) || isMainAdmin(request.auth.uid);
-      allow write: if isProfileOwner(userId);
-      allow create: if request.auth.uid == userId;
-      // Main admin can update roles
-      allow update: if isProfileOwner(userId) || isMainAdmin(request.auth.uid);
+    function hasRole(role) {
+      return isAuthed() && exists(/databases/$(database)/documents/users/$(request.auth.uid)) && getUserData().adminRole == role;
     }
-    
+
+    // --- Collection Rules ---
+
     match /products/{productId} {
-        allow read: if true;
-        allow create: if isVendor(request.auth.uid) && request.resource.data.vendorId == getUserData(request.auth.uid).vendorId;
-        allow update: if isMainAdmin(request.auth.uid) || (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId);
-        allow delete: if isMainAdmin(request.auth.uid) || (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId);
-    }
-
-    match /products/{productId}/reviews/{reviewId} {
-        allow read: if true;
-        allow create: if request.auth != null;
+      allow read;
+      allow write: if hasRole('main') || hasRole('standard') ||
+                     (hasRole('vendor') && request.resource.data.vendorId == getUserData().vendorId);
     }
 
     match /categories/{categoryId} {
-        allow read: if true;
-        allow create: if request.auth != null && (
-                        isMainAdmin(request.auth.uid) || 
-                        (isVendor(request.auth.uid) && request.resource.data.vendorId == getUserData(request.auth.uid).vendorId)
-                      );
-        allow update: if request.auth != null && (
-                        isMainAdmin(request.auth.uid) ||
-                        (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId)
-                      );
-        allow delete: if request.auth != null && isMainAdmin(request.auth.uid);
+      allow read;
+      allow create: if hasRole('main') || (hasRole('vendor') && request.resource.data.vendorId == getUserData().vendorId);
+      allow update, delete: if hasRole('main') || (hasRole('vendor') && resource.data.vendorId == getUserData().vendorId);
     }
-    
+
     match /attributes/{attributeId} {
-        allow read: if true;
-        allow create: if request.auth != null && (
-                        isMainAdmin(request.auth.uid) || 
-                        (isVendor(request.auth.uid) && request.resource.data.vendorId == getUserData(request.auth.uid).vendorId)
-                      );
-        allow update: if request.auth != null && (
-                        isMainAdmin(request.auth.uid) ||
-                        (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId)
-                      );
-        allow delete: if request.auth != null && isMainAdmin(request.auth.uid);
+      allow read;
+      allow create: if hasRole('main') || (hasRole('vendor') && request.resource.data.vendorId == getUserData().vendorId);
+      allow update, delete: if hasRole('main') || (hasRole('vendor') && resource.data.vendorId == getUserData().vendorId);
     }
 
     match /orders/{orderId} {
-      allow read: if request.auth != null && (
-                    resource.data.userId == request.auth.uid || 
-                    isStaff(request.auth.uid)
-                  );
-      allow create: if request.auth != null;
-      allow update: if request.auth != null && isStaff(request.auth.uid);
+      allow create: if isAuthed();
+
+      // Check if the current user is a vendor for the order being accessed.
+      function isVendorForThisOrder() {
+        return hasRole('vendor') &&
+               'vendorIds' in resource.data &&
+               getUserData().vendorId in resource.data.vendorIds;
+      }
+
+      allow read: if isOwner(resource.data.userId) || hasRole('main') || hasRole('standard') || hasRole('delivery') || isVendorForThisOrder();
+      
+      // Allow admins and delivery people to update.
+      // Allow vendors to update IF they are part of the order.
+      allow update: if hasRole('main') || hasRole('standard') || hasRole('delivery') || isVendorForThisOrder();
     }
-    
-    match /settings/{docId} {
-        allow read: if true;
-        allow write: if isMainAdmin(request.auth.uid);
+
+    match /promocodes/{promoId} {
+      allow read;
+      allow write: if hasRole('main');
     }
-    
-    match /promocodes/{codeId} {
-        allow read: if true;
-        allow write: if isMainAdmin(request.auth.uid);
+
+    match /settings/{settingId} {
+      allow read;
+      allow write: if hasRole('main');
     }
 
     match /vendors/{vendorId} {
-      allow read: if true;
-      allow update: if request.auth != null && (
-                      isMainAdmin(request.auth.uid) ||
-                      (isVendor(request.auth.uid) && request.resource.data.ownerId == request.auth.uid)
-                    );
-      allow create: if request.auth != null && isMainAdmin(request.auth.uid);
+      allow read;
+      // Main admin creates vendors by assigning the 'vendor' role to a user.
+      allow create: if hasRole('main');
+      // Vendor can update their own profile.
+      allow update: if hasRole('main') || (hasRole('vendor') && resource.id == getUserData().vendorId);
+    }
+
+    match /users/{userId} {
+      allow create: if isOwner(userId);
+      // Users can manage their own profile. Main admin can read/update any profile.
+      allow read, update: if isOwner(userId) || hasRole('main');
+    }
+
+    match /products/{productId}/reviews/{reviewId} {
+      allow read;
+      allow create: if isAuthed();
     }
   }
 }
