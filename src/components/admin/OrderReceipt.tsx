@@ -31,7 +31,7 @@ export const OrderReceipt = ({ order }: { order: Order }) => {
         <p>{order.address.country}</p>
         <p>Phone: {order.address.phone}</p>
          {order.address.googleMapsUrl && (
-            <p className="text-xs">Map Link: <a href={order.address.googleMapsUrl} className="text-blue-600 underline break-all">{order.address.googleMapsUrl}</a></p>
+            <p className="text-xs">Map Link: <a href={order.address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline break-all">{order.address.googleMapsUrl}</a></p>
         )}
       </div>
       
