@@ -22,6 +22,8 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         rating: data.rating || 0,
         reviewCount: data.reviewCount || 0,
         attributes: data.attributes || {},
+        
+        // New Variant Structure
         hasVariants: data.hasVariants || false,
         variantDefinitions: data.variantDefinitions || [],
         variantSKUs: data.variantSKUs || [],
@@ -241,6 +243,11 @@ export async function getProducts(options: { limit?: number, vendorId?: string }
     console.error("Error fetching products:", error);
     return [];
   }
+}
+
+export async function getProductsByVendor(vendorId: string): Promise<Product[]> {
+  if (!vendorId) return [];
+  return getProducts({ vendorId });
 }
 
 

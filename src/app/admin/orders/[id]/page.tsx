@@ -182,6 +182,7 @@ export default function OrderDetailPage() {
                     <TableRow>
                       <TableHead className="w-[80px]">Image</TableHead>
                       <TableHead>Product</TableHead>
+                      <TableHead>Vendor</TableHead>
                       <TableHead>Quantity</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">Total</TableHead>
@@ -196,6 +197,11 @@ export default function OrderDetailPage() {
                         <TableCell>
                           <Link href={`/product/${item.productId}`} target="_blank" className="font-medium hover:underline text-primary">
                             {item.name}
+                          </Link>
+                        </TableCell>
+                        <TableCell>
+                           <Link href={`/vendor/${item.vendorId}`} className="font-medium hover:underline text-primary">
+                            {item.vendorName}
                           </Link>
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
