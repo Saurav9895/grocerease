@@ -1,95 +1,107 @@
-
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-
+    
     // Helper functions
     function isAuth() {
       return request.auth != null;
     }
-
+    
     function isAdmin() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main' ||
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'standard';
     }
     
-    function isStaff() {
-        return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole in ['main', 'standard', 'delivery'];
+    function isMainAdmin() {
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
+    }
+    
+    function isDeliveryPerson() {
+       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'delivery';
     }
 
     function isVendor() {
-      return isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'vendor';
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'vendor';
     }
 
     function getVendorId() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.vendorId;
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.vendorId;
     }
 
-
-    // USER PROFILES
     match /users/{userId} {
-      // Users can read their own profile. Staff can read any profile (e.g. for delivery info)
-      allow read: if isAuth() && (request.auth.uid == userId || isStaff());
-      // Main admins can update any user's profile (e.g., to grant roles)
-      allow update: if isAuth() && (isAdmin() || request.auth.uid == userId);
-    }
-
-    // PRODUCTS
-    match /products/{productId} {
-      allow read: if true;
-      // Write access for the product's vendor or a main admin
-      allow write: if isAuth() && (
-        (isVendor() && getVendorId() == request.resource.data.vendorId)
-        || isAdmin()
-      );
-    }
-
-    // CATEGORIES & ATTRIBUTES
-    match /categories/{categoryId} {
-       allow read: if true;
-       allow write: if isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole in ['main', 'standard'];
-    }
-    
-    match /attributes/{attributeId} {
-       allow read: if true;
-       allow write: if isAuth() && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole in ['main', 'standard'];
-    }
-
-    // REVIEWS
-    match /products/{productId}/reviews/{reviewId} {
-      allow read: if true;
+      // Users can read their own profile, and admins can read any profile.
+      allow read: if isAuth() && (request.auth.uid == userId || isMainAdmin());
+      // Users can update their own profile (e.g. name, phone, address). Admins can update any profile (e.g. roles).
+      allow update: if isAuth() && (request.auth.uid == userId || isMainAdmin());
+      // Allow new user creation.
       allow create: if isAuth();
-      allow update, delete: if false;
     }
 
-    // ORDERS
+    match /products/{productId} {
+      // Anyone can read products.
+      allow read: if true;
+      // Admins or the product's own vendor can create products.
+      allow create: if isAuth() && (isAdmin() || (isVendor() && request.resource.data.vendorId == getVendorId()));
+      // Admins or the product's own vendor can update products.
+      allow update: if isAuth() && (isAdmin() || (isVendor() && resource.data.vendorId == getVendorId()));
+      // Admins or the product's own vendor can delete products.
+      allow delete: if isAuth() && (isAdmin() || (isVendor() && resource.data.vendorId == getVendorId()));
+      
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isAuth();
+      }
+    }
+    
+    match /categories/{categoryId} {
+      // Anyone can read categories.
+      allow read: if true;
+      // Only admins can write to categories.
+      allow write: if isAuth() && isAdmin();
+    }
+
+    match /attributes/{attributeId} {
+      // Anyone can read attributes.
+      allow read: if true;
+      // Only admins can write to attributes.
+      allow write: if isAuth() && isAdmin();
+    }
+    
     match /orders/{orderId} {
-      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
-      // Customers can read their own orders. Staff can read any order. Vendors can read orders containing their items.
-      allow read: if isAuth() && (
-        resource.data.userId == request.auth.uid ||
-        isStaff() ||
-        (isVendor() && getVendorId() in resource.data.vendorIds)
-      );
-      // Only staff can update orders.
-      allow update: if isStaff();
+      // User can read their own orders. Admins can read all. Delivery people can read assigned orders.
+      // Vendors can read orders containing their products.
+      allow read: if isAuth() && 
+                    (resource.data.userId == request.auth.uid || 
+                     isAdmin() || 
+                     (isDeliveryPerson() && resource.data.deliveryPersonId == request.auth.uid) ||
+                     (isVendor() && getVendorId() in resource.data.vendorIds));
+      
+      // Users can create orders.
+      allow create: if isAuth();
+      
+      // Admins and delivery people can update orders.
+      allow update: if isAuth() && (isAdmin() || isDeliveryPerson());
     }
-    
-    // SETTINGS
+
     match /settings/{settingId} {
-        allow read, write: if isAdmin();
+      // Anyone can read settings.
+      allow read: if true;
+      // Only main admins can write to settings.
+      allow write: if isAuth() && isMainAdmin();
     }
-    
-    // PROMO CODES
-    match /promocodes/{promoId} {
-        allow read: if isAuth();
-        allow write: if isAdmin();
+
+    match /promocodes/{codeId} {
+      // Users need to read codes to validate them.
+      allow read: if isAuth();
+      // Only main admins can create/delete promo codes.
+      allow write: if isAuth() && isMainAdmin();
     }
-    
-    // VENDORS
+
     match /vendors/{vendorId} {
         allow read: if true;
-        allow write: if isAdmin();
+        allow write: if isAuth() && (isMainAdmin() || (isVendor() && resource.data.ownerId == request.auth.uid));
     }
   }
 }

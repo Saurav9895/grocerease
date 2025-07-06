@@ -33,7 +33,7 @@ export default function OrderDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { id } = params;
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const { toast } = useToast();
 
   const [order, setOrder] = useState<Order | null>(null);
@@ -59,13 +59,17 @@ export default function OrderDetailPage() {
   useEffect(() => {
     if (user && typeof id === 'string') {
       fetchOrder(id);
-      const fetchDeliveryPersons = async () => {
-        const persons = await getDeliveryPersons();
-        setDeliveryPersons(persons);
-      };
-      fetchDeliveryPersons();
+      
+      // Only fetch delivery persons if the user is an admin
+      if (profile && (profile.adminRole === 'main' || profile.adminRole === 'standard')) {
+        const fetchDeliveryPersons = async () => {
+          const persons = await getDeliveryPersons();
+          setDeliveryPersons(persons);
+        };
+        fetchDeliveryPersons();
+      }
     }
-  }, [id, user]);
+  }, [id, user, profile]);
   
   const handleStatusUpdate = async () => {
     if (!order || !selectedStatus || selectedStatus === order.status) return;
@@ -259,37 +263,40 @@ export default function OrderDetailPage() {
                   </Button>
               </CardFooter>
             </Card>
+            
+            {(profile?.adminRole === 'main' || profile?.adminRole === 'standard') && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assign Delivery</CardTitle>
+                  {order.deliveryPersonName && (
+                    <CardDescription>
+                      Currently assigned to: <b>{order.deliveryPersonName}</b>
+                    </CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <Label htmlFor="delivery-person-select">Delivery Person</Label>
+                    <Select value={selectedDeliveryPersonId} onValueChange={setSelectedDeliveryPersonId}>
+                      <SelectTrigger id="delivery-person-select">
+                        <SelectValue placeholder="Select a person..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {deliveryPersons.map(person => (
+                          <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Button className="w-full" onClick={handleAssignDeliveryPerson} disabled={isAssigning || !selectedDeliveryPersonId || selectedDeliveryPersonId === order.deliveryPersonId}>
+                      {isAssigning ? "Assigning..." : "Assign"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Assign Delivery</CardTitle>
-                {order.deliveryPersonName && (
-                  <CardDescription>
-                    Currently assigned to: <b>{order.deliveryPersonName}</b>
-                  </CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <Label htmlFor="delivery-person-select">Delivery Person</Label>
-                  <Select value={selectedDeliveryPersonId} onValueChange={setSelectedDeliveryPersonId}>
-                    <SelectTrigger id="delivery-person-select">
-                      <SelectValue placeholder="Select a person..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {deliveryPersons.map(person => (
-                        <SelectItem key={person.id} value={person.id}>{person.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </CardContent>
-              <CardFooter>
-                 <Button className="w-full" onClick={handleAssignDeliveryPerson} disabled={isAssigning || !selectedDeliveryPersonId || selectedDeliveryPersonId === order.deliveryPersonId}>
-                    {isAssigning ? "Assigning..." : "Assign"}
-                 </Button>
-              </CardFooter>
-            </Card>
 
             <Card>
               <CardHeader>
