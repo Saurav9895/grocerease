@@ -18,24 +18,31 @@ import { AttributeForm } from "@/components/admin/AttributeForm";
 
 
 export default function AdminAttributesPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [attributes, setAttributes] = useState<AttributeSet[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedAttribute, setSelectedAttribute] = useState<AttributeSet | null>(null);
 
   const fetchAttributes = async () => {
+    if (!profile) return;
     setIsLoading(true);
-    const allAttributes = await getAttributes();
+
+    const fetchOptions: { vendorId?: string } = {};
+    if (profile.adminRole === 'vendor' && profile.vendorId) {
+        fetchOptions.vendorId = profile.vendorId;
+    }
+    
+    const allAttributes = await getAttributes(fetchOptions);
     setAttributes(allAttributes);
     setIsLoading(false);
   };
   
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       fetchAttributes();
     }
-  }, [user]);
+  }, [user, profile]);
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
@@ -69,7 +76,7 @@ export default function AdminAttributesPage() {
           <DialogHeader>
             <DialogTitle>{selectedAttribute ? 'Edit Attribute' : 'Add New Attribute'}</DialogTitle>
           </DialogHeader>
-          <AttributeForm attributeSet={selectedAttribute} onSuccess={handleFormSuccess} />
+          <AttributeForm attributeSet={selectedAttribute} onSuccess={handleFormSuccess} profile={profile} />
         </DialogContent>
       </Dialog>
       

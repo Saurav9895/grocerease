@@ -79,15 +79,22 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
 
   useEffect(() => {
     const fetchInitialData = async () => {
+      const fetchOptions: { vendorId?: string } = {};
+      if (profile?.adminRole === 'vendor' && profile.vendorId) {
+          fetchOptions.vendorId = profile.vendorId;
+      }
+      
       const [fetchedCategories, fetchedAttributes] = await Promise.all([
-        getCategories(),
-        getAttributes(),
+        getCategories(fetchOptions),
+        getAttributes(fetchOptions),
       ]);
       setCategories(fetchedCategories);
       setAllAttributeSets(fetchedAttributes);
     };
-    fetchInitialData();
-  }, []);
+    if (profile) {
+      fetchInitialData();
+    }
+  }, [profile]);
 
   useEffect(() => {
     if (product) {
@@ -129,11 +136,16 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     }
     setIsCreatingCategory(true);
     try {
-      const newCategoryId = await createCategory({ name: newCategoryName });
+      const vendorId = profile?.adminRole === 'vendor' ? profile.vendorId : null;
+      const newCategoryId = await createCategory({ name: newCategoryName }, vendorId);
       toast({ title: 'Category Created', description: `"${newCategoryName}" has been successfully created.` });
       
       // Refetch categories and set the new one as selected
-      const freshCategories = await getCategories();
+      const fetchOptions: { vendorId?: string } = {};
+      if (profile?.adminRole === 'vendor' && profile.vendorId) {
+          fetchOptions.vendorId = profile.vendorId;
+      }
+      const freshCategories = await getCategories(fetchOptions);
       setCategories(freshCategories);
       setSelectedCategory(newCategoryId);
 

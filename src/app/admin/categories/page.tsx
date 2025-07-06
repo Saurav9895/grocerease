@@ -18,24 +18,31 @@ import { CategoryForm } from "@/components/admin/CategoryForm";
 
 
 export default function AdminCategoriesPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<Category | null>(null);
 
   const fetchCategories = async () => {
+    if (!profile) return;
     setIsLoading(true);
-    const allCategories = await getCategories();
+
+    const fetchOptions: { vendorId?: string } = {};
+    if (profile.adminRole === 'vendor' && profile.vendorId) {
+        fetchOptions.vendorId = profile.vendorId;
+    }
+
+    const allCategories = await getCategories(fetchOptions);
     setCategories(allCategories);
     setIsLoading(false);
   };
   
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       fetchCategories();
     }
-  }, [user]);
+  }, [user, profile]);
 
   const handleFormSuccess = () => {
     setIsFormOpen(false);
@@ -69,7 +76,7 @@ export default function AdminCategoriesPage() {
           <DialogHeader>
             <DialogTitle>{selectedCategory ? 'Edit Category' : 'Add New Category'}</DialogTitle>
           </DialogHeader>
-          <CategoryForm category={selectedCategory} onSuccess={handleFormSuccess} />
+          <CategoryForm category={selectedCategory} onSuccess={handleFormSuccess} profile={profile} />
         </DialogContent>
       </Dialog>
       

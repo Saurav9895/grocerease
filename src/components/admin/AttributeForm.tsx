@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import type { AttributeSet } from "@/lib/types";
+import type { AttributeSet, UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { createAttribute, updateAttribute } from "@/lib/data";
@@ -12,13 +12,14 @@ import { createAttribute, updateAttribute } from "@/lib/data";
 interface AttributeFormProps {
   attributeSet?: AttributeSet | null;
   onSuccess: () => void;
+  profile: UserProfile | null;
 }
 
 const attributeSetSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters."),
 });
 
-export function AttributeForm({ attributeSet, onSuccess }: AttributeFormProps) {
+export function AttributeForm({ attributeSet, onSuccess, profile }: AttributeFormProps) {
   const isEditing = !!attributeSet;
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -54,7 +55,8 @@ export function AttributeForm({ attributeSet, onSuccess }: AttributeFormProps) {
       if (isEditing && attributeSet) {
         await updateAttribute(attributeSet.id, validatedFields.data);
       } else {
-        await createAttribute(validatedFields.data);
+        const vendorId = profile?.adminRole === 'vendor' ? profile.vendorId : null;
+        await createAttribute(validatedFields.data, vendorId);
       }
 
       toast({

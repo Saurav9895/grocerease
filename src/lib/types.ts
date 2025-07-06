@@ -2,6 +2,7 @@
 
 
 
+
 export interface Vendor {
   id: string;
   name: string;
@@ -42,6 +43,7 @@ export interface Category {
   name: string;
   description: string;
   imageUrl: string;
+  vendorId?: string;
 }
 
 export interface CartItem extends Product {
@@ -135,6 +137,7 @@ export interface UserProfile {
 export interface AttributeSet {
   id: string;
   name: string; // e.g., "Weight", "Volume", "Brand"
+  vendorId?: string;
 }
 
 export interface GroupedDeliveries {

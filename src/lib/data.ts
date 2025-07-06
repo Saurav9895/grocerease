@@ -5,6 +5,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint, writeBatch } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
@@ -41,6 +42,7 @@ function docToCategory(doc: DocumentSnapshot<DocumentData>): Category {
         name: data.name,
         description: data.description || '',
         imageUrl: data.imageUrl || 'https://placehold.co/100x100.png',
+        vendorId: data.vendorId,
     };
 }
 
@@ -108,6 +110,7 @@ function docToAttributeSet(doc: DocumentSnapshot<DocumentData>): AttributeSet {
     return {
         id: doc.id,
         name: data.name,
+        vendorId: data.vendorId,
     };
 }
 
@@ -124,24 +127,50 @@ function docToVendor(doc: DocumentSnapshot<DocumentData>): Vendor {
 
 
 // == Data Fetching Functions ==
-export async function getCategories(): Promise<Category[]> {
+export async function getCategories(options: { vendorId?: string } = {}): Promise<Category[]> {
   try {
     const categoriesCol = collection(db, 'categories');
-    const q = query(categoriesCol, orderBy('name'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(docToCategory);
+    let categories: Category[] = [];
+
+    if (options.vendorId) {
+      // Fetch global categories (no vendorId or vendorId is null)
+      const globalQuery = query(categoriesCol, where('vendorId', '==', null), orderBy('name'));
+      const globalSnapshot = await getDocs(globalQuery);
+      const globalCategories = globalSnapshot.docs.map(docToCategory);
+
+      // Fetch vendor-specific categories
+      const vendorQuery = query(categoriesCol, where('vendorId', '==', options.vendorId), orderBy('name'));
+      const vendorSnapshot = await getDocs(vendorQuery);
+      const vendorCategories = vendorSnapshot.docs.map(docToCategory);
+
+      // Merge and deduplicate
+      const categoryMap = new Map<string, Category>();
+      [...globalCategories, ...vendorCategories].forEach(cat => categoryMap.set(cat.id, cat));
+      categories = Array.from(categoryMap.values());
+      categories.sort((a, b) => a.name.localeCompare(b.name));
+
+    } else {
+      // Fetch all categories for main admin or public site
+      const q = query(categoriesCol, orderBy('name'));
+      const snapshot = await getDocs(q);
+      categories = snapshot.docs.map(docToCategory);
+    }
+    
+    return categories;
+
   } catch (error) {
     console.error("Error fetching categories:", error);
     return [];
   }
 }
 
-export async function createCategory(data: { name: string; description?: string; imageUrl?: string }): Promise<string> {
+export async function createCategory(data: { name: string; description?: string; imageUrl?: string }, vendorId?: string | null): Promise<string> {
   try {
-    const dataToSave = {
+    const dataToSave: any = {
       name: data.name,
       description: data.description || `Products in the ${data.name} category.`,
       imageUrl: data.imageUrl || 'https://placehold.co/300x200.png',
+      vendorId: vendorId || null, // Ensure vendorId is always present, even if null
     };
     const docRef = await addDoc(collection(db, "categories"), dataToSave);
     return docRef.id;
@@ -828,21 +857,48 @@ export async function getOrdersForDeliveryPerson(deliveryPersonId: string): Prom
 
 // == Attribute Management Functions ==
 
-export async function getAttributes(): Promise<AttributeSet[]> {
+export async function getAttributes(options: { vendorId?: string } = {}): Promise<AttributeSet[]> {
   try {
     const attributesCol = collection(db, 'attributes');
-    const q = query(attributesCol, orderBy('name'));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(docToAttributeSet);
+    let attributes: AttributeSet[] = [];
+
+    if (options.vendorId) {
+      // Fetch global attributes (where vendorId is null)
+      const globalQuery = query(attributesCol, where('vendorId', '==', null), orderBy('name'));
+      const globalSnapshot = await getDocs(globalQuery);
+      const globalAttributes = globalSnapshot.docs.map(docToAttributeSet);
+
+      // Fetch vendor-specific attributes
+      const vendorQuery = query(attributesCol, where('vendorId', '==', options.vendorId), orderBy('name'));
+      const vendorSnapshot = await getDocs(vendorQuery);
+      const vendorAttributes = vendorSnapshot.docs.map(docToAttributeSet);
+      
+      // Merge and deduplicate
+      const attributeMap = new Map<string, AttributeSet>();
+      [...globalAttributes, ...vendorAttributes].forEach(attr => attributeMap.set(attr.id, attr));
+      attributes = Array.from(attributeMap.values());
+      attributes.sort((a, b) => a.name.localeCompare(b.name));
+    } else {
+      // Fetch all for admin or public site
+      const q = query(attributesCol, orderBy('name'));
+      const snapshot = await getDocs(q);
+      attributes = snapshot.docs.map(docToAttributeSet);
+    }
+
+    return attributes;
   } catch (error) {
     console.error("Error fetching attributes:", error);
     return [];
   }
 }
 
-export async function createAttribute(data: { name: string }): Promise<void> {
+export async function createAttribute(data: { name: string }, vendorId?: string | null): Promise<void> {
   try {
-    await addDoc(collection(db, 'attributes'), data);
+    const dataToSave = {
+        ...data,
+        vendorId: vendorId || null,
+    };
+    await addDoc(collection(db, 'attributes'), dataToSave);
   } catch (error) {
     console.error("Error creating attribute:", error);
     throw error;

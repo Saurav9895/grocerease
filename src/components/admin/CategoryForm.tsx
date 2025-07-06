@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import type { Category } from "@/lib/types";
+import type { Category, UserProfile } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { createCategory, updateCategory } from "@/lib/data";
@@ -15,6 +15,7 @@ import { createCategory, updateCategory } from "@/lib/data";
 interface CategoryFormProps {
   category?: Category | null;
   onSuccess: () => void;
+  profile: UserProfile | null;
 }
 
 const categorySchema = z.object({
@@ -23,7 +24,7 @@ const categorySchema = z.object({
   imageUrl: z.string().url("Please enter a valid image URL."),
 });
 
-export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
+export function CategoryForm({ category, onSuccess, profile }: CategoryFormProps) {
   const isEditing = !!category;
   const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState(category?.imageUrl || 'https://placehold.co/100x100.png');
@@ -58,7 +59,8 @@ export function CategoryForm({ category, onSuccess }: CategoryFormProps) {
       if (isEditing && category) {
         await updateCategory(category.id, validatedFields.data);
       } else {
-        await createCategory(validatedFields.data);
+        const vendorId = profile?.adminRole === 'vendor' ? profile.vendorId : null;
+        await createCategory(validatedFields.data, vendorId);
       }
 
       toast({
