@@ -104,10 +104,8 @@ function CheckoutView() {
   const threshold = deliverySettings.freeDeliveryThreshold;
   const freeDeliveryByThreshold = (threshold > 0 && cartTotal >= threshold) || (cartTotal === 0);
   
-  // This is the fee that will be charged to the customer and saved in the order.
   const appliedDeliveryFee = freeDeliveryAppliedByPromo || freeDeliveryByThreshold ? 0 : deliverySettings.fee;
   
-  // This is the total value of all discounts, for display purposes only.
   const displayableDiscountValue = discountAmount + (
     (freeDeliveryAppliedByPromo && !freeDeliveryByThreshold) ? deliverySettings.fee : 0
   );
@@ -137,30 +135,36 @@ function CheckoutView() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4">
-              {cartItems.map((item) => (
-                <div key={item.id} className="flex justify-between items-center">
-                  <div className="flex items-center gap-4">
-                    <div className="relative h-16 w-16 rounded-md overflow-hidden">
-                       <Image src={item.imageUrl} alt={item.name} fill className="object-cover" data-ai-hint="product image"/>
-                    </div>
-                    <div>
-                      <Link href={`/product/${item.productId || item.id}`} className="font-medium hover:underline">
-                          {item.name}
-                      </Link>
-                      <div className="flex items-center gap-2 mt-1">
-                          <Button type="button" variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>
-                              <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="text-sm w-4 text-center tabular-nums">{item.quantity}</span>
-                          <Button type="button" variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>
-                              <Plus className="h-3 w-3" />
-                          </Button>
+              {cartItems.map((item) => {
+                const variantText = item.selectedOptions ? Object.values(item.selectedOptions).join(' / ') : null;
+                return (
+                  <div key={item.id} className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                      <div className="relative h-16 w-16 rounded-md overflow-hidden">
+                         <Image src={item.imageUrl} alt={item.name} fill className="object-cover" data-ai-hint="product image"/>
+                      </div>
+                      <div>
+                        <Link href={`/product/${item.productId}`} className="font-medium hover:underline">
+                            {item.name}
+                        </Link>
+                        {variantText && (
+                            <p className="text-sm text-muted-foreground">{variantText}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-1">
+                            <Button type="button" variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity - 1)} disabled={item.quantity <= 1}>
+                                <Minus className="h-3 w-3" />
+                            </Button>
+                            <span className="text-sm w-4 text-center tabular-nums">{item.quantity}</span>
+                            <Button type="button" variant="outline" size="icon" className="h-6 w-6" onClick={() => updateQuantity(item.id, item.quantity + 1)} disabled={item.quantity >= item.stock}>
+                                <Plus className="h-3 w-3" />
+                            </Button>
+                        </div>
                       </div>
                     </div>
+                    <p className="font-medium">Rs{(item.price * item.quantity).toFixed(2)}</p>
                   </div>
-                  <p className="font-medium">Rs{(item.price * item.quantity).toFixed(2)}</p>
-                </div>
-              ))}
+                )
+              })}
               <Separator />
               <div className="flex justify-between text-muted-foreground"><p>Subtotal</p><p>Rs{cartTotal.toFixed(2)}</p></div>
               <div className="flex justify-between text-muted-foreground"><p>Delivery Fee</p>{isLoading ? <Skeleton className="h-5 w-12" /> : <p>Rs{appliedDeliveryFee.toFixed(2)}</p>}</div>

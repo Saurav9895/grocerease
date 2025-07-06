@@ -1,11 +1,12 @@
+
 "use client";
 
 import React, { createContext, useState, useEffect, ReactNode } from 'react';
-import type { CartItem } from '@/lib/types';
+import type { CartItem, Product } from '@/lib/types';
 
 export interface CartContextType {
   cartItems: CartItem[];
-  addToCart: (item: CartItem) => void;
+  addToCart: (product: Product, quantity: number, skuId?: string, selectedOptions?: Record<string, string>) => void;
   removeFromCart: (itemId: string) => void;
   updateQuantity: (itemId: string, quantity: number) => void;
   clearCart: () => void;
@@ -19,7 +20,6 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
 
-  // Load cart from localStorage on initial client-side mount
   useEffect(() => {
     try {
       const storedCart = localStorage.getItem('cartItems');
@@ -28,29 +28,51 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (error) {
       console.error("Failed to parse cart items from localStorage", error);
-      // Clear corrupted data
       localStorage.removeItem('cartItems');
     } finally {
         setIsInitialLoad(false);
     }
   }, []);
 
-  // Save cart to localStorage whenever it changes, but not on initial load
   useEffect(() => {
     if (!isInitialLoad) {
         localStorage.setItem('cartItems', JSON.stringify(cartItems));
     }
   }, [cartItems, isInitialLoad]);
 
-  const addToCart = (item: CartItem) => {
+  const addToCart = (product: Product, quantity: number, skuId?: string, selectedOptions?: Record<string, string>) => {
+    const cartItemId = skuId ? `${product.id}_${skuId}` : product.id;
+
+    let specificSkuData = {};
+    if (skuId && product.variantSKUs) {
+      const sku = product.variantSKUs.find(s => s.id === skuId);
+      if (sku) {
+        specificSkuData = {
+          price: sku.price,
+          originalPrice: sku.originalPrice,
+          imageUrl: sku.imageUrl,
+          stock: sku.stock,
+        };
+      }
+    }
+
     setCartItems(prevItems => {
-      const existingItem = prevItems.find(i => i.id === item.id);
+      const existingItem = prevItems.find(i => i.id === cartItemId);
       if (existingItem) {
         return prevItems.map(i =>
-          i.id === item.id ? { ...i, quantity: i.quantity + (item.quantity || 1) } : i
+          i.id === cartItemId ? { ...i, quantity: i.quantity + quantity } : i
         );
       }
-      return [...prevItems, { ...item, quantity: item.quantity || 1 }];
+      const newItem: CartItem = {
+        ...product,
+        ...specificSkuData,
+        id: cartItemId,
+        productId: product.id,
+        quantity: quantity,
+        skuId: skuId,
+        selectedOptions: selectedOptions,
+      };
+      return [...prevItems, newItem];
     });
   };
 

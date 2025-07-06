@@ -6,6 +6,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint, writeBatch } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
@@ -29,9 +30,9 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
         rating: data.rating || 0,
         reviewCount: data.reviewCount || 0,
         attributes: data.attributes || {},
-        isVariant: data.isVariant || false,
-        variantAttributeName: data.variantAttributeName,
-        variants: data.variants || {},
+        hasVariants: data.hasVariants || false,
+        variantDefinitions: data.variantDefinitions || [],
+        variantSKUs: data.variantSKUs || [],
     };
 }
 
@@ -531,73 +532,65 @@ export async function addReviewAndUpdateProduct(
 export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 'createdAt' | 'vendorIds'>): Promise<string> {
   try {
     const newOrderRef = await runTransaction(db, async (transaction) => {
-      // 1. Read all product documents first.
-      const productRefs = orderData.items.map(item => doc(db, 'products', item.productId || item.id));
+      const productRefs = [...new Set(orderData.items.map(item => item.productId))].map(id => doc(db, 'products', id));
       const productDocs = await Promise.all(productRefs.map(ref => transaction.get(ref)));
+      const productMap = new Map(productDocs.map(doc => [doc.id, doc]));
 
-      // 2. Validate stock availability.
-      for (let i = 0; i < orderData.items.length; i++) {
-        const item = orderData.items[i];
-        const productDoc = productDocs[i];
-
-        if (!productDoc.exists()) {
-          throw new Error(`Product with ID ${item.productId || item.id} not found.`);
+      for (const item of orderData.items) {
+        const productDoc = productMap.get(item.productId);
+        if (!productDoc || !productDoc.exists()) {
+          throw new Error(`Product with ID ${item.productId} not found.`);
         }
         
         const productData = productDoc.data() as Product;
-        let currentStock: number;
-        
-        if (item.variantValue && productData.isVariant && productData.variants) {
-          const variantData = productData.variants[item.variantValue];
-          if (!variantData) {
-            throw new Error(`Variant ${item.variantValue} for product ${productData.name} not found.`);
-          }
-          currentStock = variantData.stock;
-        } else {
-          currentStock = productData.stock;
-        }
 
-        if (currentStock < item.quantity) {
-          throw new Error(`Not enough stock for ${item.name}. Only ${currentStock} left.`);
+        if (productData.hasVariants && item.skuId) {
+          const skuIndex = productData.variantSKUs?.findIndex(sku => sku.id === item.skuId);
+          if (skuIndex === undefined || skuIndex === -1) {
+            throw new Error(`SKU ${item.skuId} for product ${productData.name} not found.`);
+          }
+          const sku = productData.variantSKUs![skuIndex];
+          if (sku.stock < item.quantity) {
+            throw new Error(`Not enough stock for ${item.name}. Only ${sku.stock} left.`);
+          }
+        } else if (!productData.hasVariants) {
+          if (productData.stock < item.quantity) {
+            throw new Error(`Not enough stock for ${item.name}. Only ${productData.stock} left.`);
+          }
+        } else {
+            throw new Error(`Variant selection missing for product ${item.name}.`);
         }
       }
 
-      // 3. Perform all writes.
-      for (let i = 0; i < orderData.items.length; i++) {
-        const item = orderData.items[i];
-        const productRef = productRefs[i];
-        const productData = productDocs[i].data() as Product;
-        
-        if (item.variantValue && productData.isVariant && productData.variants) {
-          const newStock = productData.variants[item.variantValue].stock - item.quantity;
-          transaction.update(productRef, { [`variants.${item.variantValue}.stock`]: newStock });
+      for (const item of orderData.items) {
+        const productRef = doc(db, 'products', item.productId);
+        const productData = productMap.get(item.productId)?.data() as Product;
+
+        if (productData.hasVariants && item.skuId) {
+          const updatedSKUs = productData.variantSKUs?.map(sku => 
+            sku.id === item.skuId ? { ...sku, stock: sku.stock - item.quantity } : sku
+          );
+          transaction.update(productRef, { variantSKUs: updatedSKUs });
         } else {
-          const newStock = productData.stock - item.quantity;
-          transaction.update(productRef, { stock: newStock });
+          transaction.update(productRef, { stock: productData.stock - item.quantity });
         }
       }
 
       const itemsForDb: OrderItem[] = orderData.items.map(item => ({
         id: item.id,
-        productId: item.productId || item.id,
+        productId: item.productId,
         name: item.name,
         price: item.price,
         quantity: item.quantity,
         imageUrl: item.imageUrl,
-        variantValue: item.variantValue || null,
+        selectedOptions: item.selectedOptions || {},
+        variantValue: Object.values(item.selectedOptions || {}).join(' / ') || null,
         vendorId: item.vendorId,
         vendorName: item.vendorName,
       }));
       
       const vendorIds = [...new Set(orderData.items.map(item => item.vendorId))];
-
-      const finalOrderData = {
-        ...orderData,
-        items: itemsForDb,
-        vendorIds: vendorIds,
-        createdAt: serverTimestamp(),
-      };
-
+      const finalOrderData = { ...orderData, items: itemsForDb, vendorIds, createdAt: serverTimestamp() };
       const tempOrderRef = doc(collection(db, "orders"));
       transaction.set(tempOrderRef, finalOrderData);
       

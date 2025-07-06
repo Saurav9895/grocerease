@@ -1,3 +1,4 @@
+
 "use client";
 
 import Image from 'next/image';
@@ -11,8 +12,6 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
-  const isVariant = product.isVariant && product.variants && Object.keys(product.variants).length > 0;
-
   return (
     <Link href={`/product/${product.id}`} className="group block h-full">
       <Card className="relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
@@ -34,7 +33,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
             <div className="flex justify-between items-center text-left mt-auto pt-4">
                 <p className="text-lg font-bold text-primary">
-                    {isVariant ? 'From ' : ''}Rs{product.price.toFixed(2)}
+                    {product.hasVariants ? 'From ' : ''}Rs{product.price.toFixed(2)}
                 </p>
                 <div className="flex items-center gap-1">
                     <Star className="h-5 w-5 text-amber-400 fill-amber-400" />

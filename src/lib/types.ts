@@ -3,6 +3,7 @@
 
 
 
+
 export interface Vendor {
   id: string;
   name: string;
@@ -17,25 +18,30 @@ export interface Product {
   vendorId: string;
   vendorName: string;
   description: string;
-  price: number; // This is the sale price
-  originalPrice?: number; // The M.R.P. or strikethrough price
+  price: number; // Base price for non-variant products or a fallback
+  originalPrice?: number;
   imageUrl: string;
   category: string;
-  stock: number;
+  stock: number; // Base stock for non-variant products
   createdAt: Date;
   rating: number;
   reviewCount: number;
   attributes?: Record<string, string>;
   
-  // Variant fields
-  isVariant?: boolean;
-  variantAttributeName?: string; // e.g., "Weight", "Size"
-  variants?: Record<string, { // The key is the attribute value (e.g., "500gm")
+  // New Variant Structure
+  hasVariants?: boolean;
+  variantDefinitions?: {
+    name: string; // e.g. "Color"
+    values: string[]; // e.g. ["Black", "White"]
+  }[];
+  variantSKUs?: {
+    id: string; // e.g. "black_s"
+    options: Record<string, string>; // e.g. { "Color": "Black", "Size": "S" }
     price: number;
     originalPrice?: number;
     stock: number;
     imageUrl: string;
-  }>;
+  }[];
 }
 
 export interface Category {
@@ -48,8 +54,9 @@ export interface Category {
 
 export interface CartItem extends Product {
   quantity: number;
-  productId?: string;
-  variantValue?: string;
+  productId: string; // Always the base product ID
+  skuId?: string; // The ID of the specific SKU, e.g., "black-s"
+  selectedOptions?: Record<string, string>; // e.g., { "Color": "Black", "Size": "S" }
 }
 
 export interface Address {
@@ -72,9 +79,10 @@ export interface OrderItem {
   price: number;
   quantity: number;
   imageUrl: string;
-  variantValue: string | null;
+  variantValue: string | null; // Legacy, can be replaced by selectedOptions display
   vendorId: string;
   vendorName: string;
+  selectedOptions?: Record<string, string>;
 }
 
 export interface Order {

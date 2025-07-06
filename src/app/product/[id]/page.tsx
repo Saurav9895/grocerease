@@ -2,7 +2,7 @@
 
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { getProductById, getCategories, getProductsByCategory, getReviewsForProduct } from '@/lib/data';
@@ -55,7 +55,7 @@ export default function ProductDetailPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [quantity, setQuantity] = useState(1);
-  const [selectedVariant, setSelectedVariant] = useState<string | null>(null);
+  const [selectedOptions, setSelectedOptions] = useState<Record<string, string>>({});
 
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingRelated, setIsLoadingRelated] = useState(true);
@@ -79,9 +79,12 @@ export default function ProductDetailPage() {
     setIsLoadingReviews(false);
 
     if (fetchedProduct) {
-        if (fetchedProduct.isVariant && fetchedProduct.variants) {
-          const firstVariantKey = Object.keys(fetchedProduct.variants)[0];
-          setSelectedVariant(firstVariantKey || null);
+        if (fetchedProduct.hasVariants && fetchedProduct.variantDefinitions) {
+            const initialSelection: Record<string, string> = {};
+            fetchedProduct.variantDefinitions.forEach(def => {
+                initialSelection[def.name] = def.values[0];
+            });
+            setSelectedOptions(initialSelection);
         }
 
         const related = await getProductsByCategory(fetchedProduct.category);
@@ -96,47 +99,42 @@ export default function ProductDetailPage() {
     }
   }, [id]);
 
+  const currentSKU = useMemo(() => {
+    if (!product?.hasVariants || !product.variantSKUs) return null;
+    const defCount = product.variantDefinitions?.length || 0;
+    if (Object.keys(selectedOptions).length !== defCount) {
+        return null;
+    }
+    return product.variantSKUs.find(sku => 
+        defCount > 0 && Object.entries(selectedOptions).every(([key, value]) => sku.options[key] === value)
+    ) || null;
+  }, [selectedOptions, product]);
+
+
+  const handleOptionChange = (attributeName: string, value: string) => {
+    setSelectedOptions(prev => ({ ...prev, [attributeName]: value }));
+  };
+
   const handleReviewSubmitted = () => {
-    // Refetch reviews and product data to show the new review and updated average rating
     if (typeof id === 'string') {
       fetchData(id);
     }
   }
 
   const handleAddToCart = () => {
-    if (product) {
-      if (product.isVariant) {
-        if (!selectedVariant || !product.variants?.[selectedVariant]) {
-          toast({ variant: "destructive", title: "Please select an option" });
-          return;
+    if (!product) return;
+    
+    if (product.hasVariants) {
+        if (!currentSKU) {
+            toast({ variant: "destructive", title: "Please select an option for each variant." });
+            return;
         }
-        const variantData = product.variants[selectedVariant];
-        const variantCartItem: CartItem = {
-          ...product,
-          id: `${product.id}-${selectedVariant}`, // Unique ID for cart
-          name: `${product.name} (${selectedVariant})`,
-          price: variantData.price,
-          originalPrice: variantData.originalPrice,
-          stock: variantData.stock,
-          imageUrl: variantData.imageUrl,
-          isVariant: false, // Treat as a simple product in cart
-          variants: {},
-          attributes: product.attributes,
-          productId: product.id,
-          variantValue: selectedVariant,
-        };
-        addToCart({ ...variantCartItem, quantity });
-        toast({
-            title: "Added to cart",
-            description: `${quantity} x ${variantCartItem.name} has been added to your cart.`,
-        });
-      } else {
-        addToCart({ ...product, quantity: quantity });
-        toast({
-          title: "Added to cart",
-          description: `${quantity} x ${product.name} has been added to your cart.`,
-        });
-      }
+        const nameWithVariant = `${product.name} (${Object.values(currentSKU.options).join(' / ')})`;
+        addToCart(product, quantity, currentSKU.id, currentSKU.options);
+        toast({ title: "Added to cart", description: `${quantity} x ${nameWithVariant} has been added.` });
+    } else {
+        addToCart(product, quantity);
+        toast({ title: "Added to cart", description: `${quantity} x ${product.name} has been added.` });
     }
   };
   
@@ -144,24 +142,18 @@ export default function ProductDetailPage() {
     return categories.find(c => c.id === categoryId)?.name || categoryId;
   }
   
-  const displayableProduct = (() => {
+  const displayableProduct = useMemo(() => {
     if (!product) return null;
-    if (product.isVariant && selectedVariant && product.variants?.[selectedVariant]) {
-      const variant = product.variants[selectedVariant];
-      return {
-        price: variant.price,
-        originalPrice: variant.originalPrice,
-        imageUrl: variant.imageUrl,
-        stock: variant.stock,
-      };
+    if (product.hasVariants && currentSKU) {
+        return { price: currentSKU.price, originalPrice: currentSKU.originalPrice, imageUrl: currentSKU.imageUrl, stock: currentSKU.stock };
     }
-    return {
-      price: product.price,
-      originalPrice: product.originalPrice,
-      imageUrl: product.imageUrl,
-      stock: product.stock,
-    };
-  })();
+    if (product.hasVariants && !currentSKU) { // A valid combination has not been selected yet
+        const firstSku = product.variantSKUs?.[0];
+        return { price: firstSku?.price || product.price, originalPrice: firstSku?.originalPrice, imageUrl: firstSku?.imageUrl || product.imageUrl, stock: 0 };
+    }
+    return { price: product.price, originalPrice: product.originalPrice, imageUrl: product.imageUrl, stock: product.stock };
+  }, [product, currentSKU]);
+
 
   if (isLoading) {
     return (
@@ -194,7 +186,7 @@ export default function ProductDetailPage() {
     );
   }
 
-  const isAddToCartDisabled = (product.isVariant && !selectedVariant) || displayableProduct?.stock === 0;
+  const isAddToCartDisabled = (product.hasVariants && !currentSKU) || displayableProduct?.stock === 0;
 
   return (
     <div className="container py-12">
@@ -209,9 +201,9 @@ export default function ProductDetailPage() {
               src={displayableProduct.imageUrl}
               alt={product.name}
               fill
-              className="object-cover"
+              className="object-cover transition-opacity duration-300"
               data-ai-hint="product image"
-              key={displayableProduct.imageUrl} // force re-render on image change
+              key={displayableProduct.imageUrl}
             />
           )}
         </div>
@@ -240,26 +232,19 @@ export default function ProductDetailPage() {
             <p className="text-muted-foreground">{product.description}</p>
           </div>
           
-          {product.isVariant && product.variants && (
+          {product.hasVariants && product.variantDefinitions && (
              <div className="space-y-4">
-                <Label className="text-lg font-semibold">{product.variantAttributeName || 'Options'}</Label>
-                <RadioGroup value={selectedVariant || ''} onValueChange={setSelectedVariant} className="flex flex-wrap gap-2">
-                    {Object.keys(product.variants).map((value) => (
-                        <RadioGroupItem key={value} value={value} id={`variant-${value}`} className="sr-only" />
-                    ))}
-                    {Object.keys(product.variants).map((value) => (
-                         <Label
-                            key={value}
-                            htmlFor={`variant-${value}`}
-                            className={cn(
-                                "cursor-pointer rounded-md border-2 border-muted bg-popover px-4 py-2 hover:bg-accent hover:text-accent-foreground",
-                                selectedVariant === value && "border-primary"
-                            )}
-                        >
-                            {value}
-                        </Label>
-                    ))}
-                </RadioGroup>
+                {product.variantDefinitions.map(def => (
+                    <div key={def.name}>
+                        <Label className="text-lg font-semibold">{def.name}</Label>
+                        <RadioGroup value={selectedOptions[def.name] || ''} onValueChange={(value) => handleOptionChange(def.name, value)} className="flex flex-wrap gap-2 mt-2">
+                             {def.values.map((value) => (<RadioGroupItem key={value} value={value} id={`${def.name}-${value}`} className="sr-only" />))}
+                             {def.values.map((value) => (
+                                 <Label key={value} htmlFor={`${def.name}-${value}`} className={cn("cursor-pointer rounded-md border-2 border-muted bg-popover px-4 py-2 hover:bg-accent hover:text-accent-foreground", selectedOptions[def.name] === value && "border-primary")}>{value}</Label>
+                             ))}
+                        </RadioGroup>
+                    </div>
+                ))}
             </div>
           )}
 
@@ -283,47 +268,18 @@ export default function ProductDetailPage() {
             <div className="flex items-center gap-4">
                 <Label htmlFor="quantity" className="text-lg font-semibold shrink-0">Quantity</Label>
                 <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                        disabled={quantity <= 1 || displayableProduct?.stock === 0}
-                    >
-                        <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                        id="quantity"
-                        type="number"
-                        value={quantity}
-                        onChange={(e) => {
-                            const value = parseInt(e.target.value, 10);
-                            const stock = displayableProduct?.stock ?? 0;
-                            if (!isNaN(value) && value > 0 && value <= stock) {
-                                setQuantity(value);
-                            } else if (e.target.value === '') {
-                                setQuantity(1);
-                            }
-                        }}
-                        className="h-9 w-14 text-center"
-                        min="1"
-                        max={displayableProduct?.stock}
-                        disabled={displayableProduct?.stock === 0}
-                    />
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-9 w-9"
-                        onClick={() => setQuantity(Math.min(displayableProduct?.stock ?? 0, quantity + 1))}
-                        disabled={quantity >= (displayableProduct?.stock ?? 0) || displayableProduct?.stock === 0}
-                    >
-                        <Plus className="h-4 w-4" />
-                    </Button>
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(Math.max(1, quantity - 1))} disabled={quantity <= 1 || displayableProduct?.stock === 0}><Minus className="h-4 w-4" /></Button>
+                    <Input id="quantity" type="number" value={quantity} onChange={(e) => { const value = parseInt(e.target.value, 10); const stock = displayableProduct?.stock ?? 0; if (!isNaN(value) && value > 0 && value <= stock) { setQuantity(value); } else if (e.target.value === '') { setQuantity(1); }}} className="h-9 w-14 text-center" min="1" max={displayableProduct?.stock} disabled={displayableProduct?.stock === 0}/>
+                    <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => setQuantity(Math.min(displayableProduct?.stock ?? 0, quantity + 1))} disabled={quantity >= (displayableProduct?.stock ?? 0) || displayableProduct?.stock === 0}><Plus className="h-4 w-4" /></Button>
                 </div>
             </div>
-            {displayableProduct && displayableProduct.stock > 0 ? (
+            {displayableProduct && product.hasVariants && !currentSKU && (
+                <p className="text-sm text-destructive font-medium">This combination is unavailable.</p>
+            )}
+            {displayableProduct && displayableProduct.stock > 0 && (product.hasVariants ? currentSKU : true) && (
                 <p className="text-sm text-muted-foreground">{displayableProduct.stock} in stock</p>
-            ) : (
+            )}
+            {displayableProduct && displayableProduct.stock === 0 && (
                 <p className="text-sm text-destructive font-medium">Out of stock</p>
             )}
           </div>

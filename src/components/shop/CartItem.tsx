@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Image from 'next/image';
@@ -16,6 +17,10 @@ interface CartItemProps {
 
 export function CartItem({ item, onOpenChange }: CartItemProps) {
   const { updateQuantity, removeFromCart } = useCart();
+  
+  const variantText = item.selectedOptions 
+    ? Object.values(item.selectedOptions).join(' / ')
+    : null;
 
   return (
     <div className="flex items-start space-x-4 py-4">
@@ -33,12 +38,15 @@ export function CartItem({ item, onOpenChange }: CartItemProps) {
         <div className="flex items-start justify-between">
           <div className="pr-2">
             <Link
-              href={`/product/${item.productId || item.id}`}
+              href={`/product/${item.productId}`}
               className="font-medium hover:underline"
               onClick={() => onOpenChange?.(false)}
             >
               {item.name}
             </Link>
+            {variantText && (
+                <p className="text-sm text-muted-foreground">{variantText}</p>
+            )}
             <p className="text-sm text-muted-foreground">
               Rs{item.price.toFixed(2)} / unit
             </p>
