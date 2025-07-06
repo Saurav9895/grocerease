@@ -97,6 +97,7 @@ export function GoogleMapPicker({ onConfirm, onClose }: { onConfirm: (address: P
       }
       
       parsed.street = streetAddress;
+      parsed.apartment = get('subpremise');
       parsed.city = get('locality') || get('administrative_area_level_2') || get('postal_town');
       parsed.state = get('administrative_area_level_1', true);
       parsed.zip = get('postal_code');

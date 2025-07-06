@@ -33,6 +33,7 @@ export function VendorProfileManager() {
   // State for form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [apartment, setApartment] = useState("");
   const [street, setStreet] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
@@ -50,6 +51,7 @@ export function VendorProfileManager() {
             setVendor(vendorData);
             setName(vendorData.name);
             setDescription(vendorData.description);
+            setApartment(vendorData.address?.apartment || "");
             setStreet(vendorData.address?.street || "");
             setCity(vendorData.address?.city || "");
             setState(vendorData.address?.state || "");
@@ -63,6 +65,7 @@ export function VendorProfileManager() {
   }, [profile?.vendorId]);
 
   const handleMapConfirm = (addressFromMap: Partial<Address>) => {
+    setApartment(addressFromMap.apartment || "");
     setStreet(addressFromMap.street || "");
     setCity(addressFromMap.city || "");
     setState(addressFromMap.state || "");
@@ -82,6 +85,7 @@ export function VendorProfileManager() {
       const addressPayload: Address = {
         name: name, // Use vendor name for address name
         street: street,
+        apartment: apartment,
         city: city,
         state: state,
         zip: zip,
@@ -108,8 +112,10 @@ export function VendorProfileManager() {
                 <Skeleton className="h-4 w-3/4" />
             </CardHeader>
             <CardContent className="space-y-4">
-                <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-20 w-full" />
+                <Separator />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
                 <Skeleton className="h-10 w-24" />
             </CardContent>
         </Card>
@@ -131,12 +137,8 @@ export function VendorProfileManager() {
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
-            <Label htmlFor="vendor-name">Shop Name</Label>
-            <Input id="vendor-name" value={name} onChange={(e) => setName(e.target.value)} required />
-          </div>
-          <div className="space-y-2">
             <Label htmlFor="vendor-description">Shop Description</Label>
-            <Textarea id="vendor-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell customers a little about your shop." rows={4} />
+            <Textarea id="vendor-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell customers a little about your shop." rows={3} />
           </div>
           
           <Separator className="!my-6" />
@@ -144,7 +146,7 @@ export function VendorProfileManager() {
           <div className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
-                <Label>Shop Location</Label>
+                <Label className="text-base font-medium">Shop Location</Label>
                 <p className="text-sm text-muted-foreground">Set your physical shop location for pickups and maps.</p>
               </div>
               <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
@@ -158,6 +160,8 @@ export function VendorProfileManager() {
               </Dialog>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2"><Label htmlFor="vendor-name">Shop Name</Label><Input id="vendor-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
+              <div className="space-y-2 col-span-2"><Label htmlFor="shop-apartment">Apartment, suite, etc.</Label><Input id="shop-apartment" value={apartment} onChange={(e) => setApartment(e.target.value)} /></div>
               <div className="space-y-2 col-span-2"><Label htmlFor="shop-street">Street Address</Label><Input id="shop-street" value={street} onChange={(e) => setStreet(e.target.value)} /></div>
               <div className="space-y-2"><Label htmlFor="shop-city">City</Label><Input id="shop-city" value={city} onChange={(e) => setCity(e.target.value)} /></div>
               <div className="space-y-2"><Label htmlFor="shop-state">State / Province</Label><Input id="shop-state" value={state} onChange={(e) => setState(e.target.value)} /></div>
