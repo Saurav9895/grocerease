@@ -39,10 +39,10 @@ const productSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(3, "Name must be at least 3 characters."),
   description: z.string().min(10, "Description must be at least 10 characters."),
-  price: z.coerce.number().min(0, "Price must be a non-negative number."),
+  price: z.coerce.number().min(0, "Price must be a non-negative number.").optional(),
   originalPrice: z.coerce.number().optional(),
   category: z.string().min(1, "Please select a category."),
-  stock: z.coerce.number().int().min(0, "Stock must be a non-negative number."),
+  stock: z.coerce.number().int().min(0, "Stock must be a non-negative number.").optional(),
   imageUrl: z.string().url("Please enter a valid image URL."),
 });
 
@@ -228,6 +228,21 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       toast({ variant: "destructive", title: "Invalid data", description: errorMessages || "Please check the form fields." });
       setIsLoading(false);
       return;
+    }
+
+    if (!hasVariants) {
+        const price = validatedFields.data.price;
+        if (price === undefined || price === null || isNaN(price)) {
+            toast({ variant: "destructive", title: "Invalid data", description: "A valid Sale Price is required for non-variant products." });
+            setIsLoading(false);
+            return;
+        }
+        const stock = validatedFields.data.stock;
+        if (stock === undefined || stock === null || isNaN(stock)) {
+            toast({ variant: "destructive", title: "Invalid data", description: "A valid Stock quantity is required for non-variant products." });
+            setIsLoading(false);
+            return;
+        }
     }
     
     const nonVariantAttributes = productAttributes
