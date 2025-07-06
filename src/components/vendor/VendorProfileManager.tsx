@@ -28,10 +28,18 @@ export function VendorProfileManager() {
   const [vendor, setVendor] = useState<Vendor | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isMapOpen, setIsMapOpen] = useState(false);
+  
+  // State for form fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [address, setAddress] = useState<Partial<Address> | null>(null);
-  const [isMapOpen, setIsMapOpen] = useState(false);
+  const [street, setStreet] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zip, setZip] = useState("");
+  const [country, setCountry] = useState("");
+  const [googleMapsUrl, setGoogleMapsUrl] = useState<string | undefined>(undefined);
+
 
   useEffect(() => {
     if (profile?.vendorId) {
@@ -42,7 +50,12 @@ export function VendorProfileManager() {
             setVendor(vendorData);
             setName(vendorData.name);
             setDescription(vendorData.description);
-            setAddress(vendorData.address || null);
+            setStreet(vendorData.address?.street || "");
+            setCity(vendorData.address?.city || "");
+            setState(vendorData.address?.state || "");
+            setZip(vendorData.address?.zip || "");
+            setCountry(vendorData.address?.country || "");
+            setGoogleMapsUrl(vendorData.address?.googleMapsUrl);
           }
           setIsLoading(false);
         });
@@ -50,12 +63,14 @@ export function VendorProfileManager() {
   }, [profile?.vendorId]);
 
   const handleMapConfirm = (addressFromMap: Partial<Address>) => {
-    setAddress(prev => ({
-        ...prev,
-        ...addressFromMap,
-    }));
+    setStreet(addressFromMap.street || "");
+    setCity(addressFromMap.city || "");
+    setState(addressFromMap.state || "");
+    setZip(addressFromMap.zip || "");
+    setCountry(addressFromMap.country || "");
+    setGoogleMapsUrl(addressFromMap.googleMapsUrl);
     setIsMapOpen(false);
-    toast({ title: "Location Set", description: "Address details have been updated from the map. Click 'Save' to confirm." });
+    toast({ title: "Location Set", description: "Address details have been populated from the map. Click 'Save' to confirm." });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,16 +79,19 @@ export function VendorProfileManager() {
 
     setIsSaving(true);
     try {
-      await updateVendorDetails(vendor.id, { name, description, address: address || undefined });
+      const addressPayload: Address = {
+        name: name, // Use vendor name for address name
+        street: street,
+        city: city,
+        state: state,
+        zip: zip,
+        country: country,
+        phone: '', // Vendor phone is not stored here
+        googleMapsUrl: googleMapsUrl,
+      };
+
+      await updateVendorDetails(vendor.id, { name, description, address: addressPayload });
       toast({ title: "Shop details updated successfully!" });
-      // Refresh local state after update
-      const updatedVendor = await getVendorById(vendor.id);
-       if (updatedVendor) {
-            setVendor(updatedVendor);
-            setName(updatedVendor.name);
-            setDescription(updatedVendor.description);
-            setAddress(updatedVendor.address || null);
-        }
     } catch (error) {
       console.error("Error updating vendor details:", error);
       toast({ variant: "destructive", title: "Update Failed", description: "Could not update your shop details." });
@@ -99,7 +117,7 @@ export function VendorProfileManager() {
   }
 
   if (!vendor) {
-    return null; // Or show an error state if a vendorId exists but no vendor is found
+    return null;
   }
 
   return (
@@ -111,25 +129,14 @@ export function VendorProfileManager() {
         <CardDescription>Manage your public shop name, description, and location.</CardDescription>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <Label htmlFor="vendor-name">Shop Name</Label>
-            <Input
-              id="vendor-name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
+            <Input id="vendor-name" value={name} onChange={(e) => setName(e.target.value)} required />
           </div>
           <div className="space-y-2">
             <Label htmlFor="vendor-description">Shop Description</Label>
-            <Textarea
-              id="vendor-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Tell customers a little about your shop."
-              rows={4}
-            />
+            <Textarea id="vendor-description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Tell customers a little about your shop." rows={4} />
           </div>
           
           <Separator className="!my-6" />
@@ -138,41 +145,25 @@ export function VendorProfileManager() {
             <div className="flex justify-between items-center">
               <div>
                 <Label>Shop Location</Label>
-                <p className="text-sm text-muted-foreground">
-                  Set your physical shop location for pickups and maps.
-                </p>
+                <p className="text-sm text-muted-foreground">Set your physical shop location for pickups and maps.</p>
               </div>
               <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
                 <DialogTrigger asChild>
-                  <Button type="button" variant="outline">
-                    <MapPin className="mr-2 h-4 w-4" />
-                    Set Location
-                  </Button>
+                  <Button type="button" variant="outline"><MapPin className="mr-2 h-4 w-4" /> Set with Map</Button>
                 </DialogTrigger>
                 <DialogContent className="sm:max-w-xl p-0">
-                  <DialogHeader className="sr-only">
-                    <DialogTitle>Set Shop Location</DialogTitle>
-                    <DialogDescription>
-                      Drag the map to pinpoint your address or use the search bar.
-                    </DialogDescription>
-                  </DialogHeader>
+                  <DialogHeader className="sr-only"><DialogTitle>Set Shop Location</DialogTitle><DialogDescription>Drag the map to pinpoint your address or use the search bar.</DialogDescription></DialogHeader>
                   {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
                 </DialogContent>
               </Dialog>
             </div>
-            {address && (address.street || address.city) && (
-              <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50">
-                <p>{address.street}</p>
-                <p>{address.city}, {address.state} {address.zip}</p>
-                <p>{address.country}</p>
-                {address.googleMapsUrl && (
-                  <a href={address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs flex items-center gap-1 mt-1">
-                    <MapPin className="h-3 w-3" />
-                    View on Map
-                  </a>
-                )}
-              </div>
-            )}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2 col-span-2"><Label htmlFor="shop-street">Street Address</Label><Input id="shop-street" value={street} onChange={(e) => setStreet(e.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="shop-city">City</Label><Input id="shop-city" value={city} onChange={(e) => setCity(e.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="shop-state">State / Province</Label><Input id="shop-state" value={state} onChange={(e) => setState(e.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="shop-zip">ZIP / Postal Code</Label><Input id="shop-zip" value={zip} onChange={(e) => setZip(e.target.value)} /></div>
+              <div className="space-y-2"><Label htmlFor="shop-country">Country</Label><Input id="shop-country" value={country} onChange={(e) => setCountry(e.target.value)} /></div>
+            </div>
           </div>
 
           <Button type="submit" disabled={isSaving} className="!mt-6 w-full">

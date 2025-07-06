@@ -1035,6 +1035,38 @@ export async function getVendorById(vendorId: string): Promise<Vendor | null> {
     }
 }
 
+export async function getVendorsByIds(vendorIds: string[]): Promise<Map<string, Vendor>> {
+  const vendorMap = new Map<string, Vendor>();
+  if (!vendorIds || vendorIds.length === 0) {
+    return vendorMap;
+  }
+
+  // Firestore 'in' query can handle up to 30 elements. Chunk if needed for larger sets.
+  const chunks = [];
+  const uniqueIds = [...new Set(vendorIds)];
+  for (let i = 0; i < uniqueIds.length; i += 30) {
+      chunks.push(uniqueIds.slice(i, i + 30));
+  }
+
+  try {
+    for (const chunk of chunks) {
+        if (chunk.length === 0) continue;
+        const vendorsRef = collection(db, 'vendors');
+        const q = query(vendorsRef, where('__name__', 'in', chunk));
+        const querySnapshot = await getDocs(q);
+        querySnapshot.forEach(docSnap => {
+            if (docSnap.exists()) {
+                vendorMap.set(docSnap.id, docToVendor(docSnap));
+            }
+        });
+    }
+  } catch (error) {
+    console.error("Error fetching vendors by IDs:", error);
+  }
+  
+  return vendorMap;
+}
+
 export async function getVendors(): Promise<Vendor[]> {
   try {
     const vendorsCol = collection(db, 'vendors');

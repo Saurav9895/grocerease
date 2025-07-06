@@ -4,8 +4,8 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { getOrderById, updateOrderStatus, verifyOtpAndCompleteOrder } from "@/lib/data";
-import type { Order } from "@/lib/types";
+import { getOrderById, updateOrderStatus, verifyOtpAndCompleteOrder, getVendorsByIds } from "@/lib/data";
+import type { Order, Vendor } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
 
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, Phone, MapPin, CreditCard, CheckCircle2, CircleDashed } from "lucide-react";
+import { ArrowLeft, User, Home, Phone, MapPin, CreditCard, CheckCircle2, CircleDashed, Building } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -32,6 +32,7 @@ export default function DeliveryOrderDetailPage() {
   const { toast } = useToast();
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [vendors, setVendors] = useState<Map<string, Vendor>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | undefined>(undefined);
@@ -47,6 +48,11 @@ export default function DeliveryOrderDetailPage() {
         setOrder(fetchedOrder);
         if (fetchedOrder) {
           setSelectedStatus(fetchedOrder.status);
+          const uniqueVendorIds = [...new Set(fetchedOrder.items.map(item => item.vendorId))];
+          if (uniqueVendorIds.length > 0) {
+              const vendorData = await getVendorsByIds(uniqueVendorIds);
+              setVendors(vendorData);
+          }
         }
     } else {
         setOrder(null);
@@ -272,15 +278,25 @@ export default function DeliveryOrderDetailPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {order.items.map(item => (
+                  {order.items.map(item => {
+                    const vendor = vendors.get(item.vendorId);
+                    return (
                     <TableRow key={item.id}>
                       <TableCell>
                         <span className="font-medium">{item.name}</span>
                       </TableCell>
-                      <TableCell>{item.vendorName}</TableCell>
+                      <TableCell>
+                        {item.vendorName}
+                        {vendor?.address?.street && (
+                            <div className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
+                                <Building className="h-3 w-3 mt-0.5 shrink-0" />
+                                <span>Pickup: {vendor.address.street}, {vendor.address.city}</span>
+                            </div>
+                        )}
+                      </TableCell>
                       <TableCell>x{item.quantity}</TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
             </CardContent>

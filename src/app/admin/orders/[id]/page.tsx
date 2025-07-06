@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
-import { getOrderById, getDeliveryPersons, assignDeliveryPerson, updateOrderStatus } from "@/lib/data";
+import { getOrderById, getDeliveryPersons, assignDeliveryPerson, updateOrderStatus, getVendorsByIds } from "@/lib/data";
 import { db } from "@/lib/firebase";
 import { doc, updateDoc } from "firebase/firestore";
-import type { Order, UserProfile } from "@/lib/types";
+import type { Order, UserProfile, Vendor } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/AuthProvider";
 
@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, CreditCard, Phone, Printer, MapPin, KeyRound } from "lucide-react";
+import { ArrowLeft, User, Home, CreditCard, Phone, Printer, MapPin, KeyRound, Building } from "lucide-react";
 import { format } from "date-fns";
 import { Separator } from "@/components/ui/separator";
 import { OrderReceipt } from "@/components/admin/OrderReceipt";
@@ -37,6 +37,7 @@ export default function OrderDetailPage() {
   const { toast } = useToast();
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [vendors, setVendors] = useState<Map<string, Vendor>>(new Map());
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<OrderStatus | undefined>(undefined);
@@ -52,6 +53,12 @@ export default function OrderDetailPage() {
     if (fetchedOrder) {
       setSelectedStatus(fetchedOrder.status);
       setSelectedDeliveryPersonId(fetchedOrder.deliveryPersonId || '');
+      
+      const uniqueVendorIds = [...new Set(fetchedOrder.items.map(item => item.vendorId))];
+      if (uniqueVendorIds.length > 0) {
+        const vendorData = await getVendorsByIds(uniqueVendorIds);
+        setVendors(vendorData);
+      }
     }
     setIsLoading(false);
   };
@@ -60,7 +67,6 @@ export default function OrderDetailPage() {
     if (user && typeof id === 'string') {
       fetchOrder(id);
       
-      // Fetch delivery persons for main/standard admins and vendors
       if (profile && (profile.adminRole === 'main' || profile.adminRole === 'standard' || profile.adminRole === 'vendor')) {
         const fetchDeliveryPersons = async () => {
           const persons = await getDeliveryPersons();
@@ -189,7 +195,9 @@ export default function OrderDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {order.items.map(item => (
+                    {order.items.map(item => {
+                      const vendor = vendors.get(item.vendorId);
+                      return (
                       <TableRow key={item.id}>
                         <TableCell>
                            <Image src={item.imageUrl} alt={item.name} width={48} height={48} className="rounded-md object-cover" data-ai-hint="product image"/>
@@ -208,12 +216,18 @@ export default function OrderDetailPage() {
                            <Link href={`/vendor/${item.vendorId}`} className="font-medium hover:underline text-primary">
                             {item.vendorName}
                           </Link>
+                          {vendor?.address?.street && (
+                            <div className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
+                               <Building className="h-3 w-3 mt-0.5 shrink-0" />
+                               <span>{vendor.address.street}, {vendor.address.city}</span>
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell className="text-right">Rs{item.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>
                       </TableRow>
-                    ))}
+                    )})}
                   </TableBody>
                 </Table>
               </CardContent>
