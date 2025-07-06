@@ -135,6 +135,11 @@ function OrderDetailPageContent() {
                         <Link href={`/product/${item.productId}`} className="hover:underline">
                           {item.name}
                         </Link>
+                        {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                          <div className="text-xs text-muted-foreground">
+                            {Object.entries(item.selectedOptions).map(([key, value]) => `${key}: ${value}`).join(' / ')}
+                          </div>
+                        )}
                       </TableCell>
                       <TableCell>x{item.quantity}</TableCell>
                       <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>

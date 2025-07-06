@@ -60,8 +60,8 @@ export default function OrderDetailPage() {
     if (user && typeof id === 'string') {
       fetchOrder(id);
       
-      // Only fetch delivery persons if the user is an admin
-      if (profile && (profile.adminRole === 'main' || profile.adminRole === 'standard')) {
+      // Fetch delivery persons for main/standard admins and vendors
+      if (profile && (profile.adminRole === 'main' || profile.adminRole === 'standard' || profile.adminRole === 'vendor')) {
         const fetchDeliveryPersons = async () => {
           const persons = await getDeliveryPersons();
           setDeliveryPersons(persons);
@@ -198,6 +198,11 @@ export default function OrderDetailPage() {
                           <Link href={`/product/${item.productId}`} target="_blank" className="font-medium hover:underline text-primary">
                             {item.name}
                           </Link>
+                           {item.selectedOptions && Object.keys(item.selectedOptions).length > 0 && (
+                            <div className="text-xs text-muted-foreground">
+                              {Object.entries(item.selectedOptions).map(([key, value]) => `${key}: ${value}`).join(' / ')}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell>
                            <Link href={`/vendor/${item.vendorId}`} className="font-medium hover:underline text-primary">
@@ -270,7 +275,7 @@ export default function OrderDetailPage() {
               </CardFooter>
             </Card>
             
-            {(profile?.adminRole === 'main' || profile?.adminRole === 'standard') && (
+            {(profile?.adminRole === 'main' || profile?.adminRole === 'standard' || profile?.adminRole === 'vendor') && (
               <Card>
                 <CardHeader>
                   <CardTitle>Assign Delivery</CardTitle>
