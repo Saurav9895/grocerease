@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ArrowLeft, User, Home, Phone, MapPin, CreditCard, CheckCircle2, CircleDashed, Building } from "lucide-react";
+import { ArrowLeft, User, Home, Phone, MapPin, CreditCard, CheckCircle2, CircleDashed } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -286,16 +286,27 @@ export default function DeliveryOrderDetailPage() {
                         <span className="font-medium">{item.name}</span>
                       </TableCell>
                       <TableCell>
-                        <p className="font-medium">{item.vendorName}</p>
-                        {vendor?.address?.street && (
-                            <div className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
-                                <Building className="h-3 w-3 mt-0.5 shrink-0" />
-                                <div>
-                                    <p>{vendor.address.apartment && `${vendor.address.apartment}, `}{vendor.address.street}</p>
-                                    <p>{vendor.address.city}, {vendor.address.state} {vendor.address.zip}</p>
-                                </div>
-                            </div>
-                        )}
+                          <p className="font-medium">{item.vendorName}</p>
+                          {vendor?.address && (
+                          <div className="mt-1">
+                              {(vendor.address.city || vendor.address.state || vendor.address.zip) && (
+                              <p className="text-sm">
+                                  {vendor.address.city}{vendor.address.state && `, ${vendor.address.state}`} {vendor.address.zip}
+                              </p>
+                              )}
+                              {vendor.address.googleMapsUrl && (
+                              <a
+                                  href={vendor.address.googleMapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-primary hover:underline text-xs flex items-center gap-1 mt-1"
+                              >
+                                  <MapPin className="h-3 w-3" />
+                                  View on Map
+                              </a>
+                              )}
+                          </div>
+                          )}
                       </TableCell>
                       <TableCell>x{item.quantity}</TableCell>
                     </TableRow>
