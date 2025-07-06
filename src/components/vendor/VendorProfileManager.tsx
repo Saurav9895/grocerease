@@ -95,6 +95,10 @@ export function VendorProfileManager() {
       };
 
       await updateVendorDetails(vendor.id, { name, description, address: addressPayload });
+      
+      const updatedVendor = await getVendorById(vendor.id);
+      setVendor(updatedVendor);
+
       toast({ title: "Shop details updated successfully!" });
     } catch (error) {
       console.error("Error updating vendor details:", error);
@@ -159,6 +163,32 @@ export function VendorProfileManager() {
                 </DialogContent>
               </Dialog>
             </div>
+
+            {vendor.address && (vendor.address.street || vendor.address.city) ? (
+                <div className="p-3 rounded-md border bg-muted/50 text-sm">
+                    <p className="font-semibold text-foreground">{vendor.name}</p>
+                    <p className="text-muted-foreground">
+                        {vendor.address.apartment && `${vendor.address.apartment}, `}{vendor.address.street}
+                    </p>
+                    <p className="text-muted-foreground">
+                        {vendor.address.city}, {vendor.address.state} {vendor.address.zip}
+                    </p>
+                    {vendor.address.googleMapsUrl && (
+                        <a href={vendor.address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-sm flex items-center gap-1 mt-2">
+                            <MapPin className="h-3 w-3" />
+                            View on Map
+                        </a>
+                    )}
+                </div>
+            ) : (
+                <div className="p-3 rounded-md border border-dashed text-center text-sm text-muted-foreground">
+                    No shop address has been set yet.
+                </div>
+            )}
+            
+            <Separator />
+            <p className="text-sm text-muted-foreground">Edit your address details below.</p>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2 col-span-2"><Label htmlFor="vendor-name">Shop Name</Label><Input id="vendor-name" value={name} onChange={(e) => setName(e.target.value)} required /></div>
               <div className="space-y-2 col-span-2"><Label htmlFor="shop-apartment">Apartment, suite, etc.</Label><Input id="shop-apartment" value={apartment} onChange={(e) => setApartment(e.target.value)} /></div>
