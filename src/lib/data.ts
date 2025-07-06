@@ -3,8 +3,9 @@
 
 
 
+
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint, writeBatch } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
 
 // == Helper Functions ==
@@ -108,6 +109,18 @@ function docToAttributeSet(doc: DocumentSnapshot<DocumentData>): AttributeSet {
         name: data.name,
     };
 }
+
+function docToVendor(doc: DocumentSnapshot<DocumentData>): Vendor {
+    const data = doc.data()!;
+    return {
+        id: doc.id,
+        name: data.name,
+        ownerId: data.ownerId,
+        description: data.description,
+        createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+    };
+}
+
 
 // == Data Fetching Functions ==
 export async function getCategories(): Promise<Category[]> {
@@ -954,4 +967,52 @@ export async function getDeliveredOrders(options: { limit?: number, deliveryPers
     console.error("Error fetching delivered orders:", error);
     return [];
   }
+}
+
+// == Vendor Management Functions ==
+export async function getVendorById(vendorId: string): Promise<Vendor | null> {
+    if (!vendorId) return null;
+    try {
+        const vendorRef = doc(db, 'vendors', vendorId);
+        const docSnap = await getDoc(vendorRef);
+        if (docSnap.exists()) {
+            return docToVendor(docSnap);
+        }
+        return null;
+    } catch (error) {
+        console.error("Error fetching vendor:", error);
+        return null;
+    }
+}
+
+export async function updateVendorDetails(vendorId: string, data: { name: string; description: string }): Promise<void> {
+    if (!vendorId) throw new Error("Vendor ID is required.");
+    try {
+        const vendorRef = doc(db, 'vendors', vendorId);
+        
+        const batch = writeBatch(db);
+
+        // 1. Update the vendor document
+        batch.update(vendorRef, {
+            name: data.name,
+            description: data.description,
+        });
+
+        // 2. Find and update all products from this vendor with the new name
+        const productsRef = collection(db, 'products');
+        const q = query(productsRef, where('vendorId', '==', vendorId));
+        const productsSnapshot = await getDocs(q);
+
+        productsSnapshot.docs.forEach(productDoc => {
+            const productRef = doc(db, 'products', productDoc.id);
+            batch.update(productRef, { vendorName: data.name });
+        });
+
+        // 3. Commit all writes atomically
+        await batch.commit();
+
+    } catch (error) {
+        console.error("Error updating vendor details and products:", error);
+        throw error;
+    }
 }

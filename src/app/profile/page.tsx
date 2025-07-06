@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { updateUserPhone } from "@/lib/data";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { PasswordChangeForm } from "@/components/shop/PasswordChangeForm";
+import { VendorProfileManager } from "@/components/vendor/VendorProfileManager";
 
 
 function ProfilePageContent() {
@@ -224,6 +225,10 @@ function ProfilePageContent() {
                         </CardContent>
                     </Card>
                     <AddressManager />
+
+                    {profile?.adminRole === 'vendor' && profile.vendorId && (
+                        <VendorProfileManager />
+                    )}
 
                     {profile?.adminRole === 'main' && (
                         <>
