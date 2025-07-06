@@ -14,11 +14,12 @@ import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
 import { z } from "zod";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, doc, updateDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
 import Image from "next/image";
 import { PlusCircle, Trash2 } from "lucide-react";
 import { Separator } from "../ui/separator";
 import { Checkbox } from "../ui/checkbox";
+import { useAuth } from "@/context/AuthProvider";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -57,6 +58,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!product;
   const { toast } = useToast();
+  const { profile } = useAuth();
   
   // Base product state
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || 'https://placehold.co/600x400.png');
@@ -225,8 +227,26 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         const productRef = doc(db, "products", product.id);
         await updateDoc(productRef, dataToSave);
       } else {
+        // Handle product creation for vendors
+        if (profile?.adminRole !== 'vendor' || !profile.vendorId) {
+            toast({ variant: 'destructive', title: 'Permission Denied', description: 'Only vendors can create new products.' });
+            setIsLoading(false);
+            return;
+        }
+
+        const vendorRef = doc(db, 'vendors', profile.vendorId);
+        const vendorSnap = await getDoc(vendorRef);
+        if (!vendorSnap.exists()) {
+             toast({ variant: 'destructive', title: 'Vendor Not Found', description: 'Your associated vendor profile could not be found.' });
+             setIsLoading(false);
+             return;
+        }
+        const vendorName = vendorSnap.data().name;
+
         await addDoc(collection(db, "products"), {
           ...dataToSave,
+          vendorId: profile.vendorId,
+          vendorName: vendorName,
           rating: 0,
           reviewCount: 0,
           createdAt: serverTimestamp()

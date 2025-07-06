@@ -1,8 +1,18 @@
 
 
+export interface Vendor {
+  id: string;
+  name: string;
+  ownerId: string;
+  description: string;
+  createdAt: Date;
+}
+
 export interface Product {
   id: string;
   name: string;
+  vendorId: string;
+  vendorName: string;
   description: string;
   price: number; // This is the sale price
   originalPrice?: number; // The M.R.P. or strikethrough price
@@ -59,6 +69,8 @@ export interface OrderItem {
   quantity: number;
   imageUrl: string;
   variantValue: string | null;
+  vendorId: string;
+  vendorName: string;
 }
 
 export interface Order {
@@ -113,7 +125,8 @@ export interface UserProfile {
     name: string;
     email: string;
     phone: string;
-    adminRole: 'main' | 'standard' | 'delivery' | null;
+    adminRole: 'main' | 'standard' | 'delivery' | 'vendor' | null;
+    vendorId?: string;
 }
 
 export interface AttributeSet {

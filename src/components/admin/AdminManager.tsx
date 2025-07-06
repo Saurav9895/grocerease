@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
-import { ShieldCheck, UserCog, Trash2, Truck } from "lucide-react";
+import { ShieldCheck, UserCog, Trash2, Truck, Store } from "lucide-react";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useAuth } from "@/context/AuthProvider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -24,7 +24,7 @@ export function AdminManager() {
   const [admins, setAdmins] = useState<UserProfile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isFetchingAdmins, setIsFetchingAdmins] = useState(true);
-  const [roleToGrant, setRoleToGrant] = useState<'standard' | 'delivery'>('standard');
+  const [roleToGrant, setRoleToGrant] = useState<'standard' | 'delivery' | 'vendor'>('standard');
 
   const fetchAdmins = async () => {
     setIsFetchingAdmins(true);
@@ -50,7 +50,7 @@ export function AdminManager() {
       }
       
       if (userToUpdate.adminRole) {
-        toast({ variant: "destructive", title: "Already has a Role", description: `${userToUpdate.name} already has an admin or delivery role.` });
+        toast({ variant: "destructive", title: "Already has a Role", description: `${userToUpdate.name} already has a special role.` });
         setIsLoading(false);
         return;
       }
@@ -70,7 +70,7 @@ export function AdminManager() {
   const handleRevokeRole = async (userId: string, userName: string) => {
     try {
         await updateUserAdminRole(userId, null);
-        toast({ title: "Role Removed", description: `${userName} is no longer an admin or delivery person.` });
+        toast({ title: "Role Removed", description: `${userName}'s special role has been revoked.` });
         fetchAdmins();
     } catch (error) {
         console.error("Error removing role:", error);
@@ -101,13 +101,14 @@ export function AdminManager() {
             </div>
              <div className="w-full sm:w-auto">
               <Label htmlFor="role-select">Role</Label>
-              <Select value={roleToGrant} onValueChange={(value) => setRoleToGrant(value as 'standard' | 'delivery')}>
+              <Select value={roleToGrant} onValueChange={(value) => setRoleToGrant(value as 'standard' | 'delivery' | 'vendor')}>
                 <SelectTrigger id="role-select" className="w-full sm:w-[180px]">
                   <SelectValue placeholder="Select a role" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="standard">Standard Admin</SelectItem>
                   <SelectItem value="delivery">Delivery Person</SelectItem>
+                  <SelectItem value="vendor">Vendor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -131,11 +132,25 @@ export function AdminManager() {
                             <p className="text-sm text-muted-foreground">{admin.email}</p>
                         </div>
                         <div className="flex items-center gap-2">
-                            <Badge variant={admin.adminRole === 'main' ? "destructive" : admin.adminRole === 'standard' ? "secondary" : "default"} className="flex items-center gap-1">
-                                {admin.adminRole === 'delivery' ? <Truck className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
-                                {admin.adminRole === 'main' ? 'Main Admin' : admin.adminRole === 'standard' ? 'Admin' : 'Delivery Person'}
+                            <Badge variant={
+                                admin.adminRole === 'main' ? "destructive" : 
+                                admin.adminRole === 'vendor' ? 'default' :
+                                admin.adminRole === 'delivery' ? 'outline' : 
+                                "secondary"
+                            } className="flex items-center gap-1">
+                                {
+                                  admin.adminRole === 'delivery' ? <Truck className="h-3 w-3" /> :
+                                  admin.adminRole === 'vendor' ? <Store className="h-3 w-3" /> : 
+                                  <ShieldCheck className="h-3 w-3" />
+                                }
+                                {
+                                  admin.adminRole === 'main' ? 'Main Admin' :
+                                  admin.adminRole === 'standard' ? 'Admin' :
+                                  admin.adminRole === 'delivery' ? 'Delivery Person' :
+                                  'Vendor'
+                                }
                             </Badge>
-                            {(admin.adminRole === 'standard' || admin.adminRole === 'delivery') && admin.id !== currentUser?.uid && (
+                            {(admin.adminRole === 'standard' || admin.adminRole === 'delivery' || admin.adminRole === 'vendor') && admin.id !== currentUser?.uid && (
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
                                         <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive hover:text-destructive">
@@ -159,7 +174,7 @@ export function AdminManager() {
                     </div>
                 ))
             ) : (
-                <p className="text-sm text-muted-foreground text-center py-4">No admins or delivery staff found.</p>
+                <p className="text-sm text-muted-foreground text-center py-4">No admins, vendors, or delivery staff found.</p>
             )}
           </div>
         </div>

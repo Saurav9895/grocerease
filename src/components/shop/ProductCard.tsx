@@ -28,6 +28,7 @@ export function ProductCard({ product }: ProductCardProps) {
             </div>
 
             <div className="flex-grow flex flex-col justify-center text-left">
+              <p className="text-xs text-muted-foreground">{product.vendorName}</p>
               <h3 className="text-lg font-bold leading-tight">{product.name}</h3>
             </div>
 

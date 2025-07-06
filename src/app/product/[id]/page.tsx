@@ -219,6 +219,7 @@ export default function ProductDetailPage() {
           <div>
             <Badge variant="secondary" className="mb-2">{getCategoryName(product.category)}</Badge>
             <h1 className="text-4xl font-bold tracking-tight">{product.name}</h1>
+            <p className="text-md text-muted-foreground mt-1">Sold by <span className="text-primary font-medium">{product.vendorName}</span></p>
           </div>
           <div className="flex items-center gap-2 cursor-pointer" title={`${product.rating.toFixed(1)} out of 5 stars`}>
             {renderStars(product.rating)}

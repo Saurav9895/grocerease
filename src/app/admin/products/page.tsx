@@ -8,15 +8,28 @@ import type { Product, Category } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminProductsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchData = async () => {
+    if (!profile) return;
     setIsLoading(true);
+
+    const productOptions: { vendorId?: string } = {};
+    if (profile.adminRole === 'vendor' && profile.vendorId) {
+        productOptions.vendorId = profile.vendorId;
+    } else if (profile.adminRole !== 'main' && profile.adminRole !== 'standard') {
+        // If not a main admin or vendor, they shouldn't see any products in this view
+        setProducts([]);
+        setCategories([]);
+        setIsLoading(false);
+        return;
+    }
+
     const [allProducts, allCategories] = await Promise.all([
-      getProducts(),
+      getProducts(productOptions),
       getCategories(),
     ]);
     setProducts(allProducts);
@@ -25,10 +38,10 @@ export default function AdminProductsPage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       fetchData();
     }
-  }, [user]);
+  }, [user, profile]);
 
   return (
     <div className="space-y-6">

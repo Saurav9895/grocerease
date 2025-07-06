@@ -1,8 +1,9 @@
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
-import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem } from './types';
+import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
 
 // == Helper Functions ==
 
@@ -11,6 +12,8 @@ function docToProduct(doc: DocumentSnapshot<DocumentData>): Product {
     return {
         id: doc.id,
         name: data.name,
+        vendorId: data.vendorId || '',
+        vendorName: data.vendorName || 'GrocerEase',
         description: data.description,
         price: data.price,
         originalPrice: data.originalPrice,
@@ -91,6 +94,7 @@ function docToUserProfile(doc: DocumentSnapshot<DocumentData>): UserProfile {
         email: data.email || '',
         phone: data.phone || '',
         adminRole: data.adminRole || null,
+        vendorId: data.vendorId || null,
     };
 }
 
@@ -151,12 +155,22 @@ export async function getCategoriesByIds(ids: string[]): Promise<Category[]> {
   }
 }
 
-export async function getProducts(options: { limit?: number } = {}): Promise<Product[]> {
+export async function getProducts(options: { limit?: number, vendorId?: string } = {}): Promise<Product[]> {
   try {
     const productsCol = collection(db, 'products');
-    const q = options.limit 
-      ? query(productsCol, orderBy('createdAt', 'desc'), limit(options.limit))
-      : query(productsCol, orderBy('createdAt', 'desc'));
+    
+    const queryConstraints: any[] = [orderBy('createdAt', 'desc')];
+    
+    if (options.vendorId) {
+        queryConstraints.unshift(where('vendorId', '==', options.vendorId));
+    }
+    
+    if (options.limit) {
+        queryConstraints.push(limit(options.limit));
+    }
+
+    const q = query(productsCol, ...queryConstraints);
+    
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToProduct);
   } catch (error) {
@@ -164,6 +178,7 @@ export async function getProducts(options: { limit?: number } = {}): Promise<Pro
     return [];
   }
 }
+
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
   if (!ids || ids.length === 0) return [];
@@ -490,6 +505,8 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         quantity: item.quantity,
         imageUrl: item.imageUrl,
         variantValue: item.variantValue || null,
+        vendorId: item.vendorId,
+        vendorName: item.vendorName,
       }));
 
       const finalOrderData = {
@@ -663,20 +680,51 @@ export async function findUserByEmail(email: string): Promise<(UserProfile & { a
   }
 }
 
-export async function updateUserAdminRole(userId: string, role: 'standard' | 'delivery' | null): Promise<void> {
+export async function updateUserAdminRole(userId: string, role: 'standard' | 'delivery' | 'vendor' | null): Promise<void> {
   try {
     const userRef = doc(db, "users", userId);
-    await updateDoc(userRef, { adminRole: role });
+    
+    if (role === 'vendor') {
+        const userSnap = await getDoc(userRef);
+        if (!userSnap.exists()) throw new Error("User not found");
+        const userData = userSnap.data();
+
+        // If user already has a vendorId, just update the role and exit.
+        if (userData.vendorId) {
+             await updateDoc(userRef, { adminRole: role });
+             return;
+        }
+
+        // Create a new vendor document
+        const vendorRef = doc(collection(db, "vendors"));
+        const newVendor: Omit<Vendor, 'id'> = {
+            ownerId: userId,
+            name: `${userData.name}'s Store`,
+            description: `Welcome to ${userData.name}'s store!`,
+            createdAt: serverTimestamp() as any
+        };
+        await setDoc(vendorRef, newVendor);
+        
+        // Update user with role and new vendorId
+        await updateDoc(userRef, { adminRole: role, vendorId: vendorRef.id });
+
+    } else {
+        // For other roles, just update the role.
+        // If a vendor is changed to something else, we keep their vendorId for now.
+        // A more complex system might deactivate the vendor.
+        await updateDoc(userRef, { adminRole: role });
+    }
   } catch (error) {
     console.error(`Error updating admin role for user ${userId}:`, error);
     throw error;
   }
 }
 
+
 export async function getAdminUsers(): Promise<UserProfile[]> {
   try {
     const usersRef = collection(db, "users");
-    const q = query(usersRef, where("adminRole", "in", ["main", "standard", "delivery"]));
+    const q = query(usersRef, where("adminRole", "in", ["main", "standard", "delivery", "vendor"]));
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(docToUserProfile);
   } catch (error) {
