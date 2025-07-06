@@ -1,134 +1,115 @@
+
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // == Helper Functions ==
-    function isUserAuthenticated() {
+    // Helper functions
+    function isSignedIn() {
       return request.auth != null;
     }
 
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    function getUserData(userId) {
+      let userDoc = get(/databases/$(database)/documents/users/$(userId));
+      return userDoc.exists ? userDoc.data : null;
     }
     
-    function userHasRole(role) {
-      return isUserAuthenticated() 
-             && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-             && getUserData().adminRole == role;
+    function isMainAdmin(userId) {
+      let userData = getUserData(userId);
+      return isSignedIn() && userData != null && userData.adminRole == 'main';
     }
 
-    function userHasOneOfRoles(roles) {
-      return isUserAuthenticated()
-             && exists(/databases/$(database)/documents/users/$(request.auth.uid))
-             && getUserData().adminRole in roles;
+    function isStandardAdmin(userId) {
+      let userData = getUserData(userId);
+      return isSignedIn() && userData != null && userData.adminRole == 'standard';
+    }
+    
+    function isVendor(userId) {
+      let userData = getUserData(userId);
+      return isSignedIn() && userData != null && userData.adminRole == 'vendor';
+    }
+    
+    function isDeliveryPerson(userId) {
+        let userData = getUserData(userId);
+        return isSignedIn() && userData != null && userData.adminRole == 'delivery';
     }
 
-    function isMainAdmin() {
-      return userHasRole('main');
-    }
-
-    function isAdmin() {
-      return userHasOneOfRoles(['main', 'standard']);
-    }
-
-    function isDeliveryPerson() {
-      return userHasRole('delivery');
-    }
-
-    function isVendor() {
-      return userHasRole('vendor');
+    function isStaff(userId) {
+      return isMainAdmin(userId) || isStandardAdmin(userId) || isDeliveryPerson(userId);
     }
     
     function isOwner(userId) {
-      return isUserAuthenticated() && request.auth.uid == userId;
+      return request.auth.uid == userId;
     }
-
-    function isOwnerOfVendor(vendorId) {
-      return isUserAuthenticated() 
-             && get(/databases/$(database)/documents/vendors/$(vendorId)).data.ownerId == request.auth.uid;
-    }
-
-    // == Rules for Collections ==
-
-    // Users can read their own profile, main admins can read any.
-    // Users can update their own profile (name, phone, addresses). Main admins can update any user's role.
+    
+    // USERS collection
     match /users/{userId} {
-      allow read: if isOwner(userId) || isMainAdmin();
-      allow write: if isOwner(userId); // Allows user to update their own doc
-      allow update: if isMainAdmin(); // Allows main admin to update roles
+      allow read, update: if isSignedIn() && (isOwner(userId) || isMainAdmin(request.auth.uid));
+      allow create: if isSignedIn();
+    }
+    
+    // PRODUCTS collection
+    match /products/{productId} {
+      allow read: if true;
+      allow create: if isSignedIn() && (isMainAdmin(request.auth.uid) || isVendor(request.auth.uid));
+      // Only the vendor who owns the product or a main admin can update/delete it.
+      allow update, delete: if isSignedIn() && (isMainAdmin(request.auth.uid) || (isVendor(request.auth.uid) && resource.data.vendorId == getUserData(request.auth.uid).vendorId));
+      
+      // Reviews subcollection
+      match /reviews/{reviewId} {
+        allow read: if true;
+        allow create: if isSignedIn();
+      }
+    }
+    
+    // CATEGORIES collection
+    match /categories/{categoryId} {
+        allow read: if true;
+        allow create, update: if isSignedIn() && (isMainAdmin(request.auth.uid) || isVendor(request.auth.uid) || isStandardAdmin(request.auth.uid));
+        allow delete: if isMainAdmin(request.auth.uid);
     }
 
-    // Products can be read by anyone.
-    // Products can only be created/updated by the vendor who owns them or an admin.
-    // Deletion is restricted to main admins and the owner vendor.
-    match /products/{productId} {
-      allow read;
-      allow create: if isVendor() && request.resource.data.vendorId == getUserData().vendorId;
-      allow update: if isAdmin() || (isVendor() && resource.data.vendorId == getUserData().vendorId);
-      allow delete: if isMainAdmin() || (isVendor() && resource.data.vendorId == getUserData().vendorId);
-    }
-    
-    // Categories can be read by anyone.
-    // They can be created/updated by admins or vendors.
-    // Deletion is restricted to main admins.
-    match /categories/{categoryId} {
-      allow read;
-      allow create, update: if isAdmin() || isVendor();
-      allow delete: if isMainAdmin();
-    }
-    
-    // Reviews can be read by anyone.
-    // They can only be created by an authenticated user.
-    match /products/{productId}/reviews/{reviewId} {
-        allow read;
-        allow create: if isUserAuthenticated() && request.resource.data.userId == request.auth.uid;
-        allow update, delete: if false; // No updates/deletes for now
-    }
-    
-    // Orders:
-    // Read:
-    //  - The user who placed the order can read it.
-    //  - An admin can read it.
-    //  - A delivery person assigned to the order can read it.
-    //  - A vendor whose product is in the order can read it.
-    // Create: Anyone authenticated can create an order.
-    // Update: Only admins and assigned delivery persons can update.
-    match /orders/{orderId} {
-      allow read: if isOwner(resource.data.userId) || 
-                   isAdmin() ||
-                   (isDeliveryPerson() && resource.data.deliveryPersonId == request.auth.uid) ||
-                   (isVendor() && getUserData().vendorId in resource.data.vendorIds);
-      allow create: if isUserAuthenticated();
-      allow update: if isAdmin() || isDeliveryPerson();
-    }
-    
-    // Settings can only be read/written by the main admin.
-    match /settings/{settingId} {
-        allow read, write: if isMainAdmin();
-    }
-    
-    // Promo codes can be read by anyone authenticated (to validate them).
-    // They can only be created/deleted by a main admin.
-    match /promocodes/{promoId} {
-      allow read: if isUserAuthenticated();
-      allow write: if isMainAdmin();
-    }
-    
-    // Attributes can be read by anyone.
-    // They can only be managed by admins.
+    // ATTRIBUTES collection
     match /attributes/{attributeId} {
-        allow read;
-        allow write: if isAdmin();
+        allow read: if true;
+        allow create, update: if isSignedIn() && (isMainAdmin(request.auth.uid) || isVendor(request.auth.uid) || isStandardAdmin(request.auth.uid));
+        allow delete: if isMainAdmin(request.auth.uid);
     }
     
-    // Vendors can be read by anyone.
-    // They can be updated only by the owner vendor or a main admin.
+    // ORDERS collection
+    match /orders/{orderId} {
+      // Users can read their own orders.
+      // Vendors can read orders containing their products.
+      // Staff (admins/delivery) can read all orders.
+      allow read: if isSignedIn() && 
+                    (isOwner(resource.data.userId) || 
+                     isStaff(request.auth.uid) ||
+                     (isVendor(request.auth.uid) && getUserData(request.auth.uid).vendorId in resource.data.vendorIds));
+
+      allow create: if isSignedIn();
+      
+      // Only staff can update orders (e.g., change status, assign delivery).
+      allow update: if isSignedIn() && isStaff(request.auth.uid);
+    }
+    
+    // VENDORS collection
     match /vendors/{vendorId} {
-        allow read;
-        allow create: if false; // Created via updateUserAdminRole function
-        allow update: if isMainAdmin() || isOwnerOfVendor(vendorId);
-        allow delete: if isMainAdmin();
+      allow read: if true;
+      // Only main admins can create vendors (via the role assignment).
+      // Only the owner of the vendor profile or a main admin can update it.
+      allow create, update: if isSignedIn() && (isMainAdmin(request.auth.uid) || isOwner(resource.data.ownerId));
+    }
+
+    // SETTINGS collection
+    match /settings/{settingId} {
+        allow read: if true;
+        allow write: if isMainAdmin(request.auth.uid);
+    }
+    
+    // PROMOCODES collection
+    match /promocodes/{promoId} {
+        allow read: if true;
+        allow write: if isMainAdmin(request.auth.uid);
     }
   }
 }

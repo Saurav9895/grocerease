@@ -40,6 +40,7 @@ export function AdminSidebar() {
   };
   
   const isMainOrStandardAdmin = profile?.adminRole === 'main' || profile?.adminRole === 'standard';
+  const canManageStoreEntities = profile?.adminRole === 'main' || profile?.adminRole === 'standard' || profile?.adminRole === 'vendor';
 
   return (
     <Sidebar>
@@ -68,9 +69,9 @@ export function AdminSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
 
-          {/* Admin-only Links */}
-          {isMainOrStandardAdmin && (
-            <>
+          {/* Categories & Attributes for Admins and Vendors */}
+          {canManageStoreEntities && (
+             <>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/categories")} tooltip="Categories">
                   <Link href="/admin/categories"><LayoutList /><span>Categories</span></Link>
@@ -81,6 +82,12 @@ export function AdminSidebar() {
                   <Link href="/admin/attributes"><ClipboardList /><span>Attributes</span></Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
+            </>
+          )}
+
+          {/* Admin-only Links */}
+          {isMainOrStandardAdmin && (
+            <>
               <SidebarMenuItem>
                 <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/deliveries")} tooltip="Delivery Log">
                   <Link href="/admin/deliveries"><History /><span>Delivery Log</span></Link>
