@@ -158,10 +158,17 @@ export default function OrderDetailPage() {
     }
   };
 
+  const isVendorView = profile?.adminRole === 'vendor' && profile.vendorId;
+  
   const itemsToShow =
-    profile?.adminRole === 'vendor' && profile.vendorId
+    isVendorView
       ? order.items.filter((item) => item.vendorId === profile.vendorId)
       : order.items;
+      
+  const vendorSubtotal =
+    isVendorView
+      ? itemsToShow.reduce((acc, item) => acc + item.price * item.quantity, 0)
+      : 0;
 
 
   return (
@@ -193,7 +200,7 @@ export default function OrderDetailPage() {
                     <TableRow>
                       <TableHead className="w-[80px]">Image</TableHead>
                       <TableHead>Product</TableHead>
-                      {profile?.adminRole !== 'vendor' && <TableHead>Vendor</TableHead>}
+                      {!isVendorView && <TableHead>Vendor</TableHead>}
                       <TableHead>Quantity</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">Total</TableHead>
@@ -217,7 +224,7 @@ export default function OrderDetailPage() {
                             </div>
                           )}
                         </TableCell>
-                        {profile?.adminRole !== 'vendor' && (
+                        {!isVendorView && (
                           <TableCell>
                              <Link href={`/vendor/${item.vendorId}`} className="font-medium hover:underline text-primary">
                               {item.vendorName}
@@ -244,40 +251,54 @@ export default function OrderDetailPage() {
           <div className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>Order Summary</CardTitle>
+                <CardTitle>{isVendorView ? "Your Portion Summary" : "Order Summary"}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex justify-between">
-                  <span>Order Placed:</span>
-                  <span>{format(order.createdAt, 'PPP')}</span>
-                </div>
-                 <div className="flex justify-between items-center">
-                  <span>Status:</span>
-                  <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
-                </div>
-                {order.status === 'Shipped' && order.deliveryOtp && (
-                  <div className="flex justify-between items-center pt-2 border-t mt-2">
-                    <div className="flex items-center gap-2">
-                      <KeyRound className="w-4 h-4 text-muted-foreground" />
-                      <span className="font-medium">Delivery OTP</span>
+                {isVendorView ? (
+                  <>
+                    <div className="flex justify-between font-bold text-lg">
+                        <span>Your Items Total:</span>
+                        <span>Rs{vendorSubtotal.toFixed(2)}</span>
                     </div>
-                    <Badge variant="outline" className="text-base font-mono tracking-widest">{order.deliveryOtp}</Badge>
-                  </div>
+                    <p className="text-xs text-muted-foreground">
+                        This is the subtotal for your items in this order. Delivery fees and discounts apply to the full order.
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex justify-between">
+                      <span>Order Placed:</span>
+                      <span>{format(order.createdAt, 'PPP')}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span>Status:</span>
+                      <Badge variant={getStatusVariant(order.status)}>{order.status}</Badge>
+                    </div>
+                    {order.status === 'Shipped' && order.deliveryOtp && (
+                      <div className="flex justify-between items-center pt-2 border-t mt-2">
+                        <div className="flex items-center gap-2">
+                          <KeyRound className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Delivery OTP</span>
+                        </div>
+                        <Badge variant="outline" className="text-base font-mono tracking-widest">{order.deliveryOtp}</Badge>
+                      </div>
+                    )}
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>Rs{order.subtotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Delivery:</span>
+                      <span>Rs{order.deliveryFee.toFixed(2)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-bold text-lg">
+                      <span>Total:</span>
+                      <span>Rs{order.total.toFixed(2)}</span>
+                    </div>
+                  </>
                 )}
-                <Separator />
-                 <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>Rs{order.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Delivery:</span>
-                  <span>Rs{order.deliveryFee.toFixed(2)}</span>
-                </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
-                  <span>Total:</span>
-                  <span>Rs{order.total.toFixed(2)}</span>
-                </div>
               </CardContent>
               <CardFooter className="flex flex-col gap-2 items-stretch">
                   <Select value={selectedStatus} onValueChange={(v) => setSelectedStatus(v as OrderStatus)}>
