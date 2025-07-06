@@ -1,17 +1,26 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthProvider";
 import { useToast } from "@/hooks/use-toast";
 import { getVendorById, updateVendorDetails } from "@/lib/data";
-import type { Vendor } from "@/lib/types";
+import type { Vendor, Address } from "@/lib/types";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Store } from "lucide-react";
+import { Store, MapPin } from "lucide-react";
+import { Separator } from "../ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import dynamic from 'next/dynamic';
+
+const GoogleMapPicker = dynamic(() => import('@/components/common/GoogleMapPicker').then(mod => mod.GoogleMapPicker), {
+    ssr: false,
+    loading: () => <Skeleton className="h-[450px] w-full" />
+});
 
 export function VendorProfileManager() {
   const { profile } = useAuth();
@@ -21,6 +30,8 @@ export function VendorProfileManager() {
   const [isSaving, setIsSaving] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [address, setAddress] = useState<Partial<Address> | null>(null);
+  const [isMapOpen, setIsMapOpen] = useState(false);
 
   useEffect(() => {
     if (profile?.vendorId) {
@@ -31,11 +42,21 @@ export function VendorProfileManager() {
             setVendor(vendorData);
             setName(vendorData.name);
             setDescription(vendorData.description);
+            setAddress(vendorData.address || null);
           }
           setIsLoading(false);
         });
     }
   }, [profile?.vendorId]);
+
+  const handleMapConfirm = (addressFromMap: Partial<Address>) => {
+    setAddress(prev => ({
+        ...prev,
+        ...addressFromMap,
+    }));
+    setIsMapOpen(false);
+    toast({ title: "Location Set", description: "Address details have been updated from the map. Click 'Save' to confirm." });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +64,7 @@ export function VendorProfileManager() {
 
     setIsSaving(true);
     try {
-      await updateVendorDetails(vendor.id, { name, description });
+      await updateVendorDetails(vendor.id, { name, description, address: address || undefined });
       toast({ title: "Shop details updated successfully!" });
       // Refresh local state after update
       const updatedVendor = await getVendorById(vendor.id);
@@ -51,6 +72,7 @@ export function VendorProfileManager() {
             setVendor(updatedVendor);
             setName(updatedVendor.name);
             setDescription(updatedVendor.description);
+            setAddress(updatedVendor.address || null);
         }
     } catch (error) {
       console.error("Error updating vendor details:", error);
@@ -86,7 +108,7 @@ export function VendorProfileManager() {
         <CardTitle className="flex items-center gap-2">
             <Store className="h-5 w-5"/> Vendor Profile
         </CardTitle>
-        <CardDescription>Manage your public shop name and description.</CardDescription>
+        <CardDescription>Manage your public shop name, description, and location.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -109,7 +131,51 @@ export function VendorProfileManager() {
               rows={4}
             />
           </div>
-          <Button type="submit" disabled={isSaving}>
+          
+          <Separator className="!my-6" />
+
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <div>
+                <Label>Shop Location</Label>
+                <p className="text-sm text-muted-foreground">
+                  Set your physical shop location for pickups and maps.
+                </p>
+              </div>
+              <Dialog open={isMapOpen} onOpenChange={setIsMapOpen}>
+                <DialogTrigger asChild>
+                  <Button type="button" variant="outline">
+                    <MapPin className="mr-2 h-4 w-4" />
+                    Set Location
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="sm:max-w-xl p-0">
+                  <DialogHeader className="sr-only">
+                    <DialogTitle>Set Shop Location</DialogTitle>
+                    <DialogDescription>
+                      Drag the map to pinpoint your address or use the search bar.
+                    </DialogDescription>
+                  </DialogHeader>
+                  {isMapOpen && <GoogleMapPicker onConfirm={handleMapConfirm} onClose={() => setIsMapOpen(false)} />}
+                </DialogContent>
+              </Dialog>
+            </div>
+            {address && (address.street || address.city) && (
+              <div className="text-sm text-muted-foreground p-3 border rounded-md bg-muted/50">
+                <p>{address.street}</p>
+                <p>{address.city}, {address.state} {address.zip}</p>
+                <p>{address.country}</p>
+                {address.googleMapsUrl && (
+                  <a href={address.googleMapsUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline text-xs flex items-center gap-1 mt-1">
+                    <MapPin className="h-3 w-3" />
+                    View on Map
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
+
+          <Button type="submit" disabled={isSaving} className="!mt-6 w-full">
             {isSaving ? "Saving..." : "Save Shop Details"}
           </Button>
         </form>

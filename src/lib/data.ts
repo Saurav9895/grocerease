@@ -117,6 +117,7 @@ function docToVendor(doc: DocumentSnapshot<DocumentData>): Vendor {
         ownerId: data.ownerId,
         description: data.description,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+        address: data.address || undefined,
     };
 }
 
@@ -1046,7 +1047,7 @@ export async function getVendors(): Promise<Vendor[]> {
   }
 }
 
-export async function updateVendorDetails(vendorId: string, data: { name: string; description: string }): Promise<void> {
+export async function updateVendorDetails(vendorId: string, data: { name: string; description: string; address?: Partial<Address> }): Promise<void> {
     if (!vendorId) throw new Error("Vendor ID is required.");
     try {
         const vendorRef = doc(db, 'vendors', vendorId);
@@ -1054,10 +1055,12 @@ export async function updateVendorDetails(vendorId: string, data: { name: string
         const batch = writeBatch(db);
 
         // 1. Update the vendor document
-        batch.update(vendorRef, {
+        const dataToUpdate: any = {
             name: data.name,
             description: data.description,
-        });
+            address: data.address || null,
+        };
+        batch.update(vendorRef, dataToUpdate);
 
         // 2. Find and update all products from this vendor with the new name
         const productsRef = collection(db, 'products');

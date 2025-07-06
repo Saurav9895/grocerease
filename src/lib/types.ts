@@ -4,12 +4,14 @@
 
 
 
+
 export interface Vendor {
   id: string;
   name: string;
   ownerId: string;
   description: string;
   createdAt: Date;
+  address?: Address;
 }
 
 export interface Product {
