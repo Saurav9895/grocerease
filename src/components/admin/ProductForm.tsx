@@ -221,6 +221,10 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     setVariantSKUs(prev => prev.map(sku => sku.id === id ? { ...sku, [field]: value } : sku));
   };
 
+  const handleRemoveSKU = (id: string) => {
+    setVariantSKUs(prev => prev.filter(sku => sku.id !== id));
+  };
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
@@ -282,7 +286,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
             variantSKUs: finalVariantSKUs,
             // For variant products, the base price/stock might be the first SKU's, or just 0
             price: finalVariantSKUs[0]?.price || 0,
-            stock: 0, 
+            stock: finalVariantSKUs.reduce((sum, sku) => sum + sku.stock, 0),
         };
     } else {
         dataToSave = { ...dataToSave, variantDefinitions: [], variantSKUs: [] };
@@ -379,14 +383,20 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
                     <h4 className="font-medium">Generated SKUs</h4>
                     <div className="border rounded-md overflow-x-auto">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Variant</TableHead><TableHead>Price</TableHead><TableHead>Stock</TableHead><TableHead>Image URL</TableHead></TableRow></TableHeader>
+                            <TableHeader><TableRow><TableHead>Variant</TableHead><TableHead>Price</TableHead><TableHead>Stock</TableHead><TableHead>Image URL</TableHead><TableHead className="w-[50px] text-right"><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
                             <TableBody>
                                 {variantSKUs.map(sku => (
                                     <TableRow key={sku.id}>
                                         <TableCell className="font-medium">{Object.values(sku.options).join(' / ')}</TableCell>
-                                        <TableCell><Input className="h-8" type="number" step="0.01" placeholder="99.00" value={sku.price} onChange={e => handleSKUChange(sku.id, 'price', e.target.value)} /></TableCell>
-                                        <TableCell><Input className="h-8" type="number" placeholder="10" value={sku.stock} onChange={e => handleSKUChange(sku.id, 'stock', e.target.value)}/></TableCell>
-                                        <TableCell><Input className="h-8" placeholder="https://..." value={sku.imageUrl} onChange={e => handleSKUChange(sku.id, 'imageUrl', e.target.value)}/></TableCell>
+                                        <TableCell><Input className="h-8 min-w-[100px]" type="number" step="0.01" placeholder="99.00" value={sku.price} onChange={e => handleSKUChange(sku.id, 'price', e.target.value)} /></TableCell>
+                                        <TableCell><Input className="h-8 min-w-[80px]" type="number" placeholder="10" value={sku.stock} onChange={e => handleSKUChange(sku.id, 'stock', e.target.value)}/></TableCell>
+                                        <TableCell><Input className="h-8 min-w-[200px]" placeholder="https://..." value={sku.imageUrl} onChange={e => handleSKUChange(sku.id, 'imageUrl', e.target.value)}/></TableCell>
+                                        <TableCell className="text-right">
+                                            <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoveSKU(sku.id)}>
+                                                <Trash2 className="h-4 w-4" />
+                                                <span className="sr-only">Delete SKU</span>
+                                            </Button>
+                                        </TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>
