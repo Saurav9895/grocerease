@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import { useEffect, useState } from "react";
@@ -263,6 +262,15 @@ export default function OrderDetailPage() {
                     <p className="text-xs text-muted-foreground">
                         This is the subtotal for your items in this order. Delivery fees and discounts apply to the full order.
                     </p>
+                    {order.status === 'Shipped' && order.deliveryOtp && (
+                      <div className="flex justify-between items-center pt-2 border-t mt-2">
+                        <div className="flex items-center gap-2">
+                          <KeyRound className="w-4 h-4 text-muted-foreground" />
+                          <span className="font-medium">Delivery OTP</span>
+                        </div>
+                        <Badge variant="outline" className="text-base font-mono tracking-widest">{order.deliveryOtp}</Badge>
+                      </div>
+                    )}
                   </>
                 ) : (
                   <>
