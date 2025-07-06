@@ -352,7 +352,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       
        <Card className="p-6">
           <div className="flex items-center space-x-2 mb-4"><Checkbox id="hasVariants" checked={hasVariants} onCheckedChange={(checked) => setHasVariants(!!checked)} /><Label htmlFor="hasVariants" className="text-base font-medium">This product has variants</Label></div>
-          <Label className="text-base font-medium">Attributes</Label>
+          <Label className="text-base font-medium">Attributes & Variants</Label>
           <p className="text-sm text-muted-foreground mb-4">Add product details. For variants, check "Is Variant" and provide comma-separated options.</p>
           <div className="space-y-4">
               {productAttributes.map((attr, index) => (
@@ -392,14 +392,68 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
                     <h4 className="font-medium">Generated SKUs</h4>
                     <div className="border rounded-md overflow-x-auto">
                         <Table>
-                            <TableHeader><TableRow><TableHead>Variant</TableHead><TableHead>Price</TableHead><TableHead>Stock</TableHead><TableHead>Image URL</TableHead><TableHead className="w-[50px] text-right"><span className="sr-only">Actions</span></TableHead></TableRow></TableHeader>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Variant</TableHead>
+                                    <TableHead>Image</TableHead>
+                                    <TableHead>Original Price</TableHead>
+                                    <TableHead>Sale Price</TableHead>
+                                    <TableHead>Stock</TableHead>
+                                    <TableHead>Image URL</TableHead>
+                                    <TableHead className="w-[50px] text-right"><span className="sr-only">Actions</span></TableHead>
+                                </TableRow>
+                            </TableHeader>
                             <TableBody>
                                 {variantSKUs.map(sku => (
                                     <TableRow key={sku.id}>
-                                        <TableCell className="font-medium">{Object.values(sku.options).join(' / ')}</TableCell>
-                                        <TableCell><Input className="h-8 min-w-[100px]" type="number" step="0.01" placeholder="99.00" value={sku.price} onChange={e => handleSKUChange(sku.id, 'price', e.target.value)} /></TableCell>
-                                        <TableCell><Input className="h-8 min-w-[80px]" type="number" placeholder="10" value={sku.stock} onChange={e => handleSKUChange(sku.id, 'stock', e.target.value)}/></TableCell>
-                                        <TableCell><Input className="h-8 min-w-[200px]" placeholder="https://..." value={sku.imageUrl} onChange={e => handleSKUChange(sku.id, 'imageUrl', e.target.value)}/></TableCell>
+                                        <TableCell className="font-medium whitespace-nowrap">{Object.values(sku.options).join(' / ')}</TableCell>
+                                        <TableCell>
+                                            <div className="relative h-10 w-10 rounded-md overflow-hidden border bg-muted">
+                                                {isPreviewable(sku.imageUrl) && (
+                                                    <Image src={sku.imageUrl} alt="SKU preview" fill className="object-cover" />
+                                                )}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                                className="h-8 min-w-[100px]" 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="120.00" 
+                                                value={sku.originalPrice} 
+                                                onChange={e => handleSKUChange(sku.id, 'originalPrice', e.target.value)} 
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                                className="h-8 min-w-[100px]" 
+                                                type="number" 
+                                                step="0.01" 
+                                                placeholder="99.00" 
+                                                value={sku.price} 
+                                                onChange={e => handleSKUChange(sku.id, 'price', e.target.value)} 
+                                                required 
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                                className="h-8 min-w-[80px]" 
+                                                type="number" 
+                                                placeholder="10" 
+                                                value={sku.stock} 
+                                                onChange={e => handleSKUChange(sku.id, 'stock', e.target.value)} 
+                                                required 
+                                            />
+                                        </TableCell>
+                                        <TableCell>
+                                            <Input 
+                                                className="h-8 min-w-[200px]" 
+                                                placeholder="https://..." 
+                                                value={sku.imageUrl} 
+                                                onChange={e => handleSKUChange(sku.id, 'imageUrl', e.target.value)} 
+                                                required 
+                                            />
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             <Button type="button" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => handleRemoveSKU(sku.id)}>
                                                 <Trash2 className="h-4 w-4" />
