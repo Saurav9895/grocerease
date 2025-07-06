@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { getCategories, getAttributes, createCategory } from "@/lib/data";
 import type { Product, Category, AttributeSet } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { z } from "zod";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, doc, updateDoc, serverTimestamp, getDoc } from "firebase/firestore";
@@ -29,7 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 
 interface ProductFormProps {
   product?: Product | null;
@@ -47,16 +46,11 @@ const productSchema = z.object({
   imageUrl: z.string().url("Please enter a valid image URL."),
 });
 
-type Attribute = {
+type ProductAttribute = {
   id: number;
   key: string;
   value: string;
-};
-
-type VariantDefinition = {
-    id: number;
-    name: string;
-    values: string[];
+  isVariant: boolean;
 };
 
 type VariantSKU = {
@@ -67,7 +61,6 @@ type VariantSKU = {
     stock: string;
     imageUrl: string;
 };
-
 
 // Helper function to calculate cartesian product for variants
 const cartesian = <T>(...a: T[][]): T[][] => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())), [[]] as T[][]);
@@ -81,12 +74,13 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const { profile } = useAuth();
   
   const [imageUrl, setImageUrl] = useState(product?.imageUrl || 'https://placehold.co/600x400.png');
-  const [attributes, setAttributes] = useState<Attribute[]>([]);
   const [selectedCategory, setSelectedCategory] = useState('');
+  
+  // New unified state for all attributes
+  const [productAttributes, setProductAttributes] = useState<ProductAttribute[]>([]);
 
   // Variant state
   const [hasVariants, setHasVariants] = useState(false);
-  const [variantDefinitions, setVariantDefinitions] = useState<VariantDefinition[]>([]);
   const [variantSKUs, setVariantSKUs] = useState<VariantSKU[]>([]);
 
   // Category creation state
@@ -117,11 +111,13 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
   useEffect(() => {
     if (product) {
       setImageUrl(product.imageUrl);
-      setAttributes(product.attributes ? Object.entries(product.attributes).map(([key, value], index) => ({ id: index, key, value })) : []);
       setSelectedCategory(product.category);
-      
       setHasVariants(product.hasVariants || false);
-      setVariantDefinitions(product.variantDefinitions?.map((def, i) => ({ id: Date.now() + i, ...def })) || []);
+      
+      const initialAttributes = product.attributes ? Object.entries(product.attributes).map(([key, value], i) => ({ id: Date.now() + i, key, value, isVariant: false })) : [];
+      const initialVariantAttrs = product.variantDefinitions ? product.variantDefinitions.map((def, i) => ({ id: Date.now() + 1000 + i, key: def.name, value: def.values.join(', '), isVariant: true })) : [];
+      setProductAttributes([...initialAttributes, ...initialVariantAttrs]);
+
       setVariantSKUs(product.variantSKUs?.map(sku => ({
         ...sku,
         price: String(sku.price),
@@ -132,10 +128,9 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     } else {
       // Reset form for new product
       setImageUrl('https://placehold.co/600x400.png');
-      setAttributes([]);
       setSelectedCategory('');
       setHasVariants(false);
-      setVariantDefinitions([]);
+      setProductAttributes([]);
       setVariantSKUs([]);
     }
   }, [product]);
@@ -169,40 +164,33 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     }
   };
 
-
-  const handleAddAttribute = () => setAttributes(prev => [...prev, { id: Date.now(), key: '', value: '' }]);
-  const handleAttributeChange = (id: number, field: 'key' | 'value', value: string) => setAttributes(prev => prev.map(attr => attr.id === id ? { ...attr, [field]: value } : attr));
-  const handleRemoveAttribute = (id: number) => setAttributes(prev => prev.filter(attr => attr.id !== id));
-  
-  const handleAddVariantDefinition = () => setVariantDefinitions(prev => [...prev, { id: Date.now(), name: '', values: [] }]);
-  const handleRemoveVariantDefinition = (id: number) => setVariantDefinitions(prev => prev.filter(def => def.id !== id));
-
-  const handleVariantDefNameChange = (id: number, name: string) => {
-    setVariantDefinitions(prev => prev.map(def => def.id === id ? { ...def, name } : def));
+  const handleAddAttribute = () => setProductAttributes(prev => [...prev, { id: Date.now(), key: '', value: '', isVariant: hasVariants }]);
+  const handleRemoveAttribute = (id: number) => setProductAttributes(prev => prev.filter(attr => attr.id !== id));
+  const handleAttributeChange = (id: number, field: 'key' | 'value' | 'isVariant', value: string | boolean) => {
+    setProductAttributes(prev => prev.map(attr => attr.id === id ? { ...attr, [field]: value } : attr));
   };
   
-  const handleVariantDefValuesChange = (id: number, valuesString: string) => {
-    const values = valuesString.split(',').map(v => v.trim()).filter(Boolean);
-    setVariantDefinitions(prev => prev.map(def => def.id === id ? { ...def, values } : def));
-  };
-
   const handleGenerateSKUs = () => {
-    const validDefs = variantDefinitions.filter(def => def.name && def.values.length > 0);
-    if (validDefs.length === 0) {
-        toast({ variant: 'destructive', title: "No variants defined", description: "Please define at least one variant type with options."});
+    const variantAttrs = productAttributes.filter(attr => attr.isVariant && attr.key && attr.value);
+    if (variantAttrs.length === 0) {
+        toast({ variant: 'destructive', title: "No Variant Attributes", description: "Please mark at least one attribute as a variant and provide options."});
         return;
     }
-    const optionsArrays = validDefs.map(def => def.values);
+    const optionsArrays = variantAttrs.map(attr => attr.value.split(',').map(v => v.trim()).filter(Boolean));
+    if (optionsArrays.some(arr => arr.length === 0)) {
+        toast({ variant: 'destructive', title: "Empty Options", description: "Please ensure all variant attributes have comma-separated options."});
+        return;
+    }
+
     const combinations = cartesian(...optionsArrays);
     
     const newSKUs = combinations.map(combo => {
         const options: Record<string, string> = {};
-        validDefs.forEach((def, i) => {
-            options[def.name] = combo[i];
+        variantAttrs.forEach((def, i) => {
+            options[def.key] = combo[i];
         });
         const id = Object.values(options).join('-').toLowerCase().replace(/\s+/g, '-');
         
-        // Try to find existing SKU to preserve its data
         const existingSKU = variantSKUs.find(sku => sku.id === id);
 
         return {
@@ -225,6 +213,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     setVariantSKUs(prev => prev.filter(sku => sku.id !== id));
   };
 
+
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setIsLoading(true);
@@ -240,22 +229,24 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       setIsLoading(false);
       return;
     }
-
-    const attributesToSave = attributes.filter(a => a.key.trim()).reduce((acc, a) => ({...acc, [a.key.trim()]: a.value.trim()}), {});
+    
+    const nonVariantAttributes = productAttributes
+      .filter(a => !a.isVariant && a.key.trim())
+      .reduce((acc, a) => ({ ...acc, [a.key.trim()]: a.value.trim() }), {});
 
     let dataToSave: any = { 
         ...validatedFields.data, 
-        attributes: attributesToSave,
+        attributes: nonVariantAttributes,
         hasVariants: hasVariants,
     };
 
     if (hasVariants) {
-        const finalVariantDefinitions = variantDefinitions
-            .filter(d => d.name && d.values.length > 0)
-            .map(({ id, ...rest }) => rest);
+        const finalVariantDefinitions = productAttributes
+            .filter(a => a.isVariant && a.key && a.value)
+            .map(a => ({ name: a.key, values: a.value.split(',').map(v => v.trim()).filter(Boolean) }));
 
         if (finalVariantDefinitions.length === 0) {
-            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please define at least one variant with options.' });
+            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please define at least one variant attribute with options.' });
             setIsLoading(false); return;
         }
 
@@ -279,14 +270,18 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
             toast({ variant: 'destructive', title: 'Variant Error', description: 'Please generate variants and fill in their details.' });
             setIsLoading(false); return;
         }
+        
+        const totalStock = finalVariantSKUs.reduce((sum, sku) => sum + sku.stock, 0);
 
         dataToSave = {
             ...dataToSave,
             variantDefinitions: finalVariantDefinitions,
             variantSKUs: finalVariantSKUs,
-            // For variant products, the base price/stock might be the first SKU's, or just 0
+            // For variant products, price/stock are aggregates/placeholders
             price: finalVariantSKUs[0]?.price || 0,
-            stock: finalVariantSKUs.reduce((sum, sku) => sum + sku.stock, 0),
+            originalPrice: finalVariantSKUs[0]?.originalPrice,
+            stock: totalStock,
+            imageUrl: finalVariantSKUs[0]?.imageUrl || validatedFields.data.imageUrl,
         };
     } else {
         dataToSave = { ...dataToSave, variantDefinitions: [], variantSKUs: [] };
@@ -336,7 +331,7 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
                 <div className="space-y-2"><Label htmlFor="price">{hasVariants ? 'Base Price' : 'Sale Price'}</Label><Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required placeholder="e.g., 99.00" disabled={hasVariants}/></div>
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2"><Label htmlFor="stock">{hasVariants ? 'Base Stock' : 'Stock'}</Label><Input id="stock" name="stock" type="number" defaultValue={product?.stock} required disabled={hasVariants} /></div>
+              <div className="space-y-2"><Label htmlFor="stock">{hasVariants ? 'Total Stock' : 'Stock'}</Label><Input id="stock" name="stock" type="number" defaultValue={product?.stock} required disabled={hasVariants} /></div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <div className="flex items-center gap-2">
@@ -355,28 +350,42 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
         </div>
       </div>
       
-      <Card className="p-6">
-        <div className="flex items-center space-x-2"><Checkbox id="hasVariants" checked={hasVariants} onCheckedChange={(checked) => setHasVariants(!!checked)} /><Label htmlFor="hasVariants" className="text-base font-medium">This product has variants</Label></div>
-        <p className="text-sm text-muted-foreground mt-1">Check this if the product comes in different versions like weight or color, each with its own price, stock, and image.</p>
+       <Card className="p-6">
+          <div className="flex items-center space-x-2 mb-4"><Checkbox id="hasVariants" checked={hasVariants} onCheckedChange={(checked) => setHasVariants(!!checked)} /><Label htmlFor="hasVariants" className="text-base font-medium">This product has variants</Label></div>
+          <Label className="text-base font-medium">Attributes</Label>
+          <p className="text-sm text-muted-foreground mb-4">Add product details. For variants, check "Is Variant" and provide comma-separated options.</p>
+          <div className="space-y-4">
+              {productAttributes.map((attr, index) => (
+                <div key={attr.id} className="grid grid-cols-1 md:grid-cols-[2fr_3fr_auto_auto] items-end gap-2 p-2 border rounded-md">
+                    <div className="space-y-1">
+                        <Label htmlFor={`attr-key-${index}`} className="text-xs">Attribute</Label>
+                        <Select value={attr.key} onValueChange={(key) => handleAttributeChange(attr.id, 'key', key)}>
+                          <SelectTrigger id={`attr-key-${index}`}><SelectValue placeholder="Select..." /></SelectTrigger>
+                          <SelectContent>{allAttributeSets.map(attrSet => (<SelectItem key={attrSet.id} value={attrSet.name}>{attrSet.name}</SelectItem>))}</SelectContent>
+                        </Select>
+                    </div>
+                    <div className="space-y-1">
+                        <Label htmlFor={`attr-value-${index}`} className="text-xs">Value(s)</Label>
+                        <Input id={`attr-value-${index}`} placeholder={attr.isVariant ? "e.g. Small, Medium, Large" : "e.g. Cotton"} value={attr.value} onChange={(e) => handleAttributeChange(attr.id, 'value', e.target.value)}/>
+                    </div>
+                    {hasVariants && (
+                        <div className="flex items-center space-x-2 pb-2">
+                           <Checkbox id={`isVariant-${index}`} checked={attr.isVariant} onCheckedChange={(checked) => handleAttributeChange(attr.id, 'isVariant', !!checked)} />
+                           <Label htmlFor={`isVariant-${index}`} className="text-xs">Is Variant?</Label>
+                        </div>
+                    )}
+                    <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveAttribute(attr.id)}><Trash2 className="h-4 w-4"/></Button>
+                </div>
+              ))}
+          </div>
+          <Button type="button" variant="outline" size="sm" className="mt-4" onClick={handleAddAttribute}><PlusCircle className="mr-2 h-4 w-4"/>Add Attribute</Button>
       </Card>
       
       {hasVariants && (
         <Card className="p-6 space-y-4">
-            <h3 className="text-lg font-medium">Variant Configuration</h3>
-            <div className="space-y-4">
-                {variantDefinitions.map((def, index) => (
-                    <div key={def.id} className="p-4 border rounded-md relative">
-                        <Button type="button" variant="destructive" size="icon" className="absolute -top-3 -right-3 h-7 w-7" onClick={() => handleRemoveVariantDefinition(def.id)}><Trash2 className="h-4 w-4"/></Button>
-                        <div className="grid md:grid-cols-2 gap-4">
-                            <div className="space-y-2"><Label>Variant Type</Label><Select onValueChange={(name) => handleVariantDefNameChange(def.id, name)} value={def.name}><SelectTrigger><SelectValue placeholder="Select attribute..." /></SelectTrigger><SelectContent>{allAttributeSets.map(attr => (<SelectItem key={attr.id} value={attr.name}>{attr.name}</SelectItem>))}</SelectContent></Select></div>
-                            <div className="space-y-2"><Label>Options</Label><Input placeholder="Red, Green, Blue (comma-separated)" value={def.values.join(', ')} onChange={e => handleVariantDefValuesChange(def.id, e.target.value)} /></div>
-                        </div>
-                    </div>
-                ))}
-                <Button type="button" variant="outline" className="w-full" onClick={handleAddVariantDefinition}><PlusCircle className="mr-2 h-4 w-4"/>Add Variant Type</Button>
-            </div>
-            <Separator />
-            <Button type="button" className="w-full" onClick={handleGenerateSKUs}><Wand2 className="mr-2 h-4 w-4"/>Generate Variant SKUs</Button>
+            <h3 className="text-lg font-medium">Variant SKUs</h3>
+            <p className="text-sm text-muted-foreground">Generate SKUs from your variant attributes, then set the price, stock, and image for each combination.</p>
+            <Button type="button" className="w-full" onClick={handleGenerateSKUs}><Wand2 className="mr-2 h-4 w-4"/>Generate/Update Variant SKUs</Button>
             
             {variantSKUs.length > 0 && (
                  <div className="space-y-2 pt-4">
@@ -406,13 +415,6 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
             )}
         </Card>
       )}
-
-       <Card className="p-6">
-          <Label className="text-base font-medium">Additional Details</Label>
-          <p className="text-sm text-muted-foreground mb-4">Add non-variant details like brand, origin, etc.</p>
-          <div className="space-y-4">{attributes.map((attr, index) => (<div key={attr.id} className="flex items-end gap-2"><div className="flex-1"><Label htmlFor={`attr-key-${index}`} className="text-xs">Attribute Name</Label><Input id={`attr-key-${index}`} placeholder="e.g. Brand" value={attr.key} onChange={(e) => handleAttributeChange(attr.id, 'key', e.target.value)}/></div><div className="flex-1"><Label htmlFor={`attr-value-${index}`} className="text-xs">Value</Label><Input id={`attr-value-${index}`} placeholder="e.g. FreshFarms" value={attr.value} onChange={(e) => handleAttributeChange(attr.id, 'value', e.target.value)}/></div><Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveAttribute(attr.id)}><Trash2 className="h-4 w-4"/></Button></div>))}</div>
-          <Button type="button" variant="outline" size="sm" className="mt-4" onClick={handleAddAttribute}><PlusCircle className="mr-2 h-4 w-4"/>Add Detail</Button>
-      </Card>
       
       <Separator />
       
@@ -422,5 +424,3 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     </form>
   );
 }
-
-    
