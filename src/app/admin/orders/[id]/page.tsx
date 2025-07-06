@@ -158,6 +158,11 @@ export default function OrderDetailPage() {
     }
   };
 
+  const itemsToShow =
+    profile?.adminRole === 'vendor' && profile.vendorId
+      ? order.items.filter((item) => item.vendorId === profile.vendorId)
+      : order.items;
+
 
   return (
     <>
@@ -188,14 +193,14 @@ export default function OrderDetailPage() {
                     <TableRow>
                       <TableHead className="w-[80px]">Image</TableHead>
                       <TableHead>Product</TableHead>
-                      <TableHead>Vendor</TableHead>
+                      {profile?.adminRole !== 'vendor' && <TableHead>Vendor</TableHead>}
                       <TableHead>Quantity</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="text-right">Total</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {order.items.map(item => {
+                    {itemsToShow.map(item => {
                       const vendor = vendors.get(item.vendorId);
                       return (
                       <TableRow key={item.id}>
@@ -212,17 +217,19 @@ export default function OrderDetailPage() {
                             </div>
                           )}
                         </TableCell>
-                        <TableCell>
-                           <Link href={`/vendor/${item.vendorId}`} className="font-medium hover:underline text-primary">
-                            {item.vendorName}
-                          </Link>
-                          {vendor?.address?.street && (
-                            <div className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
-                               <Building className="h-3 w-3 mt-0.5 shrink-0" />
-                               <span>{vendor.address.street}, {vendor.address.city}</span>
-                            </div>
-                          )}
-                        </TableCell>
+                        {profile?.adminRole !== 'vendor' && (
+                          <TableCell>
+                             <Link href={`/vendor/${item.vendorId}`} className="font-medium hover:underline text-primary">
+                              {item.vendorName}
+                            </Link>
+                            {vendor?.address?.street && (
+                              <div className="text-xs text-muted-foreground flex items-start gap-1 mt-1">
+                                 <Building className="h-3 w-3 mt-0.5 shrink-0" />
+                                 <span>{vendor.address.street}, {vendor.address.city}</span>
+                              </div>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>{item.quantity}</TableCell>
                         <TableCell className="text-right">Rs{item.price.toFixed(2)}</TableCell>
                         <TableCell className="text-right">Rs{(item.price * item.quantity).toFixed(2)}</TableCell>
