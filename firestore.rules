@@ -2,89 +2,114 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-  
-    function isUserAuthenticated() {
-      return request.auth != null;
-    }
     
-    function isUser(userId) {
-      return isUserAuthenticated() && request.auth.uid == userId;
-    }
-    
-    function isAdmin() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main' || 
-             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'standard';
-    }
-
+    // Helper function to check if the requesting user is the main admin
     function isMainAdmin() {
       return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'main';
     }
 
-    function isDeliveryPerson() {
-        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole == 'delivery';
+    // Helper function to check if the user is any kind of admin (main or standard)
+    function isAdmin() {
+      let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole;
+      return userRole == 'main' || userRole == 'standard';
+    }
+    
+    // Helper function to check if user is the document owner
+    function isOwner(doc) {
+      return request.auth.uid == doc.data.userId;
     }
 
-    // Rules for User Profiles
+    // Users collection rules
     match /users/{userId} {
-      // Any authenticated user can create their own profile during signup
-      allow create: if isUserAuthenticated();
-      
-      // A user can read, update their own profile data (name, phone, addresses)
-      allow read, update: if isUser(userId) || isMainAdmin();
-      
-      // Only the main admin can delete a user (or change their admin role)
-      allow delete: if isMainAdmin();
-    }
-    
-    // Rules for Products, Categories, Attributes
-    match /{collection}/{docId} 
-    where collection in ['products', 'categories', 'attributes', 'promocodes'] {
-      // Anyone can read products, categories, etc.
-      allow read: if true;
-      
-      // Only admins can create, update, delete them
-      allow create, update, delete: if isAdmin();
+      // Any authenticated user can create their own profile document
+      allow create: if request.auth.uid == userId;
+
+      // Users can read and update their own profile
+      allow read, update: if request.auth.uid == userId;
+
+      // Main admins can read and update any user profile to manage roles
+      allow read, update: if isMainAdmin();
     }
 
-    // Rules for Product Reviews
-    match /products/{productId}/reviews/{reviewId} {
-        // Anyone can read reviews
+    // Products collection rules
+    match /products/{productId} {
+      allow read: if true;
+      
+      function isProductOwner() {
+        // The user trying to write must be the vendor associated with the product being written
+        // Or the user must be a main admin
+        return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.vendorId == resource.data.vendorId || isMainAdmin();
+      }
+      
+      // Only the product's vendor or a main admin can write
+      allow write: if isProductOwner();
+
+      function canCreateProduct() {
+        let userRole = get(/databases/$(database)/documents/users/$(request.auth.uid)).data.adminRole;
+        return userRole == 'vendor' || isMainAdmin();
+      }
+
+      // Allow vendors and main admins to create
+      allow create: if canCreateProduct();
+    }
+    
+    // Categories and Attributes can be read by anyone, but only written by main admins
+    match /categories/{categoryId} {
         allow read: if true;
-        // Only authenticated users can create a review
-        allow create: if isUserAuthenticated();
-        // Users cannot update or delete reviews
-        allow update, delete: if false;
+        allow write: if isMainAdmin();
     }
-    
-    // Rules for Orders
+    match /attributes/{attributeId} {
+        allow read: if true;
+        allow write: if isMainAdmin();
+    }
+
+    // Reviews subcollection rules
+    match /products/{productId}/reviews/{reviewId} {
+        allow read: if true;
+        // Authenticated users can create reviews
+        allow create: if request.auth != null;
+        // Only the user who wrote the review or a main admin can delete/update
+        allow update, delete: if request.auth.uid == resource.data.userId || isMainAdmin();
+    }
+
+    // Orders collection rules
     match /orders/{orderId} {
-      // An authenticated user can create an order for themselves
-      allow create: if isUser(request.resource.data.userId);
+        function isDeliveryPerson() {
+            return request.auth.uid == resource.data.deliveryPersonId;
+        }
 
-      // An authenticated user can read their own order
-      // An admin can read any order
-      // A delivery person can read an order assigned to them
-      allow read: if isUser(request.resource.data.userId) || 
-                     isAdmin() || 
-                     (isDeliveryPerson() && resource.data.deliveryPersonId == request.auth.uid);
-      
-      // An admin can update any order (e.g., change status, assign delivery)
-      // A delivery person can update the status, otp, deliveredAt, and paymentSubmitted fields of an order assigned to them
-      allow update: if isAdmin() || 
-                       (isDeliveryPerson() && 
-                        request.auth.uid == resource.data.deliveryPersonId &&
-                        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'deliveryOtp', 'deliveredAt', 'paymentSubmitted']));
+        // The user who placed it, an admin, or the assigned delivery person can read it
+        allow read: if isOwner(resource) || isAdmin() || isDeliveryPerson();
+        
+        // Only the user who owns the order can create it
+        allow create: if request.auth.uid == request.resource.data.userId;
+        
+        // Admins and assigned delivery personnel can update orders (e.g., status)
+        allow update: if isAdmin() || isDeliveryPerson();
+    }
 
-      // Only an admin can delete an order
-      allow delete: if isAdmin();
+    // Settings can only be accessed by main admins
+    match /settings/{settingId} {
+        allow read, write: if isMainAdmin();
+    }
+
+    // Promo codes can be read by anyone, but only written by main admins
+    match /promocodes/{promoId} {
+        allow read: if true;
+        allow write: if isMainAdmin();
     }
     
-    // Rules for general app settings
-    match /settings/{settingId} {
-      // Anyone can read settings
+    // Vendors collection rules
+    match /vendors/{vendorId} {
       allow read: if true;
-      // Only the main admin can change settings
-      allow write: if isMainAdmin();
+      // Main admins create vendors when assigning roles
+      allow create: if isMainAdmin();
+      
+      function isVendorOwner() {
+        return request.auth.uid == resource.data.ownerId;
+      }
+      // The vendor owner or a main admin can update
+      allow update: if isVendorOwner() || isMainAdmin();
     }
   }
 }
