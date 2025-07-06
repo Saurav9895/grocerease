@@ -70,7 +70,7 @@ type VariantSKU = {
 
 
 // Helper function to calculate cartesian product for variants
-const cartesian = <T>(...a: T[][]): T[][] => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())));
+const cartesian = <T>(...a: T[][]): T[][] => a.reduce((a, b) => a.flatMap(d => b.map(e => [d, e].flat())), [[]] as T[][]);
 
 export function ProductForm({ product, onSuccess }: ProductFormProps) {
   const [categories, setCategories] = useState<Category[]>([]);
