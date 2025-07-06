@@ -203,15 +203,17 @@ export async function getCategoryById(id: string): Promise<Category | null> {
 }
 
 export async function getCategoriesByIds(ids: string[]): Promise<Category[]> {
-  if (!ids || ids.length === 0) return [];
+  const validIds = ids ? ids.filter(id => !!id) : [];
+  if (validIds.length === 0) return [];
+
   try {
-    const categoryPromises = ids.map(id => getCategoryById(id));
+    const categoryPromises = validIds.map(id => getCategoryById(id));
     const categories = await Promise.all(categoryPromises);
     const validCategories = categories.filter((c): c is Category => c !== null);
     
     // Preserve the order of the original IDs array
     const categoryMap = new Map(validCategories.map(c => [c.id, c.name]));
-    return ids.map(id => {
+    return validIds.map(id => {
       const category = validCategories.find(c => c.id === id);
       return category ? category : null;
     }).filter((c): c is Category => c !== null);
@@ -253,15 +255,17 @@ export async function getProductsByVendor(vendorId: string): Promise<Product[]> 
 
 
 export async function getProductsByIds(ids: string[]): Promise<Product[]> {
-  if (!ids || ids.length === 0) return [];
+  const validIds = ids ? ids.filter(id => !!id) : [];
+  if (validIds.length === 0) return [];
+
   try {
-    const productPromises = ids.map(id => getProductById(id));
+    const productPromises = validIds.map(id => getProductById(id));
     const products = await Promise.all(productPromises);
     const validProducts = products.filter((p): p is Product => p !== null);
     
     // Preserve the order of the original IDs array
     const productMap = new Map(validProducts.map(p => [p.id, p]));
-    return ids.map(id => productMap.get(id)).filter((p): p is Product => p !== undefined);
+    return validIds.map(id => productMap.get(id)).filter((p): p is Product => p !== undefined);
 
   } catch (error) {
     console.error("Error fetching products by IDs:", error);
@@ -1043,7 +1047,9 @@ export async function getVendorsByIds(vendorIds: string[]): Promise<Map<string, 
 
   // Firestore 'in' query can handle up to 30 elements. Chunk if needed for larger sets.
   const chunks = [];
-  const uniqueIds = [...new Set(vendorIds)];
+  const uniqueIds = [...new Set(vendorIds)].filter(id => !!id); // Filter out empty strings
+  if (uniqueIds.length === 0) return vendorMap;
+
   for (let i = 0; i < uniqueIds.length; i += 30) {
       chunks.push(uniqueIds.slice(i, i + 30));
   }
