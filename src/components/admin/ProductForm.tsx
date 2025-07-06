@@ -335,21 +335,51 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
       <div className="grid md:grid-cols-3 gap-8">
         <div className="md:col-span-2 grid gap-6">
           <Card className="p-6">
-            <div className="space-y-2"><Label htmlFor="name">Product Name</Label><Input id="name" name="name" defaultValue={product?.name} required /></div>
-            <div className="space-y-2 mt-4"><Label htmlFor="description">Description</Label><Textarea id="description" name="description" defaultValue={product?.description} required rows={5} /></div>
-          </Card>
-          <Card className="p-6">
-             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><Label htmlFor="originalPrice">Original Price (M.R.P.)</Label><Input id="originalPrice" name="originalPrice" type="number" step="0.01" placeholder="e.g., 120.00" defaultValue={product?.originalPrice} disabled={hasVariants} /></div>
-                <div className="space-y-2"><Label htmlFor="price">{hasVariants ? 'Base Price' : 'Sale Price'}</Label><Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required placeholder="e.g., 99.00" disabled={hasVariants}/></div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Product Name</Label>
+              <Input id="name" name="name" defaultValue={product?.name} required />
+            </div>
+            <div className="space-y-2 mt-4">
+              <Label htmlFor="description">Description</Label>
+              <Textarea id="description" name="description" defaultValue={product?.description} required rows={5} />
             </div>
             <div className="grid grid-cols-2 gap-4 mt-4">
-              <div className="space-y-2"><Label htmlFor="stock">{hasVariants ? 'Total Stock' : 'Stock'}</Label><Input id="stock" name="stock" type="number" defaultValue={product?.stock} required disabled={hasVariants} /></div>
+              <div className="space-y-2">
+                <Label htmlFor="originalPrice">Original Price (M.R.P.)</Label>
+                <Input id="originalPrice" name="originalPrice" type="number" step="0.01" placeholder="e.g., 120.00" defaultValue={product?.originalPrice} disabled={hasVariants} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="price">{hasVariants ? 'Base Price' : 'Sale Price'}</Label>
+                <Input id="price" name="price" type="number" step="0.01" defaultValue={product?.price} required placeholder="e.g., 99.00" disabled={hasVariants}/>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <div className="space-y-2">
+                <Label htmlFor="stock">{hasVariants ? 'Total Stock' : 'Stock'}</Label>
+                <Input id="stock" name="stock" type="number" defaultValue={product?.stock} required disabled={hasVariants} />
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
                 <div className="flex items-center gap-2">
-                    <Select name="category" value={selectedCategory} onValueChange={setSelectedCategory} required><SelectTrigger id="category"><SelectValue placeholder="Select a category" /></SelectTrigger><SelectContent>{categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent></Select>
-                     <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}><DialogTrigger asChild><Button type="button" variant="outline" size="icon" className="shrink-0"><PlusCircle className="h-4 w-4"/></Button></DialogTrigger><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>Create New Category</DialogTitle></DialogHeader><div className="space-y-2 py-4"><Label htmlFor="new-category-name">Category Name</Label><Input id="new-category-name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="e.g., Organic Snacks"/></div><Button type="button" onClick={handleCreateCategory} disabled={isCreatingCategory}>{isCreatingCategory ? "Creating..." : "Create Category"}</Button></DialogContent></Dialog>
+                  <Select name="category" value={selectedCategory} onValueChange={setSelectedCategory} required>
+                    <SelectTrigger id="category"><SelectValue placeholder="Select a category" /></SelectTrigger>
+                    <SelectContent>{categories.map(cat => (<SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>))}</SelectContent>
+                  </Select>
+                  <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline" size="icon" className="shrink-0"><PlusCircle className="h-4 w-4"/></Button>
+                    </DialogTrigger>
+                    <DialogContent className="sm:max-w-md">
+                      <DialogHeader><DialogTitle>Create New Category</DialogTitle></DialogHeader>
+                      <div className="space-y-2 py-4">
+                        <Label htmlFor="new-category-name">Category Name</Label>
+                        <Input id="new-category-name" value={newCategoryName} onChange={(e) => setNewCategoryName(e.target.value)} placeholder="e.g., Organic Snacks"/>
+                      </div>
+                      <Button type="button" onClick={handleCreateCategory} disabled={isCreatingCategory}>
+                        {isCreatingCategory ? "Creating..." : "Create Category"}
+                      </Button>
+                    </DialogContent>
+                  </Dialog>
                 </div>
               </div>
             </div>
