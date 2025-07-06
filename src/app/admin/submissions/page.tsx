@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -8,13 +9,20 @@ import type { Order, GroupedDeliveries } from "@/lib/types";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminSubmissionsPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [groupedOrders, setGroupedOrders] = useState<GroupedDeliveries>({});
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchAndGroupOrders = async () => {
+    if (!profile) return;
     setIsLoading(true);
-    const deliveredOrders = await getDeliveredOrders();
+
+    const fetchOptions: { vendorId?: string } = {};
+    if (profile.adminRole === 'vendor' && profile.vendorId) {
+        fetchOptions.vendorId = profile.vendorId;
+    }
+
+    const deliveredOrders = await getDeliveredOrders(fetchOptions);
     
     const groups: GroupedDeliveries = {};
     for (const order of deliveredOrders) {
@@ -38,10 +46,10 @@ export default function AdminSubmissionsPage() {
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       fetchAndGroupOrders();
     }
-  }, [user]);
+  }, [user, profile]);
 
   return (
     <div className="space-y-6">

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -10,22 +11,26 @@ import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
 
 export default function AdminOrdersPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       const fetchOrders = async () => {
         setIsLoading(true);
-        const allOrders = await getOrders();
+        const fetchOptions: { vendorId?: string } = {};
+        if (profile.adminRole === 'vendor' && profile.vendorId) {
+            fetchOptions.vendorId = profile.vendorId;
+        }
+        const allOrders = await getOrders(fetchOptions);
         setOrders(allOrders);
         setIsLoading(false);
       };
       fetchOrders();
     }
-  }, [user]);
+  }, [user, profile]);
 
   const filteredOrders = useMemo(() => {
     if (!searchTerm) {

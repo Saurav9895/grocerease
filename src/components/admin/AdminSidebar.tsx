@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -37,6 +38,8 @@ export function AdminSidebar() {
     const parts = email.split("@")[0].split(".").map((part) => part[0]).join("");
     return parts.slice(0, 2).toUpperCase();
   };
+  
+  const isMainOrStandardAdmin = profile?.adminRole === 'main' || profile?.adminRole === 'standard';
 
   return (
     <Sidebar>
@@ -48,101 +51,54 @@ export function AdminSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarMenu>
+          {/* Common Links */}
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname === "/admin"}
-              tooltip="Dashboard"
-            >
-              <Link href="/admin">
-                <LayoutDashboard />
-                <span>Dashboard</span>
-              </Link>
+            <SidebarMenuButton asChild isActive={pathname === "/admin"} tooltip="Dashboard">
+              <Link href="/admin"><LayoutDashboard /><span>Dashboard</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/products")}
-              tooltip="Products"
-            >
-              <Link href="/admin/products">
-                <Package />
-                <span>Products</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/categories")}
-              tooltip="Categories"
-            >
-              <Link href="/admin/categories">
-                <LayoutList />
-                <span>Categories</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/attributes")}
-              tooltip="Attributes"
-            >
-              <Link href="/admin/attributes">
-                <ClipboardList />
-                <span>Attributes</span>
-              </Link>
+            <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/products")} tooltip="Products">
+              <Link href="/admin/products"><Package /><span>Products</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/orders")}
-              tooltip="Orders"
-            >
-              <Link href="/admin/orders">
-                <ShoppingCart />
-                <span>Orders</span>
-              </Link>
+            <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/orders")} tooltip="Orders">
+              <Link href="/admin/orders"><ShoppingCart /><span>Orders</span></Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/deliveries")}
-              tooltip="Delivery Log"
-            >
-              <Link href="/admin/deliveries">
-                <History />
-                <span>Delivery Log</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-           <SidebarMenuItem>
-            <SidebarMenuButton
-              asChild
-              isActive={pathname.startsWith("/admin/submissions")}
-              tooltip="Submissions"
-            >
-              <Link href="/admin/submissions">
-                <DollarSign />
-                <span>Submissions</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+
+          {/* Admin-only Links */}
+          {isMainOrStandardAdmin && (
+            <>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/categories")} tooltip="Categories">
+                  <Link href="/admin/categories"><LayoutList /><span>Categories</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/attributes")} tooltip="Attributes">
+                  <Link href="/admin/attributes"><ClipboardList /><span>Attributes</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/deliveries")} tooltip="Delivery Log">
+                  <Link href="/admin/deliveries"><History /><span>Delivery Log</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarMenuItem>
+                <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/submissions")} tooltip="Submissions">
+                  <Link href="/admin/submissions"><DollarSign /><span>Submissions</span></Link>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </>
+          )}
+
+           {/* Main Admin-only Links */}
            {profile?.adminRole === 'main' && (
              <SidebarMenuItem>
-              <SidebarMenuButton
-                asChild
-                isActive={pathname.startsWith("/admin/settings")}
-                tooltip="Settings"
-              >
-                <Link href="/admin/settings">
-                  <Settings />
-                  <span>Settings</span>
-                </Link>
+              <SidebarMenuButton asChild isActive={pathname.startsWith("/admin/settings")} tooltip="Settings">
+                <Link href="/admin/settings"><Settings /><span>Settings</span></Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
            )}

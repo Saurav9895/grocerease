@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -12,23 +13,30 @@ import { Button } from "@/components/ui/button";
 import type { DateRange } from "react-day-picker";
 
 export default function AdminDeliveriesPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [allDeliveredOrders, setAllDeliveredOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [date, setDate] = useState<DateRange | undefined>(undefined);
 
   const fetchOrders = async () => {
+    if (!profile) return;
     setIsLoading(true);
-    const orders = await getDeliveredOrders();
+    
+    const fetchOptions: { vendorId?: string } = {};
+    if (profile.adminRole === 'vendor' && profile.vendorId) {
+        fetchOptions.vendorId = profile.vendorId;
+    }
+
+    const orders = await getDeliveredOrders(fetchOptions);
     setAllDeliveredOrders(orders);
     setIsLoading(false);
   };
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       fetchOrders();
     }
-  }, [user]);
+  }, [user, profile]);
   
   const filteredOrders = useMemo(() => {
     if (!date?.from) {
