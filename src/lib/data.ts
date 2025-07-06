@@ -4,6 +4,7 @@
 
 
 
+
 import { db } from './firebase';
 import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint, writeBatch } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
@@ -517,7 +518,7 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         const productData = productDoc.data() as Product;
         let currentStock: number;
         
-        if (item.variantValue && productData.variants) {
+        if (item.variantValue && productData.isVariant && productData.variants) {
           const variantData = productData.variants[item.variantValue];
           if (!variantData) {
             throw new Error(`Variant ${item.variantValue} for product ${productData.name} not found.`);
@@ -538,7 +539,7 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         const productRef = productRefs[i];
         const productData = productDocs[i].data() as Product;
         
-        if (item.variantValue && productData.variants) {
+        if (item.variantValue && productData.isVariant && productData.variants) {
           const newStock = productData.variants[item.variantValue].stock - item.quantity;
           transaction.update(productRef, { [`variants.${item.variantValue}.stock`]: newStock });
         } else {
