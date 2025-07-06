@@ -233,73 +233,86 @@ export function ProductForm({ product, onSuccess }: ProductFormProps) {
     const nonVariantAttributes = productAttributes
       .filter(a => !a.isVariant && a.key.trim())
       .reduce((acc, a) => ({ ...acc, [a.key.trim()]: a.value.trim() }), {});
-
-    let dataToSave: any = { 
-        ...validatedFields.data, 
-        attributes: nonVariantAttributes,
-        hasVariants: hasVariants,
-    };
-
-    if (hasVariants) {
-        const finalVariantDefinitions = productAttributes
-            .filter(a => a.isVariant && a.key && a.value)
-            .map(a => ({ name: a.key, values: a.value.split(',').map(v => v.trim()).filter(Boolean) }));
-
-        if (finalVariantDefinitions.length === 0) {
-            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please define at least one variant attribute with options.' });
-            setIsLoading(false); return;
-        }
-
-        const finalVariantSKUs = variantSKUs.map(sku => {
-            const price = parseFloat(sku.price);
-            const stock = parseInt(sku.stock, 10);
-            if (isNaN(price) || isNaN(stock) || !sku.imageUrl) {
-                throw new Error(`Please fill all fields for SKU: ${Object.values(sku.options).join(' / ')}`);
-            }
-            return {
-                id: sku.id,
-                options: sku.options,
-                price: price,
-                originalPrice: sku.originalPrice ? parseFloat(sku.originalPrice) : undefined,
-                stock: stock,
-                imageUrl: sku.imageUrl,
-            }
-        });
-
-        if (finalVariantSKUs.length === 0) {
-            toast({ variant: 'destructive', title: 'Variant Error', description: 'Please generate variants and fill in their details.' });
-            setIsLoading(false); return;
-        }
-        
-        const totalStock = finalVariantSKUs.reduce((sum, sku) => sum + sku.stock, 0);
-
-        dataToSave = {
-            ...dataToSave,
-            variantDefinitions: finalVariantDefinitions,
-            variantSKUs: finalVariantSKUs,
-            // For variant products, price/stock are aggregates/placeholders
-            price: finalVariantSKUs[0]?.price || 0,
-            originalPrice: finalVariantSKUs[0]?.originalPrice,
-            stock: totalStock,
-            imageUrl: finalVariantSKUs[0]?.imageUrl || validatedFields.data.imageUrl,
-        };
-    } else {
-        dataToSave = { ...dataToSave, variantDefinitions: [], variantSKUs: [] };
-    }
-
+    
     try {
+      // Start with the validated data
+      const { originalPrice, ...restData } = validatedFields.data;
+      let dataToSave: any = { 
+          ...restData, 
+          attributes: nonVariantAttributes,
+          hasVariants: hasVariants,
+      };
+
+      // Clean up base originalPrice
+      if (originalPrice !== undefined && !isNaN(originalPrice)) {
+          dataToSave.originalPrice = originalPrice;
+      }
+
+      if (hasVariants) {
+          const finalVariantDefinitions = productAttributes
+              .filter(a => a.isVariant && a.key && a.value)
+              .map(a => ({ name: a.key, values: a.value.split(',').map(v => v.trim()).filter(Boolean) }));
+
+          if (finalVariantDefinitions.length === 0) {
+              throw new Error('Please define at least one variant attribute with options.');
+          }
+
+          const finalVariantSKUs = variantSKUs.map(sku => {
+              const price = parseFloat(sku.price);
+              const stock = parseInt(sku.stock, 10);
+              
+              if (isNaN(price) || isNaN(stock) || !sku.imageUrl.trim()) {
+                  throw new Error(`Please fill all required fields (Price, Stock, Image URL) for SKU: ${Object.values(sku.options).join(' / ')}`);
+              }
+
+              let parsedOriginalPrice: number | undefined = undefined;
+              if (sku.originalPrice && sku.originalPrice.trim() !== '') {
+                  const num = parseFloat(sku.originalPrice);
+                  if (isNaN(num)) {
+                      throw new Error(`Invalid Original Price for SKU: ${Object.values(sku.options).join(' / ')}. Please enter a valid number or leave it empty.`);
+                  }
+                  parsedOriginalPrice = num;
+              }
+
+              return {
+                  id: sku.id,
+                  options: sku.options,
+                  price: price,
+                  originalPrice: parsedOriginalPrice,
+                  stock: stock,
+                  imageUrl: sku.imageUrl,
+              };
+          });
+
+          if (finalVariantSKUs.length === 0) {
+              throw new Error('Please generate variants and fill in their details.');
+          }
+          
+          const totalStock = finalVariantSKUs.reduce((sum, sku) => sum + sku.stock, 0);
+
+          // Update dataToSave with variant info
+          dataToSave.variantDefinitions = finalVariantDefinitions;
+          dataToSave.variantSKUs = finalVariantSKUs;
+          dataToSave.price = finalVariantSKUs[0]?.price || 0;
+          dataToSave.originalPrice = finalVariantSKUs[0]?.originalPrice;
+          dataToSave.stock = totalStock;
+          dataToSave.imageUrl = finalVariantSKUs[0]?.imageUrl || validatedFields.data.imageUrl;
+
+      } else {
+          dataToSave.variantDefinitions = [];
+          dataToSave.variantSKUs = [];
+      }
+
       if (isEditing && product) {
         const productRef = doc(db, "products", product.id);
         await updateDoc(productRef, dataToSave);
       } else {
         if (profile?.adminRole !== 'vendor' || !profile.vendorId) {
-            toast({ variant: 'destructive', title: 'Permission Denied', description: 'Only vendors can create new products.' });
-            setIsLoading(false); return;
+            throw new Error('Only vendors can create new products.');
         }
         const vendorSnap = await getDoc(doc(db, 'vendors', profile.vendorId));
         if (!vendorSnap.exists()) {
-             toast({ variant: 'destructive', title: 'Vendor Not Found' });
-             setIsLoading(false); return;
+             throw new Error('Vendor Not Found');
         }
         await addDoc(collection(db, "products"), { ...dataToSave, vendorId: profile.vendorId, vendorName: vendorSnap.data().name, rating: 0, reviewCount: 0, createdAt: serverTimestamp() });
       }
