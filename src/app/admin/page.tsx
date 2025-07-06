@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminDashboardPage() {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const [isLoading, setIsLoading] = useState(true);
   const [data, setData] = useState<{
     recentOrders: Order[],
@@ -27,23 +27,30 @@ export default function AdminDashboardPage() {
   } | null>(null);
 
   useEffect(() => {
-    if (user) {
+    if (user && profile) {
       const fetchData = async () => {
         setIsLoading(true);
+
+        const isVendor = profile.adminRole === 'vendor';
+        const fetchOptions = {
+          vendorId: isVendor ? profile.vendorId : undefined,
+        };
+        
         const [recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries] = await Promise.all([
-          getOrders({ limit: 5 }),
-          getProducts({ limit: 5 }),
-          getOrders(),
-          getProducts(),
+          getOrders({ limit: 5, ...fetchOptions }),
+          getProducts({ limit: 5, ...fetchOptions }),
+          getOrders(fetchOptions),
+          getProducts(fetchOptions),
           getCategories(),
-          getDeliveredOrders({ limit: 5 }),
+          getDeliveredOrders({ limit: 5, ...fetchOptions }),
         ]);
+
         setData({ recentOrders, recentProducts, allOrders, allProducts, allCategories, recentDeliveries });
         setIsLoading(false);
       };
       fetchData();
     }
-  }, [user]);
+  }, [user, profile]);
 
   if (isLoading || !data) {
     return (

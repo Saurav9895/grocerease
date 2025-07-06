@@ -1,5 +1,6 @@
 
 
+
 export interface Vendor {
   id: string;
   name: string;
@@ -87,6 +88,7 @@ export interface Order {
   paymentMethod: 'COD' | 'Online';
   status: 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
   createdAt: Date;
+  vendorIds: string[];
   deliveryPersonId?: string | null;
   deliveryPersonName?: string | null;
   deliveryOtp?: string | null;

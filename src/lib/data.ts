@@ -1,8 +1,9 @@
 
 
 
+
 import { db } from './firebase';
-import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit, DocumentData, DocumentSnapshot, Timestamp, doc, getDoc, setDoc, arrayUnion, updateDoc, runTransaction, serverTimestamp, addDoc, deleteDoc, QueryConstraint } from 'firebase/firestore';
 import type { Product, Category, Order, Address, Review, DeliverySettings, PromoCode, UserProfile, AttributeSet, HomepageSettings, OrderItem, Vendor } from './types';
 
 // == Helper Functions ==
@@ -56,6 +57,7 @@ function docToOrder(doc: DocumentSnapshot<DocumentData>): Order {
         paymentMethod: data.paymentMethod,
         status: data.status,
         createdAt: (data.createdAt as Timestamp)?.toDate() || new Date(),
+        vendorIds: data.vendorIds || [],
         deliveryPersonId: data.deliveryPersonId || null,
         deliveryPersonName: data.deliveryPersonName || null,
         deliveryOtp: data.deliveryOtp || null,
@@ -252,12 +254,21 @@ export async function duplicateProduct(productId: string): Promise<void> {
   }
 }
 
-export async function getOrders(options: { limit?: number } = {}): Promise<Order[]> {
+export async function getOrders(options: { limit?: number, vendorId?: string } = {}): Promise<Order[]> {
   try {
     const ordersCol = collection(db, 'orders');
-    const q = options.limit
-      ? query(ordersCol, orderBy('createdAt', 'desc'), limit(options.limit))
-      : query(ordersCol, orderBy('createdAt', 'desc'));
+    
+    const queryConstraints: any[] = [orderBy('createdAt', 'desc')];
+
+    if (options.vendorId) {
+        queryConstraints.unshift(where('vendorIds', 'array-contains', options.vendorId));
+    }
+
+    if (options.limit) {
+        queryConstraints.push(limit(options.limit));
+    }
+    
+    const q = query(ordersCol, ...queryConstraints);
     const snapshot = await getDocs(q);
     return snapshot.docs.map(docToOrder);
   } catch (error) {
@@ -448,7 +459,7 @@ export async function addReviewAndUpdateProduct(
   }
 }
 
-export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 'createdAt'>): Promise<string> {
+export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 'createdAt' | 'vendorIds'>): Promise<string> {
   try {
     const newOrderRef = await runTransaction(db, async (transaction) => {
       // 1. Read all product documents first.
@@ -508,10 +519,13 @@ export async function createOrderAndDecreaseStock(orderData: Omit<Order, 'id' | 
         vendorId: item.vendorId,
         vendorName: item.vendorName,
       }));
+      
+      const vendorIds = [...new Set(orderData.items.map(item => item.vendorId))];
 
       const finalOrderData = {
         ...orderData,
         items: itemsForDb,
+        vendorIds: vendorIds,
         createdAt: serverTimestamp(),
       };
 
@@ -877,13 +891,16 @@ export async function markPaymentAsSubmitted(orderId: string): Promise<void> {
     }
 }
 
-export async function getDeliveredOrders(options: { limit?: number, deliveryPersonId?: string } = {}): Promise<Order[]> {
+export async function getDeliveredOrders(options: { limit?: number, deliveryPersonId?: string, vendorId?: string } = {}): Promise<Order[]> {
   try {
     const ordersCol = collection(db, 'orders');
     
-    const constraints = [where('status', '==', 'Delivered')];
+    const constraints: QueryConstraint[] = [where('status', '==', 'Delivered')];
     if (options.deliveryPersonId) {
       constraints.push(where('deliveryPersonId', '==', options.deliveryPersonId));
+    }
+    if (options.vendorId) {
+        constraints.push(where('vendorIds', 'array-contains', options.vendorId));
     }
 
     const q = query(ordersCol, ...constraints);
