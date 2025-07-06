@@ -6,12 +6,21 @@ import Link from 'next/link';
 import { Card, CardContent } from '@/components/ui/card';
 import type { Product } from '@/lib/types';
 import { Star } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
 interface ProductCardProps {
   product: Product;
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const router = useRouter();
+
+  const handleVendorClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    router.push(`/vendor/${product.vendorId}`);
+  };
+
   return (
     <Link href={`/product/${product.id}`} className="group block h-full">
       <Card className="relative flex flex-col h-full overflow-hidden transition-all duration-300 hover:shadow-lg">
@@ -28,9 +37,9 @@ export function ProductCard({ product }: ProductCardProps) {
 
             <div className="flex-grow flex flex-col justify-center text-left">
               <p className="text-xs text-muted-foreground">
-                <Link href={`/vendor/${product.vendorId}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
+                <span onClick={handleVendorClick} className="hover:underline cursor-pointer">
                     {product.vendorName}
-                </Link>
+                </span>
               </p>
               <h3 className="text-lg font-bold leading-tight">{product.name}</h3>
             </div>
